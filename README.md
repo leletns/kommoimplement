@@ -47,7 +47,7 @@ node src/server.js                    # ou: npm start
 Regras de segurança do retroativo:
 - Ganhos (142) e perdidos (143) não são alterados.
 - Leads já processados (tag `alice_bot_finalizado`) são pulados, então rodar de novo não duplica nada.
-- **A etapa só avança, nunca volta**: um lead em "APN Agendada" com score baixo não volta para NOVOS. Leads em "Leads de entrada" (incoming) não são movidos.
+- **A etapa só avança, nunca volta**: um lead em "4. Consulta agendada" com score baixo não volta para "1. Novo". Leads em "Leads de entrada" (incoming) não são movidos.
 - As tags existentes do lead são mantidas. Só a temperatura anterior (`lead_fria`/`lead_morna`/`lead_quente`) é trocada.
 - Notas são lidas e gravadas em lote (`GET/POST /leads/notes`), com ~3 chamadas por página de 250 leads.
 - Ao final, um relatório `retroativo-<timestamp>.json` é salvo.
@@ -66,8 +66,8 @@ node src/scripts/organizarKommo.js --aplicar  # backup + aplica tudo
 | Funis | **Comercial 1** e **Comercial 2** com as mesmas etapas: 1. Novo · boas-vindas → 2. Qualificado → 3. Interesse em agendar · Maria → 4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada → 8. Nutrição · retomar depois. No Comercial 1 é só renomear: os IDs das etapas e os leads não mudam, então os robôs ligados às etapas continuam funcionando. O funil vazio "Alice - Blue" é apagado. |
 | Campos | Aba principal só com o que a comercial preenche (10 campos); "Qualificação (Alice)" com o que é automático; "Financeiro". Remove 12 campos nunca usados. Corrige "Classificação" (Fria/Morna/Quente) e "Data e horário da consulta". |
 | Tags | frio/ia-frio/morno/quente/muito_quente → `lead_fria`/`lead_morna`/`lead_quente`; alice_rj/sp/internacional → rj/sp/internacional |
-| Tarefas | Conclui as 93 tarefas automáticas vencidas "NOVO LEAD CHEGOU" |
-| Templates | Renomeia os 104 por etapa da jornada (`01 Abertura`, `04 Objeção`, `06 Pagamento`, `09 Follow-up`…) e cria os 19 de objeção (5 passos) e os 3 textos dos robôs (`00 Robô · …`) |
+| Tarefas | Conclui as tarefas automáticas vencidas "NOVO LEAD CHEGOU" (95 na primeira execução) |
+| Templates | Cria os 19 de objeção (5 passos) e os 3 textos dos robôs (`00 Robô · …`). Renomear os 104 antigos por etapa da jornada **só pela tela**: a API do Kommo devolve 403 (API privada). A tabela de nomes está em [`docs/templates-renomear.md`](docs/templates-renomear.md). |
 
 Depois, o retroativo preenche o card (Score, Classificação, Objeção registrada, Resumo Alice Bot) sem poluir a timeline:
 ```bash
@@ -120,7 +120,7 @@ As chaves são os meses (`set`, `ago`, `jul`…, do mais recente para o mais ant
 | Time | Responsável pelo lead; cargo via `KOMMO_TEAM_ROLES_JSON`; c1 = APN/leads, c2 = vendas/APN, c3 = vendas/leads |
 | Leads com renda | Leads com `KOMMO_RENDA_FIELD_ID` preenchido (sem o campo: "—") |
 
-Etapas: detectadas pelo nome ("Novos", "Qualific…", "Agend…/APN"). Se os nomes forem outros, defina `KOMMO_STATUS_NOVOS_ID`, `KOMMO_STATUS_QUALIFICADOS_ID` e `KOMMO_APN_STATUS_IDS`.
+Etapas: vêm dos IDs no `.env` (`KOMMO_STATUS_NOVOS_ID`, `KOMMO_STATUS_QUALIFICADOS_ID`, `KOMMO_STATUS_INTERESSE_ID`, `KOMMO_APN_STATUS_IDS`); sem ID, são detectadas pelo nome ("Novo", "Qualificado", "Interesse em agendar", "Consulta agendada"). Os IDs no `.env` valem só para o Comercial 1; no Comercial 2 (`--funil 13687203`) a detecção é pelo nome.
 
 ## Webhooks
 
@@ -156,10 +156,10 @@ node src/scripts/importarGrupo.js --lead 79973970 --arquivo "Conversa do WhatsAp
 
 | Score | Tags | Etapa |
 |---|---|---|
-| ≥ 70 | `lead_quente` + `follow_up_day2` + `alice_bot_finalizado` | QUALIFICADOS |
-| 40–69 | `lead_morna` + `follow_up_day2` + `alice_bot_finalizado` | QUALIFICADOS |
-| < 40 | `lead_fria` + `follow_up_day2` + `alice_bot_finalizado` | NOVOS |
+| ≥ 70 | `lead_quente` + `handoff_maria` + `follow_up_day2` + `alice_bot_finalizado` | 3. Interesse em agendar · Maria |
+| 40–69 | `lead_morna` + `follow_up_day2` + `alice_bot_finalizado` | 2. Qualificado |
+| < 40 | `lead_fria` + `follow_up_day2` + `alice_bot_finalizado` | 1. Novo · boas-vindas |
 
-O score soma sinais explicáveis: sintomas (dor, peso, hematomas, inchaço, desproporção…), diagnóstico/suspeita de lipedema, intenção (agendar, consulta, cirurgia, valor, Sublift), desinteresse (negativo), valor no card, engajamento (nº de notas), recência e progresso no funil. A nota no card mostra a composição do score e, se houver objeções, o roteiro de cada uma nos 5 passos (**Acolher → Investigar → Compreender → Reposicionar → Conduzir**).
+O score soma sinais explicáveis: sintomas (dor, peso, hematomas, inchaço, desproporção…), diagnóstico/suspeita de lipedema, intenção (agendar, consulta, cirurgia, valor, Sublift), desinteresse (negativo), valor no card, engajamento (nº de notas), recência e progresso no funil. Com `--sem-nota-alice` (recomendado), o resultado vai para os campos do card, na aba "Qualificação (Alice)": Score, Classificação (Fria/Morna/Quente), Objeção registrada e Resumo Alice Bot (sinais, objeções e uma sugestão de resposta no método dos 5 passos: **Acolher → Investigar → Compreender → Reposicionar → Conduzir**). Sem essa opção, também cria uma nota com a composição completa do score.
 
 As 19 objeções são: valor da consulta, valor da cirurgia, distância, paciente internacional, medo de cirurgia, tempo de afastamento, sem diagnóstico, lipedema × gordura localizada, comparação com outros médicos, desconfiança de promessas, resultado artificial, recuperação difícil, pele irregular, Sublift serve?, plano de saúde, "preciso pensar/falar com alguém", falta de tempo, forma de pagamento e consulta online. Os textos seguem as regras de segurança médica da Blue: sem diagnóstico, sem promessa de resultado, sempre conduzindo para avaliação individualizada. **Valide a lista e as falas com o Manual Comercial Blue** antes de usar com pacientes. Elas ficam em `OBJECTIONS`, em `aliceEngine.js`.
