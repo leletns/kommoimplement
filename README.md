@@ -114,6 +114,15 @@ O lead é identificado nesta ordem:
 
 A nota entra na timeline do card via `POST /api/v4/leads/{id}/notes`. Reenvios do mesmo `messageId` não duplicam.
 
+### Histórico antigo de grupos (retroativo)
+Nenhuma integração de WhatsApp traz mensagens antigas de grupos (a opção de grupos do Wazzup só capta mensagens a partir de quando é ligada). Para o passado:
+1. No WhatsApp, abra o grupo → ⋮ → *Mais* → **Exportar conversa** → *Sem mídia* (no iPhone, extraia o `_chat.txt` do .zip).
+2. Simule e depois grave (uma nota por dia no card; rodar de novo não duplica):
+```bash
+node src/scripts/importarGrupo.js --lead 79973970 --arquivo "Conversa do WhatsApp com Pós-op Ana.txt"
+node src/scripts/importarGrupo.js --lead 79973970 --arquivo "Conversa do WhatsApp com Pós-op Ana.txt" --gravar
+```
+
 ## Alice Bot — régua
 
 | Score | Tags | Etapa |
