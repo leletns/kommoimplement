@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #faf9f7; font-family: Montserrat, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #4b7da7; text-decoration: none; }
+  a:hover { color: #284359; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #e1e5e4; border-radius: 8px; }
+</style>
+</helmet>
+<div data-dash-root="" style="display:flex; min-height:100vh; background:#faf9f7; color:#284359;">
+
+  <aside style="{{ sidebarStyle }}">
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="font-family:Montserrat,sans-serif; font-size:34px; font-weight:200; letter-spacing:0.01em; color:#ffffff; line-height:1;">blue<span style="color:{{ accent }};">.</span></div>
+      <div style="font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:#d1cebf;">Painel Comercial</div>
+    </div>
+
+    <nav style="display:flex; flex-direction:column; gap:2px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+        <button onClick="{{ item.onClick }}" style="{{ item.style }}">{{ item.label }}</button>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px; padding:16px; border:1px solid rgba(225,229,228,0.24); border-radius:16px; background:rgba(255,255,255,0.06);">
+      <div style="font-size:10px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#d1cebf;">Fonte de dados</div>
+      <div style="font-size:13px; font-weight:500; color:#ffffff; letter-spacing:-0.02em;">Kommo CRM</div>
+      <div style="display:flex; align-items:center; gap:7px;">
+        <span style="width:7px; height:7px; border-radius:50%; background:{{ accent }}; display:inline-block;"></span>
+        <span style="font-size:12px; color:#e1e5e4; letter-spacing:-0.02em;">Sincronizado {{ updatedAt }}</span>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1; min-width:0; display:flex; flex-direction:column;">
+
+    <header style="position:sticky; top:0; z-index:20; background:#ffffff; border-bottom:1px solid #e1e5e4; padding:18px 32px; display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+      <sc-if value="{{ compactNav }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:12px; width:100%; padding-bottom:12px; border-bottom:1px solid #e1e5e4; flex-wrap:wrap;">
+          <div style="font-family:Montserrat,sans-serif; font-size:26px; font-weight:200; letter-spacing:0.01em; color:#17253d; line-height:1;">blue<span style="color:{{ accent }};">.</span></div>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            <sc-for list="{{ navItemsLight }}" as="item" hint-placeholder-count="5">
+              <button onClick="{{ item.onClick }}" style="{{ item.style }}">{{ item.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <div style="display:flex; flex-direction:column; gap:2px; margin-right:8px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#5f7488;">Período</div>
+        <div style="font-family:'Playfair Display',serif; font-size:22px; font-weight:500; letter-spacing:-0.015em; color:#284359; line-height:1.1;">{{ periodLabel }}</div>
+      </div>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <sc-for list="{{ periodTabs }}" as="tab" hint-placeholder-count="3">
+          <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; padding-left:16px; border-left:1px solid #e1e5e4;">
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#5f7488;">Etapa</span>
+        <sc-for list="{{ stageTabs }}" as="tab" hint-placeholder-count="3">
+          <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="margin-left:auto; display:flex; align-items:center; gap:14px;">
+        <span style="font-size:12px; color:#616161; letter-spacing:-0.02em;">Atualizado {{ updatedAt }}</span>
+        <button onClick="{{ refresh }}" style="background:#4b7da7; background:{{ accent }}; color:#ffffff; border:none; border-radius:8px; padding:9px 18px; font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; letter-spacing:-0.01em; cursor:pointer; transition:background 140ms ease;" style-hover="background:#284359">Atualizar</button>
+      </div>
+
+      <div style="width:100%; display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #e1e5e4;">
+        <select value="{{ unidade }}" onChange="{{ setUnidade }}" style="font-family:Montserrat,sans-serif; font-size:12.5px; font-weight:500; color:#284359; background:#ffffff; border:1px solid #e1e5e4; border-radius:8px; padding:8px 12px; cursor:pointer;">
+          <sc-for list="{{ unidades }}" as="u" hint-placeholder-count="3">
+            <option value="{{ u }}">{{ u }}</option>
+          </sc-for>
+        </select>
+        <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#616161; border:1px solid #e1e5e4; border-radius:8px; padding:7px 12px;">
+          <span style="letter-spacing:-0.02em;">{{ dateFrom }}</span>
+          <span style="color:#a6bacb;">—</span>
+          <span style="letter-spacing:-0.02em;">{{ dateTo }}</span>
+        </div>
+        <select value="{{ closer }}" onChange="{{ setCloser }}" style="font-family:Montserrat,sans-serif; font-size:12.5px; font-weight:500; color:#284359; background:#ffffff; border:1px solid #e1e5e4; border-radius:8px; padding:8px 12px; cursor:pointer;">
+          <sc-for list="{{ closers }}" as="c" hint-placeholder-count="4">
+            <option value="{{ c.value }}">{{ c.label }}</option>
+          </sc-for>
+        </select>
+        <select value="{{ origem }}" onChange="{{ setOrigem }}" style="font-family:Montserrat,sans-serif; font-size:12.5px; font-weight:500; color:#284359; background:#ffffff; border:1px solid #e1e5e4; border-radius:8px; padding:8px 12px; cursor:pointer;">
+          <sc-for list="{{ origens }}" as="o" hint-placeholder-count="4">
+            <option value="{{ o }}">{{ o }}</option>
+          </sc-for>
+        </select>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding-left:12px; border-left:1px solid #e1e5e4;">
+          <span style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#5f7488;">Produto</span>
+          <sc-for list="{{ produtoTabs }}" as="tab" hint-placeholder-count="3">
+            <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </header>
+
+    <div style="padding:32px; display:flex; flex-direction:column; gap:44px; max-width:1600px; width:100%; box-sizing:border-box;">
+
+      <section style="display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#284359;">Receita e conversão</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;">
+          <sc-for list="{{ kpis }}" as="kpi" hint-placeholder-count="8">
+            <div style="{{ kpi.cardStyle }}" style-hover="box-shadow: rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.16) 0px 6px 14px 0px">
+              <div style="font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:{{ kpi.labelColor }};">{{ kpi.label }}</div>
+              <div style="font-family:'Playfair Display',serif; font-weight:500; font-size:38px; line-height:1.05; letter-spacing:-0.02em; color:{{ kpi.valueColor }};">{{ kpi.value }}</div>
+              <div style="font-size:12.5px; font-weight:400; letter-spacing:-0.02em; color:{{ kpi.subColor }}; line-height:1.45;">{{ kpi.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex; flex-wrap:wrap; gap:16px; align-items:stretch;">
+        <div style="flex:3 1 420px; background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:24px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:20px; min-width:0; position:relative;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="font-size:20px; font-weight:600; letter-spacing:-0.025em; color:#284359;">Leads gerados vs. vendas por semana</div>
+            <div style="display:flex; gap:18px;">
+              <div style="display:flex; align-items:center; gap:7px; font-size:12px; color:#616161; letter-spacing:-0.02em;"><span style="width:14px; height:2px; background:{{ accent }}; display:inline-block;"></span>Leads</div>
+              <div style="display:flex; align-items:center; gap:7px; font-size:12px; color:#616161; letter-spacing:-0.02em;"><span style="width:14px; height:2px; background:#d1cebf; display:inline-block;"></span>Vendas</div>
+            </div>
+          </div>
+          {{ chart }}
+        </div>
+
+        <div style="flex:1 1 250px; background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:24px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:18px; min-width:0;">
+          <div style="font-size:20px; font-weight:600; letter-spacing:-0.025em; color:#284359;">Velocidade comercial</div>
+          <sc-for list="{{ velocity }}" as="row" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:3px; padding-bottom:14px; border-bottom:1px solid #e1e5e4;">
+              <div style="font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#5f7488;">{{ row.label }}</div>
+              <div style="font-family:'Playfair Display',serif; font-size:26px; font-weight:500; letter-spacing:-0.02em; color:#284359; line-height:1.1;">{{ row.value }}</div>
+              <div style="font-size:12px; color:#616161; letter-spacing:-0.02em;">{{ row.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
+          <div style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#284359;">Vendedores — performance individual</div>
+          <div style="font-size:12px; color:#616161; letter-spacing:-0.02em;">Ordenado por receita · coorte por entrada</div>
+          <div style="margin-left:auto; font-size:12px; color:#616161; letter-spacing:-0.02em;">{{ teamTotals }}</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;">
+          <sc-for list="{{ team }}" as="rep" hint-placeholder-count="3">
+            <div style="background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:24px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:18px; transition:box-shadow 160ms ease;" style-hover="box-shadow: rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.16) 0px 6px 14px 0px">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; border-radius:50%; background:#e1e5e4; color:#284359; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; letter-spacing:-0.01em; flex:0 0 40px;">{{ rep.initials }}</div>
+                <div style="display:flex; flex-direction:column; gap:1px; min-width:0;">
+                  <div style="font-size:16px; font-weight:600; letter-spacing:-0.025em; color:#284359;">{{ rep.name }}</div>
+                  <div style="font-size:12px; color:#616161; letter-spacing:-0.02em;">{{ rep.role }}</div>
+                </div>
+                <div style="margin-left:auto; font-family:'Playfair Display',serif; font-size:20px; font-weight:500; letter-spacing:-0.02em; color:#284359;">{{ rep.revenue }}</div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'Playfair Display',serif; font-size:24px; font-weight:500; color:#284359; line-height:1;">{{ rep.leads }}</span><span style="font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#5f7488;">Leads</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'Playfair Display',serif; font-size:24px; font-weight:500; color:#284359; line-height:1;">{{ rep.apn }}</span><span style="font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#5f7488;">APN</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'Playfair Display',serif; font-size:24px; font-weight:500; color:#284359; line-height:1;">{{ rep.sales }}</span><span style="font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:#5f7488;">Vendas</span></div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding-top:14px; border-top:1px solid #e1e5e4;">
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:15px; font-weight:600; color:#4b7da7; letter-spacing:-0.02em;">{{ rep.c1 }}</span><span style="font-size:10px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#616161;">Lead → APN</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:15px; font-weight:600; color:#4b7da7; letter-spacing:-0.02em;">{{ rep.c2 }}</span><span style="font-size:10px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#616161;">APN → Venda</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:15px; font-weight:600; color:#4b7da7; letter-spacing:-0.02em;">{{ rep.c3 }}</span><span style="font-size:10px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#616161;">Lead → Venda</span></div>
+              </div>
+
+              <div style="height:6px; border-radius:200px; background:#e1e5e4; overflow:hidden;">
+                <div style="height:100%; border-radius:200px; background:{{ accent }}; width:{{ rep.share }};"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <sc-if value="{{ showFunnel }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#284359;">Funil por etapa</div>
+        <div style="background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:28px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:20px;">
+          <sc-for list="{{ funnel }}" as="stage" hint-placeholder-count="5">
+            <div style="display:grid; grid-template-columns:minmax(110px,190px) minmax(0,1fr) minmax(80px,140px); gap:20px; align-items:center;">
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="font-size:14px; font-weight:600; letter-spacing:-0.025em; color:#284359;">{{ stage.label }}</div>
+                <div style="font-size:11px; color:#616161; letter-spacing:-0.02em;">{{ stage.conv }}</div>
+              </div>
+              <div style="height:34px; background:#f4f6f6; border-radius:8px; overflow:hidden; display:flex; align-items:center;">
+                <div style="height:100%; border-radius:8px; background:{{ stage.color }}; width:{{ stage.width }}; flex:0 0 auto; display:flex; align-items:center; padding-left:14px; box-sizing:border-box;">
+                  <span style="font-size:13px; font-weight:600; color:#ffffff; letter-spacing:-0.02em; white-space:nowrap;">{{ stage.countInside }}</span>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:#284359; letter-spacing:-0.02em; white-space:nowrap; padding-left:10px;">{{ stage.countOutside }}</span>
+              </div>
+              <div style="text-align:right; font-size:14px; font-weight:600; color:#284359; letter-spacing:-0.02em;">{{ stage.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+      </sc-if>
+
+      <section style="display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#284359;">Rankings</div>
+        <div style="display:flex; flex-wrap:wrap; gap:16px;">
+          <sc-for list="{{ rankings }}" as="rk" hint-placeholder-count="2">
+            <div style="flex:1 1 320px; min-width:0; background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:24px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:16px;">
+              <div style="font-size:16px; font-weight:600; letter-spacing:-0.025em; color:#284359;">{{ rk.title }}</div>
+              <sc-for list="{{ rk.rows }}" as="row" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span style="width:22px; font-family:'Playfair Display',serif; font-size:16px; color:#5f7488;">{{ row.pos }}</span>
+                  <span style="flex:0 0 96px; font-size:13.5px; font-weight:600; letter-spacing:-0.02em; color:#284359; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.name }}</span>
+                  <span style="flex:1 1 auto; height:8px; background:#f4f6f6; border-radius:200px; overflow:hidden; min-width:40px;">
+                    <span style="display:block; height:100%; border-radius:200px; background:{{ accent }}; width:{{ row.width }};"></span>
+                  </span>
+                  <span style="flex:0 0 auto; font-size:13px; font-weight:600; color:#284359; letter-spacing:-0.02em; white-space:nowrap;">{{ row.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="padding-top:8px; padding-bottom:20px; border-top:2px solid #d1cebf; font-size:11px; color:#5f7488; letter-spacing:-0.02em;">Dados de demonstração espelhando o Kommo CRM · Clínica Blue · Barra da Tijuca</div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#4b7da7&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#4b7da7&quot;,&quot;#284359&quot;,&quot;#a6bacb&quot;],&quot;section&quot;:&quot;Marca&quot;},&quot;showFunnel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+const PERIODS = {
+  set: {
+    label: 'Setembro 2026', range: '01/09/2026 — 30/09/2026',
+    leads: '1.2k', apn: '414', consultas: '48', cirurgias: '11',
+    vendas: '59', receita: 'R$ 1.143.828', ads: 'R$ 15.034,66', cac: 'R$ 255',
+    cm1: 'CM1 · R$ 82.300', cm2: 'CM2 · R$ 1.061.528',
+    ticket: 'R$ 19.387', ciclo: '37 dias', leadsRenda: '409', form: '18/09/2026',
+    weeks: ['S1', 'S2', 'S3', 'S4', 'S5'],
+    leadSeries: [268, 302, 331, 246, 96],
+    saleSeries: [12, 16, 14, 11, 6],
+    team: [
+      { name: 'Lya', role: 'C01B · Closer Lya', leads: 235, apn: 222, sales: 32, c1: '94.5%', c2: '14.4%', c3: '13.6%', revenue: 60250 },
+      { name: 'Sara', role: 'C01A · Closer Sarah', leads: 307, apn: 231, sales: 25, c1: '75.2%', c2: '10.8%', c3: '8.1%', revenue: 51500 },
+      { name: 'Karinny', role: 'Dr Henrique · Comercial 1', leads: 487, apn: 164, sales: 28, c1: '33.7%', c2: '17.1%', c3: '5.7%', revenue: 27400 }
+    ],
+    funnel: [
+      { label: 'Leads', count: 1243, value: '—' },
+      { label: 'Qualificados', count: 812, value: 'R$ 4.9M pipe' },
+      { label: 'APN agendadas', count: 414, value: 'R$ 2.1M pipe' },
+      { label: 'Consultas vendidas', count: 48, value: 'R$ 82.300' },
+      { label: 'Cirurgias vendidas', count: 11, value: 'R$ 1.061.528' }
+    ]
+  },
+  ago: {
+    label: 'Agosto 2026', range: '01/08/2026 — 31/08/2026',
+    leads: '986', apn: '351', consultas: '33', cirurgias: '9',
+    vendas: '42', receita: 'R$ 2.337.528', ads: 'R$ 13.880,00', cac: 'R$ 330',
+    cm1: 'CM1 · R$ 61.400', cm2: 'CM2 · R$ 2.276.128',
+    ticket: 'R$ 70.834', ciclo: '118 dias', leadsRenda: '3', form: '27/08/2026',
+    weeks: ['S1', 'S2', 'S3', 'S4', 'S5'],
+    leadSeries: [210, 248, 226, 196, 106],
+    saleSeries: [9, 11, 10, 8, 4],
+    team: [
+      { name: 'Leonardo Cardoso', role: 'Comercial 2 · Dream Day', leads: 21, apn: 21, sales: 33, c1: '100.0%', c2: '157.1%', c3: '157.1%', revenue: 2337528 },
+      { name: 'Sara', role: 'C01A · Closer Sarah', leads: 264, apn: 188, sales: 14, c1: '71.2%', c2: '7.4%', c3: '5.3%', revenue: 38900 },
+      { name: 'Lya', role: 'C01B · Closer Lya', leads: 198, apn: 176, sales: 11, c1: '88.9%', c2: '6.3%', c3: '5.6%', revenue: 24100 }
+    ],
+    funnel: [
+      { label: 'Leads', count: 986, value: '—' },
+      { label: 'Qualificados', count: 640, value: 'R$ 3.8M pipe' },
+      { label: 'APN agendadas', count: 351, value: 'R$ 1.7M pipe' },
+      { label: 'Consultas vendidas', count: 33, value: 'R$ 61.400' },
+      { label: 'Cirurgias vendidas', count: 9, value: 'R$ 2.276.128' }
+    ]
+  },
+  mai: {
+    label: 'Maio 2026', range: '01/05/2026 — 31/05/2026',
+    leads: '724', apn: '391', consultas: '45', cirurgias: '6',
+    vendas: '51', receita: 'R$ 72.100', ads: 'R$ 11.420,00', cac: 'R$ 224',
+    cm1: 'CM1 · R$ 72.100', cm2: 'CM2 · R$ 0',
+    ticket: 'R$ 1.602', ciclo: '90 dias', leadsRenda: '186', form: '31/05/2026',
+    weeks: ['S1', 'S2', 'S3', 'S4', 'S5'],
+    leadSeries: [164, 182, 158, 136, 84],
+    saleSeries: [11, 13, 12, 9, 6],
+    team: [
+      { name: 'Sara', role: 'C01A · Closer Sarah', leads: 137, apn: 98, sales: 18, c1: '71.5%', c2: '18.4%', c3: '13.1%', revenue: 35000 },
+      { name: 'Lya', role: 'C01B · Closer Lya', leads: 195, apn: 127, sales: 10, c1: '65.1%', c2: '7.9%', c3: '5.1%', revenue: 21750 },
+      { name: 'Karinny', role: 'Dr Henrique · Comercial 1', leads: 330, apn: 166, sales: 17, c1: '50.3%', c2: '10.2%', c3: '5.2%', revenue: 15350 }
+    ],
+    funnel: [
+      { label: 'Leads', count: 724, value: '—' },
+      { label: 'Qualificados', count: 498, value: 'R$ 2.4M pipe' },
+      { label: 'APN agendadas', count: 391, value: 'R$ 1.2M pipe' },
+      { label: 'Consultas vendidas', count: 45, value: 'R$ 72.100' },
+      { label: 'Cirurgias vendidas', count: 6, value: 'R$ 0' }
+    ]
+  }
+};
+
+class Component extends DCLogic {
+  state = { period: 'set', stage: 'todas', nav: 'Comercial', updatedAt: '10:11', hover: null, w: 1400, closer: 'todos', unidade: 'Todas as unidades', origem: 'Origem: todas', produto: 'Todos' };
+
+  componentDidMount() {
+    this._measure = () => {
+      const w = (this._rootEl && this._rootEl.getBoundingClientRect().width) || window.innerWidth;
+      if (w && w !== this.state.w) this.setState({ w: w });
+    };
+    this._rootEl = document.querySelector('[data-dash-root]');
+    requestAnimationFrame(this._measure);
+    setTimeout(this._measure, 250);
+    if (window.ResizeObserver && this._rootEl) {
+      this._ro = new ResizeObserver(this._measure);
+      this._ro.observe(this._rootEl);
+    }
+    window.addEventListener('resize', this._measure);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._measure);
+    if (this._ro) this._ro.disconnect();
+  }
+
+  pill(active, accent) {
+    return [
+      'font-family:Montserrat,sans-serif', 'font-size:12.5px', 'font-weight:600',
+      'letter-spacing:-0.01em', 'padding:8px 14px', 'border-radius:8px', 'cursor:pointer',
+      'transition:all 140ms ease', 'white-space:nowrap',
+      active
+        ? 'background:' + (accent || '#284359') + '; color:#ffffff; border:1px solid ' + (accent || '#284359')
+        : 'background:#ffffff; color:#616161; border:1px solid #e1e5e4'
+    ].join('; ');
+  }
+
+  navStyle(active) {
+    return [
+      'text-align:left', 'font-family:Montserrat,sans-serif', 'font-size:13.5px',
+      'font-weight:' + (active ? '600' : '500'), 'letter-spacing:-0.02em',
+      'padding:10px 12px', 'border-radius:8px', 'cursor:pointer', 'border:none',
+      'transition:all 140ms ease',
+      active ? 'background:rgba(255,255,255,0.14); color:#ffffff' : 'background:transparent; color:#c3cfd9'
+    ].join('; ');
+  }
+
+  buildChart(d, accent) {
+    const W = 680, H = 230, padL = 46, padR = 14, padT = 14, padB = 30;
+    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15;
+    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6;
+    const n = d.leadSeries.length;
+    const x = i => padL + (i * (W - padL - padR)) / (n - 1);
+    const y = (v, max) => padT + (H - padT - padB) * (1 - v / max);
+    const pts = (arr, max) => arr.map((v, i) => x(i) + ',' + y(v, max)).join(' ');
+    const e = React.createElement;
+    const gridVals = [0, 0.25, 0.5, 0.75, 1];
+    const grid = gridVals.map((g, i) => {
+      const yy = padT + (H - padT - padB) * (1 - g);
+      return e('g', { key: 'g' + i },
+        e('line', { x1: padL, x2: W - padR, y1: yy, y2: yy, stroke: '#e1e5e4', strokeWidth: 1 }),
+        e('text', { x: padL - 10, y: yy + 4, textAnchor: 'end', fontSize: 11, fill: '#5f7488', fontFamily: 'Montserrat, sans-serif' }, Math.round(maxLead * g))
+      );
+    });
+    const labels = d.weeks.map((w, i) => e('text', {
+      key: 'l' + i, x: x(i), y: H - 8, textAnchor: 'middle', fontSize: 11,
+      fill: '#616161', fontFamily: 'Montserrat, sans-serif'
+    }, w));
+    const hv = this.state.hover;
+    const dots = d.leadSeries.map((v, i) => e('circle', {
+      key: 'd' + i, cx: x(i), cy: y(v, maxLead), r: hv === i ? 5.5 : 3.5, fill: accent
+    }));
+    const hits = d.leadSeries.map((v, i) => {
+      const bw = (W - padL - padR) / (n - 1);
+      return e('rect', {
+        key: 'h' + i, x: x(i) - bw / 2, y: padT, width: bw, height: H - padT - padB,
+        fill: 'transparent', style: { cursor: 'crosshair' },
+        onMouseEnter: () => this.setState({ hover: i }),
+        onMouseLeave: () => this.setState({ hover: null })
+      });
+    });
+    const tip = hv === null ? null : (function () {
+      const tx = x(hv), ty = y(d.leadSeries[hv], maxLead);
+      const line1 = 'SEMANA ' + d.weeks[hv].replace('S', '');
+      const line2 = d.leadSeries[hv] + ' leads · ' + d.saleSeries[hv] + ' vendas';
+      const bw2 = Math.max(line1.length * 7.2, line2.length * 8.0) + 24;
+      const left = tx + 12 + bw2 > W - padR;
+      const bx = left ? tx - 12 - bw2 : tx + 12;
+      return e('g', null,
+        e('line', { x1: tx, x2: tx, y1: padT, y2: H - padB, stroke: '#a6bacb', strokeWidth: 1, strokeDasharray: '3 3' }),
+        e('rect', { x: bx, y: Math.max(padT, ty - 44), width: bw2, height: 52, rx: 8, fill: '#284359' }),
+        e('text', { x: bx + 12, y: Math.max(padT, ty - 44) + 19, fontSize: 11, fill: '#d1cebf', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.06em' }, line1),
+        e('text', { x: bx + 12, y: Math.max(padT, ty - 44) + 38, fontSize: 13, fill: '#ffffff', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }, line2)
+      );
+    })();
+    const areaPath = 'M' + x(0) + ',' + y(d.leadSeries[0], maxLead) + ' ' +
+      d.leadSeries.map((v, i) => 'L' + x(i) + ',' + y(v, maxLead)).join(' ') +
+      ' L' + x(n - 1) + ',' + (H - padB) + ' L' + x(0) + ',' + (H - padB) + ' Z';
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } },
+      grid, labels,
+      e('path', { d: areaPath, fill: accent, opacity: 0.07 }),
+      e('polyline', { points: pts(d.saleSeries, maxSale), fill: 'none', stroke: '#d1cebf', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+      e('polyline', { points: pts(d.leadSeries, maxLead), fill: 'none', stroke: accent, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+      dots, hits, tip
+    );
+  }
+
+  renderVals() {
+    const d = PERIODS[this.state.period];
+    const accent = this.props.accent || '#4b7da7';
+    const showFunnel = this.props.showFunnel !== false;
+    const stage = this.state.stage;
+    const card = 'background:#fefefe; border:1px solid #e1e5e4; border-radius:24px; padding:22px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:8px; min-width:0;';
+    const hero = 'background:#284359; border:1px solid #284359; border-radius:24px; padding:22px; box-shadow:rgba(0,0,0,0.12) 0px 0px 2px 0px, rgba(0,0,0,0.14) 0px 2px 4px 0px; display:flex; flex-direction:column; gap:8px; min-width:0;';
+
+    const dim = k => (stage === 'cm1' && k === 'cm2') || (stage === 'cm2' && k === 'cm1');
+
+    const kpis = [
+      { key: 'rec', label: 'Receita total', value: d.receita, sub: d.cm1 + ' · ' + d.cm2, hero: true },
+      { key: 'leads', label: 'Leads gerados', value: d.leads, sub: 'Origem: todas · ' + d.leadsRenda + ' com renda declarada' },
+      { key: 'apn', label: 'APN agendadas', value: d.apn, sub: 'Último formulário ' + d.form },
+      { key: 'vendas', label: 'Vendas totais', value: d.vendas, sub: 'Consulta ' + d.consultas + ' · Cirurgia ' + d.cirurgias },
+      { key: 'cm1', label: 'Consultas vendidas', value: d.consultas, sub: d.cm1 },
+      { key: 'cm2', label: 'Cirurgias vendidas', value: d.cirurgias, sub: d.cm2 },
+      { key: 'ads', label: 'Investimento ADS', value: d.ads, sub: 'Meta + Google · período completo' },
+      { key: 'cac', label: 'CAC', value: d.cac, sub: 'Custo por venda fechada' }
+    ].map(k => ({
+      label: k.label, value: k.value, sub: k.sub,
+      cardStyle: (k.hero ? hero : card) + (dim(k.key) ? ' opacity:0.42;' : ''),
+      labelColor: k.hero ? '#a6bacb' : '#5f7488',
+      valueColor: k.hero ? '#ffffff' : '#284359',
+      subColor: k.hero ? '#d1cebf' : '#616161'
+    }));
+
+    const periodTabs = [
+      { id: 'set', label: 'Setembro 2026' },
+      { id: 'ago', label: 'Agosto 2026' },
+      { id: 'mai', label: 'Maio 2026' }
+    ].map(t => ({
+      label: t.label,
+      style: this.pill(this.state.period === t.id, accent),
+      onClick: () => this.setState({ period: t.id })
+    }));
+
+    const stageTabs = [
+      { id: 'todas', label: 'Todas' },
+      { id: 'cm1', label: 'CM1 · Consulta' },
+      { id: 'cm2', label: 'CM2 · Cirurgia' }
+    ].map(t => ({
+      label: t.label,
+      style: this.pill(stage === t.id, '#284359'),
+      onClick: () => this.setState({ stage: t.id })
+    }));
+
+    const NAV = ['Visão geral', 'Marketing', 'Comercial', 'Funil', 'Operação'];
+    const navItems = NAV.map(label => ({
+      label,
+      style: this.navStyle(this.state.nav === label),
+      onClick: () => this.setState({ nav: label })
+    }));
+    const navItemsLight = NAV.map(label => ({
+      label,
+      style: this.pill(this.state.nav === label, '#284359'),
+      onClick: () => this.setState({ nav: label })
+    }));
+
+    const fmt = n => 'R$ ' + n.toLocaleString('pt-BR');
+    const baseTeam = this.state.closer === 'todos' ? d.team : d.team.filter(r => r.name === this.state.closer);
+    const topRev = Math.max.apply(null, baseTeam.map(r => r.revenue));
+    const team = baseTeam.slice().sort((a, b) => b.revenue - a.revenue).map(r => ({
+      name: r.name, role: r.role, leads: r.leads, apn: r.apn, sales: r.sales,
+      c1: r.c1, c2: r.c2, c3: r.c3, revenue: fmt(r.revenue),
+      initials: r.name.split(' ').map(p => p[0]).slice(0, 2).join(''),
+      share: Math.round((r.revenue / topRev) * 100) + '%'
+    }));
+
+    const tl = baseTeam.reduce((a, r) => a + r.leads, 0);
+    const ts = baseTeam.reduce((a, r) => a + r.sales, 0);
+    const tr = baseTeam.reduce((a, r) => a + r.revenue, 0);
+    const rank = (title, key, fmtv) => {
+      const rows = baseTeam.slice().sort((a, b) => b[key] - a[key]);
+      const top = rows.length ? rows[0][key] : 1;
+      return { title: title, rows: rows.map((r, i) => ({
+        pos: String(i + 1), name: r.name, value: fmtv(r[key]),
+        width: Math.max(6, Math.round((r[key] / top) * 100)) + '%'
+      })) };
+    };
+    const rankings = [
+      rank('Ranking por quantidade de vendas', 'sales', v => v + ' vendas'),
+      rank('Ranking por VGV', 'revenue', fmt)
+    ];
+
+    const maxF = d.funnel[0].count;
+    const funnel = d.funnel.map((s, i) => {
+      const pct = Math.max(6, Math.round((s.count / maxF) * 100));
+      const inside = pct >= 20;
+      return {
+      label: s.label, count: s.count.toLocaleString('pt-BR'), value: s.value,
+      width: pct + '%',
+      countInside: inside ? s.count.toLocaleString('pt-BR') : '',
+      countOutside: inside ? '' : s.count.toLocaleString('pt-BR'),
+      color: i === d.funnel.length - 1 ? '#284359' : accent,
+      conv: i === 0 ? 'base do período' : Math.round((s.count / d.funnel[i - 1].count) * 1000) / 10 + '% da etapa anterior'
+      };
+    });
+
+    return {
+      compactNav: this.state.w < 900,
+      rankings: rankings, navItemsLight: navItemsLight,
+      unidade: this.state.unidade, closer: this.state.closer, origem: this.state.origem,
+      unidades: ['Todas as unidades', 'Barra da Tijuca', 'Dream Clinic'],
+      origens: ['Origem: todas', 'Meta Ads', 'Google Ads', 'Indicação', 'Orgânico'],
+      closers: [{ value: 'todos', label: 'Closer: todos' }].concat(d.team.map(r => ({ value: r.name, label: r.name }))),
+      dateFrom: d.range.split(' — ')[0], dateTo: d.range.split(' — ')[1],
+      setUnidade: ev => this.setState({ unidade: ev.target.value }),
+      setCloser: ev => this.setState({ closer: ev.target.value }),
+      setOrigem: ev => this.setState({ origem: ev.target.value }),
+      produtoTabs: ['Todos', 'Dream Day', 'Dream Fast'].map(p => ({
+        label: p, style: this.pill(this.state.produto === p, '#284359'),
+        onClick: () => this.setState({ produto: p })
+      })),
+      sidebarStyle: this.state.w < 900
+        ? 'display:none;'
+        : 'width:236px; flex:0 0 236px; background:#284359; padding:28px 20px; display:flex; flex-direction:column; gap:36px; position:sticky; top:0; height:100vh; box-sizing:border-box;',
+      periodLabel: d.range, updatedAt: this.state.updatedAt,
+      kpis, periodTabs, stageTabs, navItems, team, funnel,
+      chart: this.buildChart(d, accent), accent: accent, showFunnel: showFunnel,
+      teamTotals: tl.toLocaleString('pt-BR') + ' leads · ' + ts + ' vendas · ' + fmt(tr) + ' VGV',
+      velocity: [
+        { label: 'Ticket médio', value: d.ticket, sub: 'por venda fechada' },
+        { label: 'Ciclo médio', value: d.ciclo, sub: 'entrada do lead até fechamento' },
+        { label: 'Leads com renda', value: d.leadsRenda, sub: 'faixa declarada no formulário' },
+        { label: 'Último formulário', value: d.form, sub: 'entrada mais recente no Kommo' }
+      ],
+      refresh: () => {
+        const now = new Date();
+        this.setState({ updatedAt: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
