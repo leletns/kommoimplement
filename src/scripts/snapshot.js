@@ -34,7 +34,29 @@ async function main() {
     console.warn('⚠️  support.js não está na raiz do projeto: o painel não renderiza sem ele.');
   }
 
+  // Diagnóstico (sem mostrar valores secretos): o log do Netlify diz exatamente o que falta.
+  console.log(`Node ${process.version} · conta ${config.kommo.subdomain}`);
+  const token = (process.env.KOMMO_TOKEN || '').trim();
+  if (!token) {
+    throw new Error(
+      'KOMMO_TOKEN não chegou ao build. No Netlify: Site configuration → Environment variables → KOMMO_TOKEN, ' +
+        'com o escopo "Builds" marcado (e o valor para o contexto "Production"). Depois, rode um novo deploy.'
+    );
+  }
+  if (token.split('.').length !== 3) {
+    throw new Error(`KOMMO_TOKEN não parece um token do Kommo (${token.length} caracteres, esperado JWT com 3 partes). Cole o token inteiro, sem aspas nem espaços.`);
+  }
+  console.log(`KOMMO_TOKEN presente (${token.length} caracteres)`);
+
   const kommo = getKommoClient();
+  try {
+    const account = await kommo.getAccount();
+    console.log(`Kommo OK: conta "${account.name}"`);
+  } catch (err) {
+    if (err.status === 401) throw new Error('O Kommo recusou o token (401): token inválido, revogado ou de outra conta. Gere um novo e atualize KOMMO_TOKEN.');
+    if (err.status === 402 || err.status === 403) throw new Error(`O Kommo bloqueou o acesso (${err.status}): verifique o plano/assinatura ou as permissões da integração.`);
+    throw new Error(`Não foi possível falar com o Kommo: ${err.message}`);
+  }
   const metrics = await buildMetrics(kommo);
   fs.writeFileSync(path.join(OUT, 'api', 'metrics.json'), JSON.stringify(metrics));
 

@@ -4,7 +4,29 @@ const path = require('path');
 
 require('dotenv').config();
 // IDs da conta (não secretos, versionados). Não sobrescreve o que veio do .env / Netlify.
-require('dotenv').config({ path: path.resolve(__dirname, '..', 'config', 'conta.env') });
+const CONTA_ENV = path.resolve(__dirname, '..', 'config', 'conta.env');
+require('dotenv').config({ path: CONTA_ENV });
+
+// Se uma variável JSON chegou quebrada (ex.: o import do painel do Netlify tirou as aspas),
+// usa o valor versionado em config/conta.env em vez de falhar ou calcular errado.
+(() => {
+  let conta = {};
+  try {
+    conta = require('dotenv').parse(require('fs').readFileSync(CONTA_ENV));
+  } catch {
+    return;
+  }
+  for (const key of ['KOMMO_METRICS_PIPELINES', 'KOMMO_CLASSIFICACAO_ENUMS', 'KOMMO_OBJECAO_ENUMS']) {
+    const v = process.env[key];
+    if (!v) continue;
+    try {
+      JSON.parse(v);
+    } catch {
+      console.warn(`[config] ${key} não é um JSON válido; usando o valor de config/conta.env.`);
+      if (conta[key]) process.env[key] = conta[key];
+    }
+  }
+})();
 
 // Datas do painel (meses, semanas, "último formulário") no fuso da clínica.
 process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
