@@ -157,3 +157,55 @@ RELATÓRIO FINAL
 - Orçamento diário final, palavras mantidas/pausadas/negativadas, estratégia de lance, e o que
   não foi possível mudar.
 ```
+
+---
+
+## 4. WhatsApp Web: analisar as conversas de ontem e hoje e deixar como não lidas
+
+Abra antes: https://web.whatsapp.com (já conectado no número da clínica)
+
+```
+Você é analista comercial da Clínica Blue (Dr. Rafael Erthal, lipedema e cirurgia plástica).
+Estou no WhatsApp Web com o número da clínica. Trabalhe só nesta aba.
+
+REGRAS DE SEGURANÇA (obrigatórias)
+- NUNCA escreva, envie, encaminhe, reaja ou grave áudio. NÃO digite nada na caixa de mensagem.
+- NUNCA apague, arquive, silencie, bloqueie ou fixe conversas. NUNCA mexa em "Aparelhos conectados".
+- Só abra, leia e depois marque como não lida.
+
+PASSO A PASSO
+1. Na lista de conversas, considere todas com mensagem de ONTEM ou de HOJE (role a lista até
+   chegar em conversas mais antigas que ontem e pare aí). Ignore grupos internos da equipe.
+2. Para CADA conversa, uma de cada vez:
+   a) Abra e leia as mensagens de ontem e de hoje (suba um pouco para entender o contexto).
+   b) Anote: nome/telefone, quantas mensagens a paciente mandou, quantas a equipe mandou,
+      horário da última mensagem da paciente e se ela está SEM RESPOSTA da equipe.
+   c) Classifique:
+      - QUENTE: pediu data, valor, forma de pagamento ou disse que quer agendar.
+      - MORNA: tem interesse, mas tem dúvida ou objeção.
+      - FRIA: só curiosidade, parou de responder ou fora do perfil.
+      - JÁ PACIENTE: pós-consulta, pós-operatório, exame, retorno (não é venda).
+   d) Se não agendou, o motivo principal: preço · distância · medo da cirurgia · falar com
+      marido/família · sem tempo · plano de saúde/reembolso · já tem outro médico ·
+      só pesquisando · parou de responder · demora da nossa resposta · outro (descreva).
+   e) Avalie o atendimento da equipe (0 a 10): tempo de resposta, acolhimento, se fez perguntas,
+      se conduziu para o agendamento, se tratou a objeção.
+   f) VOLTE para a lista, clique com o botão direito na conversa (ou na setinha ao passar o mouse)
+      e escolha "Marcar como não lida". Confira se a bolinha verde apareceu antes de seguir.
+3. Ao terminar, confira que todas as conversas analisadas estão com a bolinha de não lida.
+
+PARECER FINAL (escreva na conversa comigo, em português simples)
+1. Números: total de conversas, mensagens recebidas das pacientes (ontem / hoje),
+   mensagens enviadas pela equipe, conversas SEM RESPOSTA agora.
+2. Quantas quentes / mornas / frias / já pacientes.
+3. PRIORIDADE AGORA: tabela com nome, telefone, classificação, o que ela quer e a
+   sugestão de mensagem para a Maria mandar (no tom da Alice: acolhedor, sem pressão).
+4. POR QUE NÃO AGENDOU: motivos com quantidade, do mais comum ao menos comum.
+5. POR QUE NÃO CONVERTEU: quem chegou perto (pediu valor/data) e travou, e onde travou.
+6. Atendimento: nota média, tempo médio de resposta, 3 acertos e 3 erros com exemplos curtos.
+7. 5 ações práticas para amanhã (ex.: mensagem pronta para a objeção mais comum).
+```
+
+> Atenção: ao abrir a conversa, a paciente pode ver os dois tiques azuis (lida). Se não quiser isso,
+> antes de rodar desligue em WhatsApp → Configurações → Privacidade → **Confirmações de leitura**,
+> e ligue de novo depois.
