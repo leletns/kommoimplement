@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #f6f8f9; font-family: Montserrat, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #4b7da7; text-decoration: none; }
+  a:hover { color: #17253d; }
+  input, button, select { font-family: Montserrat, system-ui, sans-serif; }
+  input::placeholder { color: #5f7488; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #f6f8f9; }
+  ::-webkit-scrollbar-thumb { background: #dbe3e9; border-radius: 8px; }
+</style>
+</helmet>
+<div data-dash-root="" style="display:flex; min-height:100vh; background:#f6f8f9; color:#17253d; letter-spacing:-0.03em;">
+
+  <aside style="{{ sidebarStyle }}">
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="font-size:32px; font-weight:200; letter-spacing:0.01em; color:#17253d; line-height:1;">blue<span style="color:#4b7da7;">.</span></div>
+      <div style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:#5f7488;">Painel Comercial</div>
+    </div>
+
+    <nav style="display:flex; flex-direction:column; gap:2px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="3">
+        <button onClick="{{ item.onClick }}" style="{{ item.style }}">{{ item.label }}</button>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px; padding:16px; border:1px solid #e4e8eb; border-radius:16px; background:#fbfcfd;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:8px; height:8px; border-radius:50%; background:#1c7a4a; box-shadow:0 0 8px rgba(63,203,127,0.7); display:inline-block;"></span>
+        <span style="font-size:13px; font-weight:500; color:#17253d;">Sincronização ativa</span>
+      </div>
+      <div style="font-size:12px; color:#5f7488; line-height:1.5;">Última leitura às {{ updatedAt }} · {{ recordCount }} registros</div>
+    </div>
+  </aside>
+
+  <main style="flex:1; min-width:0; display:flex; flex-direction:column;">
+
+    <header style="position:sticky; top:0; z-index:20; background:rgba(255,255,255,0.9); backdrop-filter:blur(14px); border-bottom:1px solid #e4e8eb; padding:16px 32px; display:flex; flex-wrap:wrap; align-items:center; gap:14px;">
+      <sc-if value="{{ compactNav }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:14px; width:100%; flex-wrap:wrap;">
+          <div style="font-size:24px; font-weight:200; color:#17253d; line-height:1;">blue<span style="color:#4b7da7;">.</span></div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="3">
+              <button onClick="{{ item.onClick }}" style="{{ item.style }}">{{ item.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex; flex-direction:column; gap:3px; margin-right:10px;">
+        <div style="font-size:11px; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:#5f7488;">{{ screenTitle }}</div>
+        <div style="font-size:18px; font-weight:500; color:#17253d; line-height:1.2;">{{ screenSub }}</div>
+      </div>
+
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <sc-for list="{{ periodTabs }}" as="tab" hint-placeholder-count="3">
+            <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+          </sc-for>
+          <span style="width:1px; height:22px; background:#e4e8eb; margin:0 6px;"></span>
+          <sc-for list="{{ stageTabs }}" as="tab" hint-placeholder-count="3">
+            <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:12px; color:#5f7488;">{{ updatedAt }}</span>
+        <button onClick="{{ refresh }}" style="background:#284359; color:#ffffff; border:none; border-radius:6px; padding:11px 20px; font-size:14px; font-weight:500; letter-spacing:-0.03em; cursor:pointer; transition:background 140ms ease;" style-hover="background:#17253d">Atualizar dados</button>
+      </div>
+    </header>
+
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:32px; display:flex; flex-direction:column; gap:48px; max-width:1560px; width:100%; box-sizing:border-box;">
+
+      <section style="display:flex; flex-direction:column; gap:18px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:#5f7488;">Receita do período</div>
+            <div style="font-family:'Playfair Display',serif; font-size:56px; font-weight:400; letter-spacing:-0.01em; color:#17253d; line-height:1;">{{ receita }}</div>
+            <div style="font-size:15px; color:#45566a; line-height:1.5;">{{ receitaSub }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 13px; border:1px solid #bfe3ce; border-radius:999px; background:#effaf4;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#1c7a4a; display:inline-block;"></span>
+            <span style="font-size:13px; font-weight:500; color:#1c7a4a;">{{ deltaLabel }}</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px;">
+          <sc-for list="{{ kpis }}" as="kpi" hint-placeholder-count="7">
+            <div style="{{ kpi.cardStyle }}" style-hover="border-color:#b4c2cd">
+              <div style="font-size:13px; font-weight:400; color:#5f7488;">{{ kpi.label }}</div>
+              <div style="font-size:34px; font-weight:600; letter-spacing:-0.03em; color:#17253d; line-height:1.1;">{{ kpi.value }}</div>
+              <div style="font-size:12.5px; color:{{ kpi.subColor }}; line-height:1.45;">{{ kpi.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex; flex-wrap:wrap; gap:14px; align-items:stretch;">
+        <div style="flex:3 1 440px; min-width:0; background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="font-size:16px; font-weight:500; color:#17253d;">Leads e vendas por semana</div>
+            <div style="display:flex; gap:16px;">
+              <div style="display:flex; align-items:center; gap:7px; font-size:12px; color:#5f7488;"><span style="width:14px; height:2px; background:#4b7da7; display:inline-block;"></span>Leads</div>
+              <div style="display:flex; align-items:center; gap:7px; font-size:12px; color:#5f7488;"><span style="width:14px; height:2px; background:#1c7a4a; display:inline-block;"></span>Vendas</div>
+            </div>
+          </div>
+          {{ chart }}
+        </div>
+
+        <div style="flex:1 1 250px; min-width:0; background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+          <div style="font-size:16px; font-weight:500; color:#17253d;">Velocidade comercial</div>
+          <sc-for list="{{ velocity }}" as="row" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:3px; padding-bottom:13px; border-bottom:1px solid #eef2f5;">
+              <div style="font-size:12px; color:#5f7488;">{{ row.label }}</div>
+              <div style="font-size:24px; font-weight:600; color:#17253d; line-height:1.15;">{{ row.value }}</div>
+              <div style="font-size:12px; color:#5f7488;">{{ row.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
+          <div style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:#5f7488;">Time comercial</div>
+          <div style="font-size:13px; color:#5f7488;">{{ teamTotals }}</div>
+          <button onClick="{{ goTeam }}" style="margin-left:auto; background:transparent; border:1px solid #c3cfd9; color:#284359; border-radius:6px; padding:9px 18px; font-size:14px; font-weight:500; letter-spacing:-0.03em; cursor:pointer; transition:border-color 140ms ease;" style-hover="border-color:#284359">Gerenciar equipe</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:14px;">
+          <sc-for list="{{ team }}" as="rep" hint-placeholder-count="2">
+            <div style="background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:18px; transition:border-color 160ms ease;" style-hover="border-color:#b4c2cd">
+              <div style="display:flex; align-items:center; gap:13px;">
+                <div style="{{ rep.avatarStyle }}">{{ rep.initials }}</div>
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                  <div style="font-size:16px; font-weight:500; color:#17253d;">{{ rep.name }}</div>
+                  <div style="font-size:12.5px; color:#5f7488;">{{ rep.role }}</div>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                  <div style="font-size:19px; font-weight:600; color:#17253d;">{{ rep.revenue }}</div>
+                  <div style="font-size:11px; color:#5f7488;">receita</div>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:22px; font-weight:600; color:#17253d; line-height:1;">{{ rep.leads }}</span><span style="font-size:11px; color:#5f7488;">Leads</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:22px; font-weight:600; color:#17253d; line-height:1;">{{ rep.apn }}</span><span style="font-size:11px; color:#5f7488;">APNs</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:22px; font-weight:600; color:#17253d; line-height:1;">{{ rep.sales }}</span><span style="font-size:11px; color:#5f7488;">Vendas</span></div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding-top:14px; border-top:1px solid #eef2f5;">
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:15px; font-weight:600; color:#3d6c95;">{{ rep.c1 }}</span><span style="font-size:11px; color:#5f7488;">Lead → APN</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:15px; font-weight:600; color:#3d6c95;">{{ rep.c2 }}</span><span style="font-size:11px; color:#5f7488;">APN → Venda</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:15px; font-weight:600; color:#1c7a4a;">{{ rep.c3 }}</span><span style="font-size:11px; color:#5f7488;">Lead → Venda</span></div>
+              </div>
+
+              <div style="height:5px; border-radius:999px; background:#eef2f5; overflow:hidden;">
+                <div style="height:100%; border-radius:999px; background:#4b7da7; width:{{ rep.share }};"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:#5f7488;">Funil por etapa</div>
+        <div style="background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:18px;">
+          <sc-for list="{{ funnel }}" as="stage" hint-placeholder-count="5">
+            <div style="display:grid; grid-template-columns:minmax(110px,190px) minmax(0,1fr) minmax(80px,150px); gap:18px; align-items:center;">
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="font-size:14px; font-weight:500; color:#17253d;">{{ stage.label }}</div>
+                <div style="font-size:11.5px; color:#5f7488;">{{ stage.conv }}</div>
+              </div>
+              <div style="height:32px; background:#eef2f5; border-radius:6px; overflow:hidden; display:flex; align-items:center;">
+                <div style="height:100%; border-radius:6px; background:{{ stage.color }}; width:{{ stage.width }}; flex:0 0 auto; display:flex; align-items:center; padding-left:13px; box-sizing:border-box;">
+                  <span style="font-size:13px; font-weight:600; color:{{ stage.inkInside }}; white-space:nowrap;">{{ stage.countInside }}</span>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:#17253d; white-space:nowrap; padding-left:10px;">{{ stage.countOutside }}</span>
+              </div>
+              <div style="text-align:right; font-size:14px; font-weight:500; color:#45566a;">{{ stage.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="padding-bottom:24px; font-size:11.5px; color:#5f7488;">Clínica Blue · dados de demonstração espelhando a estrutura do CRM</div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:32px; display:flex; flex-direction:column; gap:28px; max-width:1100px; width:100%; box-sizing:border-box;">
+
+      <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:'Playfair Display',serif; font-size:40px; font-weight:400; color:#17253d; line-height:1;">Equipe comercial</div>
+          <div style="font-size:14px; color:#5f7488; max-width:520px; line-height:1.5;">Cadastre quantas comerciais quiser. Cada perfil recebe foto, função e um vínculo com o pipeline — as métricas passam a ser atribuídas automaticamente.</div>
+        </div>
+        <button onClick="{{ startNew }}" style="margin-left:auto; background:#284359; color:#ffffff; border:none; border-radius:6px; padding:12px 22px; font-size:14px; font-weight:500; letter-spacing:-0.03em; cursor:pointer;" style-hover="background:#17253d">Nova comercial</button>
+      </div>
+
+      <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:22px;">
+          <div style="font-size:16px; font-weight:500; color:#17253d;">{{ formTitle }}</div>
+
+          <div style="display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;">
+            <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+              <div style="{{ draftAvatarStyle }}">{{ draftInitials }}</div>
+              <label style="border:1px solid #c3cfd9; color:#17253d; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:500; cursor:pointer; transition:border-color 140ms ease;" style-hover="border-color:#284359">
+                Enviar foto
+                <input type="file" accept="image/*" onChange="{{ onPhoto }}" style="display:none;" />
+              </label>
+              <div style="font-size:11px; color:#5f7488; text-align:center; max-width:150px; line-height:1.4;">{{ uploadHint }}</div>
+            </div>
+
+            <div style="flex:1 1 320px; min-width:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px;">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; color:#5f7488;">Nome</span>
+                <input value="{{ draft.name }}" onChange="{{ setName }}" placeholder="Maria" style="background:#ffffff; border:1px solid #dbe3e9; border-radius:6px; padding:11px 13px; font-size:14px; color:#17253d; outline:none; letter-spacing:-0.03em;" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; color:#5f7488;">Função</span>
+                <input value="{{ draft.role }}" onChange="{{ setRole }}" placeholder="Comercial 1" style="background:#ffffff; border:1px solid #dbe3e9; border-radius:6px; padding:11px 13px; font-size:14px; color:#17253d; outline:none; letter-spacing:-0.03em;" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; color:#5f7488;">E-mail corporativo</span>
+                <input value="{{ draft.email }}" onChange="{{ setEmail }}" placeholder="maria@clinicablue.com.br" style="background:#ffffff; border:1px solid #dbe3e9; border-radius:6px; padding:11px 13px; font-size:14px; color:#17253d; outline:none; letter-spacing:-0.03em;" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; color:#5f7488;">Funil atribuído</span>
+                <input value="{{ draft.pipeline }}" onChange="{{ setPipeline }}" placeholder="Comercial 1" style="background:#ffffff; border:1px solid #dbe3e9; border-radius:6px; padding:11px 13px; font-size:14px; color:#17253d; outline:none; letter-spacing:-0.03em;" />
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding-top:18px; border-top:1px solid #eef2f5;">
+            <button onClick="{{ saveDraft }}" style="background:#284359; color:#ffffff; border:none; border-radius:6px; padding:11px 22px; font-size:14px; font-weight:500; cursor:pointer;" style-hover="background:#17253d">Salvar</button>
+            <button onClick="{{ cancelDraft }}" style="background:transparent; color:#45566a; border:none; border-radius:6px; padding:11px 8px; font-size:14px; font-weight:500; cursor:pointer;" style-hover="color:#17253d">Cancelar</button>
+            <span style="font-size:12px; color:#5f7488; margin-left:auto;">{{ saveState }}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ teamAdmin }}" as="rep" hint-placeholder-count="2">
+          <div style="background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; transition:border-color 160ms ease;" style-hover="border-color:#b4c2cd">
+            <div style="{{ rep.avatarStyle }}">{{ rep.initials }}</div>
+            <div style="display:flex; flex-direction:column; gap:2px; min-width:150px;">
+              <div style="font-size:15px; font-weight:500; color:#17253d;">{{ rep.name }}</div>
+              <div style="font-size:12.5px; color:#5f7488;">{{ rep.role }}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px; min-width:180px;">
+              <div style="font-size:12.5px; color:#45566a;">{{ rep.email }}</div>
+              <div style="font-size:11.5px; color:#5f7488;">Funil: {{ rep.pipeline }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding:4px 11px; border:1px solid {{ rep.badgeBorder }}; border-radius:999px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:{{ rep.badgeInk }}; display:inline-block;"></span>
+              <span style="font-size:12px; font-weight:500; color:{{ rep.badgeInk }};">{{ rep.badgeLabel }}</span>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:8px;">
+              <button onClick="{{ rep.onEdit }}" style="background:transparent; border:1px solid #c3cfd9; color:#17253d; border-radius:6px; padding:8px 16px; font-size:13px; font-weight:500; cursor:pointer;" style-hover="border-color:#284359">Editar</button>
+              <button onClick="{{ rep.onRemove }}" style="background:transparent; border:1px solid #c3cfd9; color:#45566a; border-radius:6px; padding:8px 16px; font-size:13px; font-weight:500; cursor:pointer;" style-hover="border-color:#c96a6a; color:#e08a8a">Remover</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isIntegration }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:32px; display:flex; flex-direction:column; gap:26px; max-width:900px; width:100%; box-sizing:border-box;">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-family:'Playfair Display',serif; font-size:40px; font-weight:400; color:#17253d; line-height:1;">Conexões</div>
+        <div style="font-size:14px; color:#5f7488; max-width:560px; line-height:1.5;">Origem dos dados do painel. A leitura é automática e roda sozinha em intervalos fixos.</div>
+      </div>
+
+      <sc-for list="{{ connections }}" as="c" hint-placeholder-count="3">
+        <div style="background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:22px; display:flex; flex-wrap:wrap; gap:18px; align-items:center;">
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:200px;">
+            <div style="font-size:16px; font-weight:500; color:#17253d;">{{ c.name }}</div>
+            <div style="font-size:12.5px; color:#5f7488; line-height:1.5;">{{ c.detail }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 13px; border:1px solid {{ c.badgeBorder }}; border-radius:999px;">
+            <span style="width:8px; height:8px; border-radius:50%; background:{{ c.dot }}; display:inline-block;"></span>
+            <span style="font-size:12.5px; font-weight:500; color:{{ c.dot }};">{{ c.status }}</span>
+          </div>
+          <div style="margin-left:auto; font-size:12.5px; color:#5f7488; text-align:right;">{{ c.cadence }}</div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#4b7da7&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#4b7da7&quot;,&quot;#3d6c95&quot;,&quot;#1c7a4a&quot;],&quot;section&quot;:&quot;Marca&quot;},&quot;showFunnel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+const PERIODS = {
+  set: { key: 'set', label: 'Setembro 2026', range: '01/09 — 30/09/2026', f: 1,
+    receita: 1143828, consultas: 48, cirurgias: 11, ads: 15034.66, ticket: 19387, ciclo: '37 dias',
+    weeks: ['S1','S2','S3','S4','S5'], leadSeries: [268,302,331,246,96], saleSeries: [12,16,14,11,6], delta: '+31% vs. agosto' },
+  ago: { key: 'ago', label: 'Agosto 2026', range: '01/08 — 31/08/2026', f: 0.82,
+    receita: 873110, consultas: 33, cirurgias: 9, ads: 13880, ticket: 20788, ciclo: '44 dias',
+    weeks: ['S1','S2','S3','S4','S5'], leadSeries: [210,248,226,196,106], saleSeries: [9,11,10,8,4], delta: '+18% vs. julho' },
+  mai: { key: 'mai', label: 'Maio 2026', range: '01/05 — 31/05/2026', f: 0.63,
+    receita: 612400, consultas: 45, cirurgias: 6, ads: 11420, ticket: 12008, ciclo: '52 dias',
+    weeks: ['S1','S2','S3','S4','S5'], leadSeries: [164,182,158,136,84], saleSeries: [11,13,12,9,6], delta: '+9% vs. abril' }
+};
+
+const SEED = [
+  { id: 'r1', name: 'Maria', role: 'Comercial 1', email: 'maria@clinicablue.com.br', pipeline: 'Comercial 1', photo: '', base: { leads: 487, apn: 231, sales: 32, revenue: 604250 } },
+  { id: 'r2', name: 'Mayra', role: 'Comercial 2', email: 'mayra@clinicablue.com.br', pipeline: 'Comercial 2', photo: '', base: { leads: 307, apn: 222, sales: 25, revenue: 515000 } }
+];
+
+const STORE = 'blue_dash_team_v1';
+const BRL = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+
+class Component extends DCLogic {
+  state = {
+    period: 'set', stage: 'todas', nav: 'Painel', w: 1400, hover: null,
+    updatedAt: '10:11', team: SEED, formOpen: false, draft: null, saveState: ''
+  };
+
+  componentDidMount() {
+    this._measure = () => {
+      const el = document.querySelector('[data-dash-root]');
+      const w = (el && el.getBoundingClientRect().width) || window.innerWidth;
+      if (w && Math.abs(w - this.state.w) > 2) this.setState({ w: w });
+    };
+    requestAnimationFrame(this._measure);
+    if (window.ResizeObserver) {
+      const el = document.querySelector('[data-dash-root]');
+      if (el) { this._ro = new ResizeObserver(this._measure); this._ro.observe(el); }
+    }
+    window.addEventListener('resize', this._measure);
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (raw) { const t = JSON.parse(raw); if (Array.isArray(t) && t.length) this.setState({ team: t }); }
+    } catch (e) {}
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._measure);
+    if (this._ro) this._ro.disconnect();
+  }
+
+  persist(team) {
+    this.setState({ team: team });
+    try { localStorage.setItem(STORE, JSON.stringify(team)); } catch (e) {}
+  }
+
+  pill(active) {
+    return ['font-size:13px','font-weight:500','letter-spacing:-0.03em','padding:8px 14px','border-radius:999px',
+      'cursor:pointer','transition:all 140ms ease','white-space:nowrap',
+      active ? 'background:#284359; color:#ffffff; border:1px solid #284359'
+             : 'background:#ffffff; color:#5f7488; border:1px solid #e4e8eb'].join('; ');
+  }
+  navStyle(active) {
+    return ['text-align:left','font-size:14px','font-weight:500','letter-spacing:-0.03em','padding:11px 13px',
+      'border-radius:6px','cursor:pointer','border:none','transition:all 140ms ease',
+      active ? 'background:#e9eff4; color:#17253d' : 'background:transparent; color:#5f7488'].join('; ');
+  }
+  avatar(rep, size) {
+    const s = size || 44;
+    const base = 'width:' + s + 'px; height:' + s + 'px; border-radius:50%; flex:0 0 ' + s + 'px; display:flex; align-items:center; justify-content:center; font-size:' + Math.round(s / 3) + 'px; font-weight:500; color:#284359; overflow:hidden; background-size:cover; background-position:center;';
+    return rep && rep.photo
+      ? base + ' background-image:url(' + rep.photo + '); color:transparent; border:1px solid #dbe3e9;'
+      : base + ' background-color:#e9eff4; color:#284359; border:1px solid #dbe3e9;';
+  }
+  initials(name) {
+    return (name || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  buildChart(d) {
+    const e = React.createElement;
+    const W = 700, H = 240, padL = 44, padR = 16, padT = 16, padB = 30;
+    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15;
+    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6;
+    const n = d.leadSeries.length;
+    const x = i => padL + (i * (W - padL - padR)) / (n - 1);
+    const y = (v, m) => padT + (H - padT - padB) * (1 - v / m);
+    const pts = (a, m) => a.map((v, i) => x(i) + ',' + y(v, m)).join(' ');
+    const grid = [0, 0.25, 0.5, 0.75, 1].map((g, i) => {
+      const yy = padT + (H - padT - padB) * (1 - g);
+      return e('g', { key: 'g' + i },
+        e('line', { x1: padL, x2: W - padR, y1: yy, y2: yy, stroke: '#e4e8eb', strokeWidth: 1 }),
+        e('text', { x: padL - 10, y: yy + 4, textAnchor: 'end', fontSize: 11, fill: '#5f7488', fontFamily: 'Montserrat, sans-serif' }, Math.round(maxLead * g)));
+    });
+    const labels = d.weeks.map((w, i) => e('text', { key: 'l' + i, x: x(i), y: H - 8, textAnchor: 'middle', fontSize: 11, fill: '#5f7488', fontFamily: 'Montserrat, sans-serif' }, w));
+    const hv = this.state.hover;
+    const dots = d.leadSeries.map((v, i) => e('circle', { key: 'd' + i, cx: x(i), cy: y(v, maxLead), r: hv === i ? 5.5 : 3.5, fill: '#4b7da7' }));
+    const bw = (W - padL - padR) / (n - 1);
+    const hits = d.leadSeries.map((v, i) => e('rect', {
+      key: 'h' + i, x: x(i) - bw / 2, y: padT, width: bw, height: H - padT - padB, fill: 'transparent',
+      style: { cursor: 'crosshair' },
+      onMouseEnter: () => this.setState({ hover: i }), onMouseLeave: () => this.setState({ hover: null })
+    }));
+    const area = 'M' + x(0) + ',' + y(d.leadSeries[0], maxLead) + ' ' +
+      d.leadSeries.map((v, i) => 'L' + x(i) + ',' + y(v, maxLead)).join(' ') +
+      ' L' + x(n - 1) + ',' + (H - padB) + ' L' + x(0) + ',' + (H - padB) + ' Z';
+    let tip = null;
+    if (hv !== null) {
+      const tx = x(hv), ty = y(d.leadSeries[hv], maxLead);
+      const l1 = 'SEMANA ' + d.weeks[hv].replace('S', '');
+      const l2 = d.leadSeries[hv] + ' leads · ' + d.saleSeries[hv] + ' vendas';
+      const bwid = Math.max(l1.length * 7, l2.length * 7.6) + 26;
+      const bx = tx + 12 + bwid > W - padR ? tx - 12 - bwid : tx + 12;
+      const by = Math.max(padT, ty - 46);
+      tip = e('g', null,
+        e('line', { x1: tx, x2: tx, y1: padT, y2: H - padB, stroke: '#c3cfd9', strokeWidth: 1, strokeDasharray: '3 3' }),
+        e('rect', { x: bx, y: by, width: bwid, height: 54, rx: 6, fill: '#17253d', stroke: '#17253d' }),
+        e('text', { x: bx + 13, y: by + 20, fontSize: 11, fill: '#c3cfd9', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em' }, l1),
+        e('text', { x: bx + 13, y: by + 39, fontSize: 13, fontWeight: 600, fill: '#ffffff', fontFamily: 'Montserrat, sans-serif' }, l2));
+    }
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } },
+      grid, labels,
+      e('path', { d: area, fill: '#4b7da7', opacity: 0.1 }),
+      e('polyline', { points: pts(d.saleSeries, maxSale), fill: 'none', stroke: '#1c7a4a', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+      e('polyline', { points: pts(d.leadSeries, maxLead), fill: 'none', stroke: '#4b7da7', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+      dots, hits, tip);
+  }
+
+  onPhotoPick = ev => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const d = Object.assign({}, this.state.draft, { photo: reader.result });
+      this.setState({ draft: d, saveState: 'Foto pronta para envio (' + Math.round(file.size / 1024) + ' KB)' });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  renderVals() {
+    const d = PERIODS[this.state.period];
+    const stage = this.state.stage;
+    const nav = this.state.nav;
+    const compact = this.state.w < 900;
+    const card = 'background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:7px; min-width:0; transition:border-color 160ms ease;';
+
+    const team = this.state.team.map(r => {
+      const b = r.base || { leads: 0, apn: 0, sales: 0, revenue: 0 };
+      return Object.assign({}, r, {
+        leads: Math.round(b.leads * d.f), apn: Math.round(b.apn * d.f),
+        sales: Math.round(b.sales * d.f), revenueNum: Math.round(b.revenue * d.f)
+      });
+    });
+    const totLeads = team.reduce((a, r) => a + r.leads, 0);
+    const totApn = team.reduce((a, r) => a + r.apn, 0);
+    const totSales = team.reduce((a, r) => a + r.sales, 0);
+    const totRev = team.reduce((a, r) => a + r.revenueNum, 0);
+    const topRev = Math.max(1, Math.max.apply(null, team.map(r => r.revenueNum)));
+    const pct = (a, b) => b ? (Math.round((a / b) * 1000) / 10) + '%' : '—';
+
+    const dim = k => (stage === 'cm1' && k === 'cm2') || (stage === 'cm2' && k === 'cm1');
+    const kpis = [
+      { k: 'leads', label: 'Leads gerados', value: totLeads.toLocaleString('pt-BR'), sub: 'todas as origens' },
+      { k: 'apn', label: 'APNs agendadas', value: totApn.toLocaleString('pt-BR'), sub: pct(totApn, totLeads) + ' dos leads' },
+      { k: 'vendas', label: 'Vendas fechadas', value: String(totSales), sub: pct(totSales, totLeads) + ' de conversão total' },
+      { k: 'cm1', label: 'Consultas vendidas', value: String(d.consultas), sub: 'CM1' },
+      { k: 'cm2', label: 'Cirurgias vendidas', value: String(d.cirurgias), sub: 'CM2' },
+      { k: 'ads', label: 'Investimento em mídia', value: BRL(d.ads), sub: 'Meta + Google' },
+      { k: 'cac', label: 'CAC', value: totSales ? BRL(d.ads / totSales) : '—', sub: 'custo por venda fechada' }
+    ].map(x => ({
+      label: x.label, value: x.value, sub: x.sub,
+      cardStyle: card + (dim(x.k) ? ' opacity:0.38;' : ''),
+      subColor: '#5f7488'
+    }));
+
+    const funnelRaw = [
+      { label: 'Leads', count: totLeads, value: '—' },
+      { label: 'Qualificados', count: Math.round(totLeads * 0.65), value: 'pipe aberto' },
+      { label: 'APNs agendadas', count: totApn, value: 'pipe em negociação' },
+      { label: 'Consultas vendidas', count: d.consultas, value: BRL(d.consultas * 1714) },
+      { label: 'Cirurgias vendidas', count: d.cirurgias, value: BRL(d.receita - d.consultas * 1714) }
+    ];
+    const maxF = Math.max(1, funnelRaw[0].count);
+    const funnel = funnelRaw.map((s, i) => {
+      const p = Math.max(6, Math.round((s.count / maxF) * 100));
+      const inside = p >= 20;
+      return {
+        label: s.label, value: s.value, width: p + '%',
+        countInside: inside ? s.count.toLocaleString('pt-BR') : '',
+        countOutside: inside ? '' : s.count.toLocaleString('pt-BR'),
+        inkInside: i === funnelRaw.length - 1 ? '#0f3d27' : '#ffffff',
+        color: i === funnelRaw.length - 1 ? '#5fd39a' : '#3d6c95',
+        conv: i === 0 ? 'base do período' : pct(s.count, funnelRaw[i - 1].count) + ' da etapa anterior'
+      };
+    });
+
+    const navItems = ['Painel', 'Equipe', 'Conexões'].map(label => ({
+      label,
+      style: compact ? this.pill(nav === label) : this.navStyle(nav === label),
+      onClick: () => this.setState({ nav: label, formOpen: false })
+    }));
+
+    const draft = this.state.draft || { name: '', role: '', email: '', pipeline: '', photo: '' };
+    const setField = f => ev => this.setState({ draft: Object.assign({}, this.state.draft, { [f]: ev.target.value }) });
+
+    const teamAdmin = this.state.team.map(r => ({
+      name: r.name, role: r.role, email: r.email || '—', pipeline: r.pipeline || '—',
+      badgeLabel: (r.email && r.pipeline) ? 'Vinculada' : 'Pendente',
+      badgeInk: (r.email && r.pipeline) ? '#1c7a4a' : '#8a5e10',
+      badgeBorder: (r.email && r.pipeline) ? '#2c5a3f' : '#5c4a28',
+      initials: this.initials(r.name), avatarStyle: this.avatar(r, 44),
+      onEdit: () => this.setState({ formOpen: true, draft: Object.assign({}, r), saveState: '' }),
+      onRemove: () => this.persist(this.state.team.filter(x => x.id !== r.id))
+    }));
+
+    return {
+      compactNav: compact,
+      sidebarStyle: compact ? 'display:none;'
+        : 'width:230px; flex:0 0 230px; background:#ffffff; border-right:1px solid #e4e8eb; padding:28px 18px; display:flex; flex-direction:column; gap:34px; position:sticky; top:0; height:100vh; box-sizing:border-box;',
+      navItems: navItems,
+      isDash: nav === 'Painel', isTeam: nav === 'Equipe', isIntegration: nav === 'Conexões',
+      screenTitle: nav === 'Painel' ? 'Período' : nav === 'Equipe' ? 'Administração' : 'Infraestrutura',
+      screenSub: nav === 'Painel' ? d.range : nav === 'Equipe' ? this.state.team.length + ' comerciais ativas' : '3 origens conectadas',
+      updatedAt: this.state.updatedAt,
+      recordCount: (totLeads + totApn).toLocaleString('pt-BR'),
+      receita: BRL(d.receita), deltaLabel: d.delta,
+      receitaSub: d.consultas + ' consultas e ' + d.cirurgias + ' cirurgias · ticket médio ' + BRL(d.ticket),
+      kpis: kpis, funnel: funnel, chart: this.buildChart(d),
+      periodTabs: ['set', 'ago', 'mai'].map(k => ({
+        label: PERIODS[k].label, style: this.pill(this.state.period === k),
+        onClick: () => this.setState({ period: k })
+      })),
+      stageTabs: [{ id: 'todas', label: 'Tudo' }, { id: 'cm1', label: 'Consulta' }, { id: 'cm2', label: 'Cirurgia' }].map(t => ({
+        label: t.label, style: this.pill(stage === t.id), onClick: () => this.setState({ stage: t.id })
+      })),
+      team: team.slice().sort((a, b) => b.revenueNum - a.revenueNum).map(r => ({
+        name: r.name, role: r.role, leads: r.leads, apn: r.apn, sales: r.sales,
+        revenue: BRL(r.revenueNum), initials: this.initials(r.name), avatarStyle: this.avatar(r, 46),
+        c1: pct(r.apn, r.leads), c2: pct(r.sales, r.apn), c3: pct(r.sales, r.leads),
+        share: Math.round((r.revenueNum / topRev) * 100) + '%'
+      })),
+      teamTotals: totLeads.toLocaleString('pt-BR') + ' leads · ' + totSales + ' vendas · ' + BRL(totRev) + ' em receita',
+      velocity: [
+        { label: 'Ticket médio', value: BRL(d.ticket), sub: 'por venda fechada' },
+        { label: 'Ciclo médio', value: d.ciclo, sub: 'do lead ao fechamento' },
+        { label: 'Leads por comercial', value: this.state.team.length ? Math.round(totLeads / this.state.team.length).toLocaleString('pt-BR') : '—', sub: 'distribuição do período' },
+        { label: 'Receita por lead', value: totLeads ? BRL(totRev / totLeads) : '—', sub: 'valor médio gerado' }
+      ],
+      goTeam: () => this.setState({ nav: 'Equipe' }),
+      refresh: () => {
+        const n = new Date();
+        this.setState({ updatedAt: String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0') });
+      },
+      formOpen: this.state.formOpen,
+      formTitle: this.state.draft && this.state.draft.id ? 'Editar ' + (this.state.draft.name || 'comercial') : 'Nova comercial',
+      draft: draft,
+      draftInitials: draft.photo ? '' : this.initials(draft.name),
+      draftAvatarStyle: this.avatar(draft, 92),
+      uploadHint: draft.photo ? 'Será enviada ao armazenamento ao salvar' : 'JPG ou PNG, mínimo 200×200px',
+      saveState: this.state.saveState,
+      onPhoto: this.onPhotoPick,
+      setName: setField('name'), setRole: setField('role'), setEmail: setField('email'), setPipeline: setField('pipeline'),
+      startNew: () => this.setState({ formOpen: true, saveState: '', draft: { id: '', name: '', role: '', email: '', pipeline: '', photo: '', base: { leads: 0, apn: 0, sales: 0, revenue: 0 } } }),
+      cancelDraft: () => this.setState({ formOpen: false, draft: null, saveState: '' }),
+      saveDraft: () => {
+        const dr = this.state.draft;
+        if (!dr || !dr.name.trim()) { this.setState({ saveState: 'Informe ao menos o nome' }); return; }
+        const list = this.state.team.slice();
+        if (dr.id) {
+          const i = list.findIndex(x => x.id === dr.id);
+          list[i] = Object.assign({}, list[i], dr);
+        } else {
+          list.push(Object.assign({}, dr, { id: 'r' + Date.now(), base: dr.base || { leads: 0, apn: 0, sales: 0, revenue: 0 } }));
+        }
+        this.persist(list);
+        this.setState({ formOpen: false, draft: null, saveState: '' });
+      },
+      teamAdmin: teamAdmin,
+      connections: [
+        { name: 'CRM — pipeline comercial', detail: 'Leads, APNs, etapas e responsáveis', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Leitura a cada 15 min' },
+        { name: 'Banco de dados analítico', detail: 'Histórico consolidado por período e comercial', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Materialização diária às 03h' },
+        { name: 'Armazenamento de mídia', detail: 'Fotos de perfil da equipe', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Upload imediato' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
