@@ -227,25 +227,23 @@ const BOT_TEMPLATES = [
       'Em breve a Maria, nossa consultora, fala com você 😊',
   },
   {
-    name: '00 Alice · Follow-up 1 · dia 1',
+    name: '00 Maria · Follow-up 1 · dia 1',
     content:
-      'Oi, {{contact.first_name}}! Tudo bem? 💙\n' +
-      'Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?\n' +
-      'Quero entender direitinho pra Maria te ajudar do jeito certo.',
+      'Oi, {{contact.first_name}}! 💙\n' +
+      'Fiquei com uma coisa na cabeça depois da sua mensagem… posso te fazer uma pergunta rápida?',
   },
   {
-    name: '00 Alice · Follow-up 2 · dia 3',
+    name: '00 Maria · Follow-up 2 · dia 3',
     content:
-      '{{contact.first_name}}, lembrei de você 💙\n' +
-      'Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.\n' +
-      'Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.',
+      '{{contact.first_name}}, lembrei de você hoje 💙\n' +
+      'Muitas pacientes me contam que passaram anos ouvindo que era \'só emagrecer\'… e na avaliação descobriram que tinha outra explicação.\n' +
+      'Isso já aconteceu com você?',
   },
   {
-    name: '00 Alice · Follow-up 3 · dia 7',
+    name: '00 Maria · Follow-up 3 · dia 7',
     content:
-      'Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙\n' +
-      'Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.\n' +
-      'Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!',
+      '{{contact.first_name}}, vou parar de te mandar mensagem pra não ficar chata 😊\n' +
+      'Só não queria ir sem te contar uma coisa que pode fazer diferença pra você. Posso?',
   },
 ];
 
@@ -490,7 +488,7 @@ async function templates(k, apply) {
   const list = await k.listAll('/chats/templates', { embeddedKey: 'chat_templates' });
   const renames = list.filter((t) => TEMPLATES_NOMES[t.id] && t.name !== TEMPLATES_NOMES[t.id]);
   log(`  renomear ${renames.length} templates (ex.: "${renames[0]?.name}" → "${TEMPLATES_NOMES[renames[0]?.id]}")`);
-  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Alice|00 Robô) ·/.test(t.name));
+  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Alice|00 Maria|00 Robô) ·/.test(t.name));
   if (semMapa.length) log(`  sem mapeamento (mantidos): ${semMapa.map((t) => t.name).join(' · ')}`);
   const novos = [...BOT_TEMPLATES, ...OBJECTIONS.map(objectionTemplate)].filter((n) => !list.some((t) => t.name === n.name));
   log(`  + criar ${novos.length} templates (4 da Alice + objeções em 5 passos)`);

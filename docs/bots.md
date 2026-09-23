@@ -11,9 +11,9 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 |---|---|---|
 | **1. Novo · boas-vindas** | 🤖 **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
 | **2. Qualificado** e **3. Interesse em agendar · Maria** | 🤖 **Alice · Porteiro** | 1 dia sem resposta da paciente → move para **3.1 Follow-up 1**. |
-| **3.1 Follow-up 1 · dia 1** | 🤖 **Alice · Follow-up 1** | Mensagem de atenção. Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
-| **3.2 Follow-up 2 · dia 3** | 🤖 **Alice · Follow-up 2** | Prova social + escolha fácil. Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
-| **3.3 Follow-up 3 · dia 7** | 🤖 **Alice · Follow-up 3** | Última mensagem, sem pressão. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
+| **3.1 Follow-up 1 · dia 1** | 🤖 **Maria · Follow-up 1** | Mensagem de atenção. Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
+| **3.2 Follow-up 2 · dia 3** | 🤖 **Maria · Follow-up 2** | Prova social + escolha fácil. Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
+| **3.3 Follow-up 3 · dia 7** | 🤖 **Maria · Follow-up 3** | Última mensagem, sem pressão. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
 | 4 a 8 | nenhum | A Maria conduz |
 
 ## Robô 1 — Boas-vindas
@@ -33,36 +33,42 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 
 ## Régua de follow-up (etapas 3.1, 3.2 e 3.3)
 
-Cada mensagem usa um gatilho diferente, sem cara de robô: primeiro **atenção** (pergunta
-pessoal e fácil de responder), depois **prova social + autoridade** com uma **escolha simples**
-(presencial ou online) e, por fim, a **última mensagem honesta**, que costuma ser a que mais recebe resposta.
+Os follow-ups falam **como a Maria**, em primeira pessoa, sem se apresentar: mensagens curtas que
+**abrem uma curiosidade** e terminam com uma pergunta fácil de responder. Primeiro **atenção**
+("posso te fazer uma pergunta?"), depois **identificação** (o que outras pacientes vivem) e, por fim,
+a **despedida honesta com uma curiosidade aberta**, que costuma ser a que mais recebe resposta.
+A Maria precisa ter a continuação pronta (abaixo de cada mensagem).
 
 **Regra de ouro:** respondeu em qualquer momento → para a régua, volta para **3. Interesse em agendar · Maria**,
 tag `fu_respondeu` e tarefa **"🔥 Paciente respondeu: responder AGORA"** (30 minutos).
 Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
 ### Follow-up 1 · dia 1 (atenção)
-> Oi, {{contact.first_name}}! Tudo bem? 💙
-> Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?
-> Quero entender direitinho pra Maria te ajudar do jeito certo.
+> Oi, {{contact.first_name}}! 💙
+> Fiquei com uma coisa na cabeça depois da sua mensagem… posso te fazer uma pergunta rápida?
+
+**Se responder, a Maria continua:** "Hoje, o que mais te incomoda: dor, peso nas pernas, o formato do corpo ou a pele?"
 
 Sem resposta em 2 dias → **3.2 Follow-up 2**.
 
 ### Follow-up 2 · dia 3 (prova social + escolha fácil)
-> {{contact.first_name}}, lembrei de você 💙
-> Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.
-> Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.
+> {{contact.first_name}}, lembrei de você hoje 💙
+> Muitas pacientes me contam que passaram anos ouvindo que era "só emagrecer"… e na avaliação descobriram que tinha outra explicação.
+> Isso já aconteceu com você?
+
+**Se responder, a Maria continua:** acolhe a história dela e explica que a consulta com o Dr. Rafael serve justamente para avaliar sintomas, histórico e exames com calma. Pergunta se prefere presencial ou online.
 
 Sem resposta em 4 dias → **3.3 Follow-up 3**.
 
 ### Follow-up 3 · dia 7 (última mensagem)
-> Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙
-> Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.
-> Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!
+> {{contact.first_name}}, vou parar de te mandar mensagem pra não ficar chata 😊
+> Só não queria ir sem te contar uma coisa que pode fazer diferença pra você. Posso?
+
+**Se responder, a Maria continua:** "Muita gente não sabe, mas dá para começar com uma avaliação online com o Dr. Rafael, sem sair de casa, e entender o seu caso com clareza antes de decidir qualquer coisa. Quer que eu veja um horário pra você?" (ajuste se a clínica não fizer avaliação online).
 
 Sem resposta em 5 dias → **8. Nutrição · retomar depois** + tag `fu_sem_resposta` (não vai para perdido).
 
-Os quatro textos também existem como templates de chat (`00 Alice · …`), criados pelo
+Os quatro textos também existem como templates de chat (`00 Alice · Boas-vindas` e `00 Maria · Follow-up …`), criados pelo
 `organizarKommo.js --aplicar`, para a Maria usar manualmente quando quiser.
 
 ## Robôs para apagar
@@ -137,25 +143,23 @@ REGRAS
        Condição: se NÃO houve mensagem da paciente nesse período → mover para "3.1 Follow-up 1 · dia 1".
        Se houve → não fazer nada.
 
-   3b) "Alice · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
+   3b) "Maria · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         Oi, {{contact.first_name}}! Tudo bem? 💙
-         Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?
-         Quero entender direitinho pra Maria te ajudar do jeito certo.
+         Oi, {{contact.first_name}}! 💙
+         Fiquei com uma coisa na cabeça depois da sua mensagem… posso te fazer uma pergunta rápida?
        Esperar resposta por 2 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.2 Follow-up 2 · dia 3".
 
-   3c) "Alice · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
+   3c) "Maria · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         {{contact.first_name}}, lembrei de você 💙
-         Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.
-         Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.
+         {{contact.first_name}}, lembrei de você hoje 💙
+         Muitas pacientes me contam que passaram anos ouvindo que era "só emagrecer"… e na avaliação descobriram que tinha outra explicação.
+         Isso já aconteceu com você?
        Esperar resposta por 4 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.3 Follow-up 3 · dia 7".
 
-   3d) "Alice · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
+   3d) "Maria · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙
-         Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.
-         Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!
+         {{contact.first_name}}, vou parar de te mandar mensagem pra não ficar chata 😊
+         Só não queria ir sem te contar uma coisa que pode fazer diferença pra você. Posso?
        Esperar resposta por 5 dias. Respondeu → REGRA acima. Não respondeu → tag fu_sem_resposta e
        mover para "8. Nutrição · retomar depois".
 
