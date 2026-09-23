@@ -321,10 +321,34 @@ class Component extends DCLogic {
       this._ro.observe(this._rootEl);
     }
     window.addEventListener('resize', this._measure);
+    this.loadMetrics(false);
+    this._metricsTimer = setInterval(() => this.loadMetrics(false), 60000);
   }
   componentWillUnmount() {
     window.removeEventListener('resize', this._measure);
     if (this._ro) this._ro.disconnect();
+    if (this._metricsTimer) clearInterval(this._metricsTimer);
+  }
+
+  // Dados reais do Kommo via servidor proxy (src/server.js → GET /api/metrics).
+  // Aberto via file://, usa http://localhost:3000; defina window.KOMMO_API_BASE para outro host.
+  // Se a API falhar, o painel continua com os últimos dados carregados (ou os de exemplo).
+  loadMetrics(force) {
+    const base = window.KOMMO_API_BASE || (location.protocol === 'file:' ? 'http://localhost:3000' : '');
+    return fetch(base + '/api/metrics' + (force ? '?refresh=1' : ''), { headers: { Accept: 'application/json' } })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(data => {
+        const keys = Object.keys(data || {}).filter(k => data[k] && Array.isArray(data[k].funnel) && Array.isArray(data[k].team));
+        if (!keys.length) throw new Error('resposta sem períodos');
+        Object.keys(PERIODS).forEach(k => { delete PERIODS[k]; });
+        keys.forEach(k => { PERIODS[k] = data[k]; });
+        const now = new Date();
+        this.setState({
+          period: PERIODS[this.state.period] ? this.state.period : keys[0],
+          updatedAt: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+        });
+      })
+      .catch(err => console.warn('[painel] /api/metrics indisponível:', err.message));
   }
 
   pill(active, accent) {
@@ -350,8 +374,8 @@ class Component extends DCLogic {
 
   buildChart(d, accent) {
     const W = 680, H = 230, padL = 46, padR = 14, padT = 14, padB = 30;
-    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15;
-    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6;
+    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15 || 1;
+    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6 || 1;
     const n = d.leadSeries.length;
     const x = i => padL + (i * (W - padL - padR)) / (n - 1);
     const y = (v, max) => padT + (H - padT - padB) * (1 - v / max);
@@ -435,11 +459,7 @@ class Component extends DCLogic {
       subColor: k.hero ? '#d1cebf' : '#616161'
     }));
 
-    const periodTabs = [
-      { id: 'set', label: 'Setembro 2026' },
-      { id: 'ago', label: 'Agosto 2026' },
-      { id: 'mai', label: 'Maio 2026' }
-    ].map(t => ({
+    const periodTabs = Object.keys(PERIODS).map(id => ({ id: id, label: PERIODS[id].label })).map(t => ({
       label: t.label,
       style: this.pill(this.state.period === t.id, accent),
       onClick: () => this.setState({ period: t.id })
@@ -469,7 +489,7 @@ class Component extends DCLogic {
 
     const fmt = n => 'R$ ' + n.toLocaleString('pt-BR');
     const baseTeam = this.state.closer === 'todos' ? d.team : d.team.filter(r => r.name === this.state.closer);
-    const topRev = Math.max.apply(null, baseTeam.map(r => r.revenue));
+    const topRev = Math.max.apply(null, baseTeam.map(r => r.revenue)) || 1;
     const team = baseTeam.slice().sort((a, b) => b.revenue - a.revenue).map(r => ({
       name: r.name, role: r.role, leads: r.leads, apn: r.apn, sales: r.sales,
       c1: r.c1, c2: r.c2, c3: r.c3, revenue: fmt(r.revenue),
@@ -482,7 +502,7 @@ class Component extends DCLogic {
     const tr = baseTeam.reduce((a, r) => a + r.revenue, 0);
     const rank = (title, key, fmtv) => {
       const rows = baseTeam.slice().sort((a, b) => b[key] - a[key]);
-      const top = rows.length ? rows[0][key] : 1;
+      const top = (rows.length ? rows[0][key] : 1) || 1;
       return { title: title, rows: rows.map((r, i) => ({
         pos: String(i + 1), name: r.name, value: fmtv(r[key]),
         width: Math.max(6, Math.round((r[key] / top) * 100)) + '%'
@@ -493,7 +513,7 @@ class Component extends DCLogic {
       rank('Ranking por VGV', 'revenue', fmt)
     ];
 
-    const maxF = d.funnel[0].count;
+    const maxF = d.funnel[0].count || 1;
     const funnel = d.funnel.map((s, i) => {
       const pct = Math.max(6, Math.round((s.count / maxF) * 100));
       const inside = pct >= 20;
@@ -503,7 +523,7 @@ class Component extends DCLogic {
       countInside: inside ? s.count.toLocaleString('pt-BR') : '',
       countOutside: inside ? '' : s.count.toLocaleString('pt-BR'),
       color: i === d.funnel.length - 1 ? '#284359' : accent,
-      conv: i === 0 ? 'base do período' : Math.round((s.count / d.funnel[i - 1].count) * 1000) / 10 + '% da etapa anterior'
+      conv: i === 0 ? 'base do período' : d.funnel[i - 1].count ? Math.round((s.count / d.funnel[i - 1].count) * 1000) / 10 + '% da etapa anterior' : '—'
       };
     });
 
@@ -538,6 +558,7 @@ class Component extends DCLogic {
       refresh: () => {
         const now = new Date();
         this.setState({ updatedAt: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') });
+        this.loadMetrics(true);
       }
     };
   }

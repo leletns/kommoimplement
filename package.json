@@ -1,0 +1,25 @@
+{
+  "name": "kommoimplement",
+  "version": "1.0.0",
+  "description": "Integração Kommo CRM (API v4) da Blue Clínica: proxy de métricas, webhooks, Alice Bot e sincronização retroativa.",
+  "main": "src/server.js",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "retroativo": "node src/scripts/retroativo.js",
+    "retroativo:dry": "node src/scripts/retroativo.js --dry-run",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "p-queue": "^6.6.2"
+  }
+}
