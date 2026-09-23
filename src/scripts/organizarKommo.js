@@ -81,9 +81,10 @@ const RENOMEAR_CAMPOS = { 3728948: 'Data e horário da consulta' };
 const CLASSIFICACAO = {
   id: 3837344,
   enums: [
-    { id: 735973966, value: '❄️ Fria (0–39)', sort: 1 },
-    { id: 735973968, value: '🌤️ Morna (40–69)', sort: 2 },
-    { id: 735973972, value: '🔥 Quente (70–100)', sort: 3 },
+    // Sem emoji: o Kommo grava vazia a opção que tem emoji como 🔥/🌤 (por isso havia opções em branco).
+    { id: 735973966, value: 'Fria (0–39)', sort: 1 },
+    { id: 735973968, value: 'Morna (40–69)', sort: 2 },
+    { id: 735973972, value: 'Quente (70–100)', sort: 3 },
   ],
 };
 
@@ -306,7 +307,8 @@ async function funis(k, apply) {
     const target = {};
     for (const [i, etapa] of ETAPAS.entries()) {
       const sort = 20 + i * 10;
-      const existing = keep[etapa.key] && statuses.find((s) => s.id === keep[etapa.key]);
+      const existing =
+        statuses.find((s) => s.name === etapa.name) || (keep[etapa.key] && statuses.find((s) => s.id === keep[etapa.key]));
       if (existing) {
         target[etapa.key] = existing.id;
         if (existing.name !== etapa.name || existing.sort !== sort) {
@@ -325,7 +327,7 @@ async function funis(k, apply) {
     // 2) Etapas antigas que foram unificadas: move os leads e apaga a etapa vazia.
     for (const [oldIdStr, key] of Object.entries(plan.map)) {
       const oldId = Number(oldIdStr);
-      if (oldId === keep[key]) continue;
+      if (oldId === target[key] || !statuses.some((s) => s.id === oldId)) continue;
       const leads = await k.listAll('/leads', { embeddedKey: 'leads', params: { 'filter[statuses][0][pipeline_id]': pid, 'filter[statuses][0][status_id]': oldId } });
       const old = statuses.find((s) => s.id === oldId);
       log(`  mover ${leads.length} lead(s) de "${old?.name}" → "${ETAPAS.find((e) => e.key === key).name}" e apagar a etapa antiga`);
@@ -335,14 +337,27 @@ async function funis(k, apply) {
       }
     }
 
-    // 3) Etapas finais (ganho/perdido)
+    // 3) Garante a ordem 1→8 (o Kommo desloca a ordem ao criar etapas no meio).
+    if (apply) {
+      const fresh = (await k.getPipelines()).find((p) => p.id === pid)._embedded.statuses;
+      for (const [i, etapa] of ETAPAS.entries()) {
+        const st = fresh.find((s) => s.id === target[etapa.key]);
+        const sort = 20 + i * 10;
+        // Sempre com o nome: um PATCH só com "sort" apaga o nome da etapa no Kommo.
+        if (st && (st.sort !== sort || st.name !== etapa.name)) {
+          await k.request('patch', `/leads/pipelines/${pid}/statuses/${st.id}`, { data: { name: etapa.name, sort } });
+        }
+      }
+    }
+
+    // 4) Etapas finais (ganho/perdido)
     for (const s of statuses.filter((x) => NOMES_FINAIS[x.id] && x.name !== NOMES_FINAIS[x.id])) {
       log(`  final "${s.name}" → "${NOMES_FINAIS[s.id]}"`);
       if (apply) {
         try {
           await k.request('patch', `/leads/pipelines/${pid}/statuses/${s.id}`, { data: { name: NOMES_FINAIS[s.id] } });
         } catch (e) {
-          log(`    (o Kommo não permite renomear pela API: ${e.status}; renomeie na tela do funil se quiser)`);
+          log(`    (o Kommo não deixa renomear ganho/perdido pela API; renomeie na tela do funil)`);
         }
       }
     }
@@ -378,19 +393,19 @@ async function campos(k, apply) {
 
   const updates = [];
   const place = (ids, groupId, label) => {
-    ids.forEach((id, i) => {
+    for (const id of ids) {
       const f = byId.get(id);
-      if (!f) return;
-      const u = { id, sort: 10 + i };
-      if (groupId) u.group_id = groupId;
-      if (RENOMEAR_CAMPOS[id]) u.name = RENOMEAR_CAMPOS[id];
-      updates.push(u);
-    });
+      if (!f) continue;
+      const current = f.group_id || 'default';
+      if (groupId !== 'default' && current !== groupId) updates.push({ id, data: { group_id: groupId } });
+      if (RENOMEAR_CAMPOS[id] && f.name !== RENOMEAR_CAMPOS[id]) updates.push({ id, data: { name: RENOMEAR_CAMPOS[id] } });
+    }
     log(`  ${label}: ${ids.map((id) => RENOMEAR_CAMPOS[id] || byId.get(id)?.name).filter(Boolean).join(' · ')}`);
   };
   place(CAMPOS_PRINCIPAL, 'default', 'Principal (a comercial preenche)');
   place(CAMPOS_ALICE, gAlice, 'Qualificação (Alice)');
   place(CAMPOS_FINANCEIRO, gFin, 'Financeiro');
+  log(`  ${updates.length} ajuste(s) de aba/nome`);
 
   const remove = CAMPOS_REMOVER.filter((id) => byId.has(id));
   log(`  🗑 remover (nunca usados): ${remove.map((id) => byId.get(id).name).join(' · ')}`);
@@ -399,12 +414,14 @@ async function campos(k, apply) {
   if (!apply) return;
   for (const u of updates) {
     try {
-      await k.request('patch', `/leads/custom_fields/${u.id}`, { data: u });
+      await k.request('patch', `/leads/custom_fields/${u.id}`, { data: u.data });
     } catch (e) {
       log(`    ⚠️ campo ${u.id}: ${e.message.slice(0, 160)}`);
     }
   }
-  await k.request('patch', `/leads/custom_fields/${CLASSIFICACAO.id}`, { data: { enums: CLASSIFICACAO.enums } });
+  const cls = byId.get(CLASSIFICACAO.id);
+  const clsOk = cls && CLASSIFICACAO.enums.every((e) => cls.enums?.some((x) => x.id === e.id && x.value === e.value)) && cls.enums.length === CLASSIFICACAO.enums.length;
+  if (!clsOk) await k.request('patch', `/leads/custom_fields/${CLASSIFICACAO.id}`, { data: { enums: CLASSIFICACAO.enums } });
   for (const id of remove) await k.request('delete', `/leads/custom_fields/${id}`);
 }
 
@@ -460,6 +477,10 @@ async function templates(k, apply) {
     try {
       await k.request('patch', `/chats/templates/${t.id}`, { data: { name: TEMPLATES_NOMES[t.id], content: t.content } });
     } catch (e) {
+      if (e.status === 403) {
+        log('    ⚠️ o Kommo não deixa renomear templates pela API (403). Use docs/templates-renomear.md na tela.');
+        break;
+      }
       falhas += 1;
       if (falhas <= 3) log(`    ⚠️ template ${t.id}: ${e.message.slice(0, 200)}`);
     }
@@ -484,4 +505,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { ETAPAS, MAPA_ETAPAS, BOT_TEMPLATES, objectionTemplate };
+module.exports = { ETAPAS, MAPA_ETAPAS, BOT_TEMPLATES, TEMPLATES_NOMES, objectionTemplate };
