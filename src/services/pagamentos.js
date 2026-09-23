@@ -120,13 +120,22 @@ const isoFromBr = (br) => {
 function parseComprovantes(txt) {
   const out = [];
   for (const msg of parseExport(txt)) {
-    const text = msg.text.trim();
+    const text = msg.text.replace(/<Mensagem editada>/gi, '').trim();
     if (text === '[mídia]' || /seja bem[- ]vind[ao] (a|à) cl[ií]nica/i.test(text)) continue;
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const lines = text.split('\n').map((l) => l.replace(/^[-•·]\s*/, '').trim()).filter(Boolean);
     const pagLine = lines.find((l) => RE.pagamento.test(l) && money(l) != null);
-    const restLine = lines.find((l) => RE.restante.test(l));
+    // Segunda parte / restante de uma consulta já vendida: "Pagamento 2/2", "2/2 Joanna", "Restante…"
+    const parcela = /\b(?:pagamento\s*)?2\s*\/\s*2\b|\bpagamento\s+restante\b/i.test(text);
+    const restLine = lines.find((l) => RE.restante.test(l)) || (parcela ? lines.find((l) => /2\s*\/\s*2|restante/i.test(l)) : null);
     const cirurgiaParte = /cirurgia\s*\(?\s*parte/i.test(text);
-    if (!pagLine && !restLine && !cirurgiaParte) continue;
+    // "Segue pagamento da paciente X - Consulta Dra. Lorena" (Concierge)
+    const segue = text.match(/segue pagamento d[ao]s?\s+pacientes?\s+(.+?)(?:\s+-\s+|\n|$)([\s\S]*)/i);
+    // Ficha de cadastro enviada depois do pagamento (CPF + nome), mesmo sem linha de valor
+    const ficha = /\b(cpf|passport|passaporte|identidade|id number)\b/i.test(text) && lines.length >= 3;
+    if (!pagLine && !restLine && !cirurgiaParte && !segue && !ficha) continue;
+    // Pagamentos que não são consulta (protocolos, exames, produtos) não entram
+    const naoConsulta = /(protocolo|capilar|[aá]cido|doppler|exame|soro|vitamina|botox|preenchimento|bioestimulador)/i;
+    if (segue && naoConsulta.test(segue[2] + ' ' + segue[1]) && !/consulta|tele/i.test(segue[2] + ' ' + segue[1])) continue;
 
     // Valor do rótulo: na mesma linha ou, se vazio, na linha seguinte ("Nome" ↵ "SILVIA CORREIA").
     const labelValue = (re) => {
@@ -143,14 +152,27 @@ function parseComprovantes(txt) {
     const rotulo = labelValue(RE.nome);
     if (rotulo && looksLikeName(cleanName(rotulo))) nome = cleanName(rotulo);
     if (!nome && restLine) {
-      const v = cleanName(restLine.match(RE.restante)[1] || '');
+      const v = cleanName((restLine.match(RE.restante) || [])[1] || '');
       if (looksLikeName(v)) nome = v;
     }
     if (!nome) {
       const nf = text.match(/nota fiscal no nome de\s+([^\n]+)/i);
       if (nf) nome = cleanName(nf[1]);
     }
-    if (!nome && looksLikeName(lines[0])) nome = cleanName(lines[0]);
+    if (!nome && segue) {
+      const v = cleanName(segue[1].split(/\s+e\s+/)[0]);
+      if (looksLikeName(v)) nome = v;
+    }
+    if (!nome) {
+      // "Pagamento 2/2 | Fulana de Tal" / "Fulana de Tal | Pagamento 2/2" / primeira linha com o nome
+      for (const l of lines.slice(0, 3)) {
+        const v = cleanName(l.replace(/pagamento\s*\d\s*\/\s*\d|\d\s*\/\s*\d|pagamento|restante|consulta.*$|sp$/gi, ''));
+        if (looksLikeName(v)) {
+          nome = v;
+          break;
+        }
+      }
+    }
 
     let telefone = normPhone(labelValue(RE.tel));
     let cpf = null;
@@ -177,7 +199,7 @@ function parseComprovantes(txt) {
       pago: valores ? valores.pago : null,
       total: valores ? valores.total : null,
       tipo,
-      restante: Boolean(restLine),
+      restante: Boolean(restLine) || parcela,
       retorno: /retorno/i.test(text),
       consultaEm: consultaData(text, msg.date),
       texto: text.slice(0, 400),
@@ -260,7 +282,12 @@ function consolidarPacientes(registros) {
     const cirurgias = regs.filter((r) => r.tipo === 'cirurgia');
     // Data do ganho: 1º pagamento no grupo; no AmigoClinic, o dia em que a consulta foi agendada.
     const dataDe = (r) => (r.fonte === 'amigoclinic' ? r.agendadoEm || r.data : r.data);
-    const primeiroPagamento = consultas.find((r) => r.fonte === 'whatsapp' && r.pago) || consultas[0] || null;
+    // Venda = 1ª ficha do grupo que não é parcela (2/2, restante); senão, a 1ª ficha; senão, o AmigoClinic.
+    const primeiroPagamento =
+      consultas.find((r) => r.fonte === 'whatsapp' && !r.restante) ||
+      consultas.find((r) => r.fonte === 'whatsapp') ||
+      consultas[0] ||
+      null;
     const totalConsulta = Math.max(0, ...consultas.map((r) => r.total || r.valor || 0));
     return {
       nome: p.nome,
@@ -268,6 +295,7 @@ function consolidarPacientes(registros) {
       cpf: p.cpf,
       email: p.email,
       fontes: [...new Set(regs.map((r) => r.fonte))],
+      noGrupo: consultas.some((r) => r.fonte === 'whatsapp'),
       consultaPaga: consultas.length > 0,
       cirurgia: cirurgias.length > 0,
       dataGanho: primeiroPagamento ? dataDe(primeiroPagamento) : null,
