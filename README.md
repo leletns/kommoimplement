@@ -63,11 +63,11 @@ node src/scripts/organizarKommo.js --aplicar  # backup + aplica tudo
 
 | Etapa | O que muda |
 |---|---|
-| Funis | **Comercial 1** e **Comercial 2** com as mesmas etapas: 1. Novo · Alice atendendo → 2. Qualificado → 3. Interesse em agendar · Maria → 4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada → 8. Nutrição · retomar depois. No Comercial 1 é só renomear: os IDs das etapas e os leads não mudam, então os robôs ligados às etapas continuam funcionando. O funil vazio "Alice - Blue" é apagado. |
+| Funis | **Comercial 1** e **Comercial 2** com as mesmas etapas: 1. Novo · boas-vindas → 2. Qualificado → 3. Interesse em agendar · Maria → 4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada → 8. Nutrição · retomar depois. No Comercial 1 é só renomear: os IDs das etapas e os leads não mudam, então os robôs ligados às etapas continuam funcionando. O funil vazio "Alice - Blue" é apagado. |
 | Campos | Aba principal só com o que a comercial preenche (10 campos); "Qualificação (Alice)" com o que é automático; "Financeiro". Remove 12 campos nunca usados. Corrige "Classificação" (Fria/Morna/Quente) e "Data e horário da consulta". |
 | Tags | frio/ia-frio/morno/quente/muito_quente → `lead_fria`/`lead_morna`/`lead_quente`; alice_rj/sp/internacional → rj/sp/internacional |
 | Tarefas | Conclui as 93 tarefas automáticas vencidas "NOVO LEAD CHEGOU" |
-| Templates | Renomeia os 104 por etapa da jornada (`01 Abertura`, `04 Objeção`, `06 Pagamento`, `09 Follow-up`…) e cria os 19 de objeção (5 passos) |
+| Templates | Renomeia os 104 por etapa da jornada (`01 Abertura`, `04 Objeção`, `06 Pagamento`, `09 Follow-up`…) e cria os 19 de objeção (5 passos) e os 3 textos dos robôs (`00 Robô · …`) |
 
 Depois, o retroativo preenche o card (Score, Classificação, Objeção registrada, Resumo Alice Bot) sem poluir a timeline:
 ```bash
@@ -77,6 +77,9 @@ node src/scripts/retroativo.js --sem-nota-alice --funil 13687203  # Comercial 2
 Régua: **≥ 70** → `lead_quente` + `handoff_maria` → *3. Interesse em agendar · Maria* · **40–69** → `lead_morna` → *2. Qualificado* · **< 40** → `lead_fria` → *1. Novo*. Todas recebem `follow_up_day2` e `alice_bot_finalizado`; a etapa só avança.
 
 Para desfazer: o JSON em `backups/` tem funis, campos, templates, tarefas e as tags e campos de cada lead de antes da mudança.
+
+### Robôs (Salesbot)
+Só dois robôs: **boas-vindas** e **follow-up**. Textos, onde ficam no funil e o passo a passo para criar esses dois e apagar os outros estão em [`docs/bots.md`](docs/bots.md). A API do Kommo só lista robôs; criar e apagar se faz na tela.
 
 ## Painel (`Blue Painel Comercial v1 claro.dc.html`)
 

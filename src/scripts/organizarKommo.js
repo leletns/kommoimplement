@@ -34,7 +34,7 @@ const PIPE_ALICE_VAZIO = 14507315;
 
 /** Estrutura padrão dos funis comerciais (a mesma para Comercial 1 e 2). */
 const ETAPAS = [
-  { key: 'novo', name: '1. Novo · Alice atendendo', color: '#fffeb2' },
+  { key: 'novo', name: '1. Novo · boas-vindas', color: '#fffeb2' },
   { key: 'qualificado', name: '2. Qualificado', color: '#ffeab2' },
   { key: 'negociacao', name: '3. Interesse em agendar · Maria', color: '#ffdc7f' },
   { key: 'agendada', name: '4. Consulta agendada', color: '#98cbff' },
@@ -204,6 +204,34 @@ const TEMPLATES_NOMES = {
   50382: '06 Pagamento · Reserva da consulta (Dr. Leonardo)',
   51114: '09 Follow-up · Reativação 2026',
 };
+
+/** Textos dos 2 robôs (docs/bots.md). Ficam também como templates para a comercial usar no chat. */
+const BOT_TEMPLATES = [
+  {
+    name: '00 Robô · Boas-vindas',
+    content:
+      'Olá! 💙 Seja muito bem-vinda à Blue Clínica, do Dr. Rafael Erthal.\n\n' +
+      'Recebemos sua mensagem e, em breve, nossa consultora Maria vai entrar em contato para te atender pessoalmente ' +
+      '(de segunda a sexta, das 9h às 17h30).\n\n' +
+      'Enquanto isso, se quiser, você já pode ir me contando:\n' +
+      '• seu nome;\n' +
+      '• a cidade onde você mora;\n' +
+      '• o que te trouxe até nós (lipedema, cirurgia, qualidade da pele…).\n\n' +
+      'Assim a Maria já chega sabendo como te ajudar. 💙',
+  },
+  {
+    name: '00 Robô · Follow-up dia 2',
+    content:
+      'Oi, {{contact.first_name}}! 💙 Passando para saber se ficou alguma dúvida sobre a avaliação que eu possa esclarecer para você.\n\n' +
+      'Se fizer sentido, posso verificar as próximas possibilidades de agenda.',
+  },
+  {
+    name: '00 Robô · Follow-up último contato',
+    content:
+      'Oi, {{contact.first_name}}. 💙 Vou encerrar nosso acompanhamento por aqui para não ser inconveniente.\n\n' +
+      'Quando quiser retomar, será um prazer continuar de onde paramos.',
+  },
+];
 
 /** Mensagem pronta a partir do roteiro de 5 passos (acolher + compreender + reposicionar + conduzir). */
 function objectionTemplate(o) {
@@ -422,10 +450,10 @@ async function templates(k, apply) {
   const list = await k.listAll('/chats/templates', { embeddedKey: 'chat_templates' });
   const renames = list.filter((t) => TEMPLATES_NOMES[t.id] && t.name !== TEMPLATES_NOMES[t.id]);
   log(`  renomear ${renames.length} templates (ex.: "${renames[0]?.name}" → "${TEMPLATES_NOMES[renames[0]?.id]}")`);
-  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !t.name.startsWith('04 Objeção ·'));
+  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Robô) ·/.test(t.name));
   if (semMapa.length) log(`  sem mapeamento (mantidos): ${semMapa.map((t) => t.name).join(' · ')}`);
-  const novos = OBJECTIONS.map(objectionTemplate).filter((n) => !list.some((t) => t.name === n.name));
-  log(`  + criar ${novos.length} templates de objeção (5 passos)`);
+  const novos = [...BOT_TEMPLATES, ...OBJECTIONS.map(objectionTemplate)].filter((n) => !list.some((t) => t.name === n.name));
+  log(`  + criar ${novos.length} templates (3 dos robôs + objeções em 5 passos)`);
   if (!apply) return;
   let falhas = 0;
   for (const t of renames) {
@@ -456,4 +484,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { ETAPAS, MAPA_ETAPAS, objectionTemplate };
+module.exports = { ETAPAS, MAPA_ETAPAS, BOT_TEMPLATES, objectionTemplate };
