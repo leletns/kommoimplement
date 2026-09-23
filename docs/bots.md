@@ -96,8 +96,8 @@ em "Qualificado" (ela infla os agendamentos).
 O Kommo não deixa criar robôs pela API (só pela tela). Cole este prompt no Claude do Chrome:
 
 ```
-Você está no Kommo da Clínica Blue (comercialblueclinica.kommo.com). Vou criar 2 robôs (Salesbot)
-nos funis "Comercial 1" e "Comercial 2". Siga na ordem e me mostre um resumo no final.
+Você está no Kommo da Clínica Blue (comercialblueclinica.kommo.com). Vou criar 5 robôs (Salesbot)
+nos funis "Comercial 1" e "Comercial 2": boas-vindas, porteiro e 3 follow-ups. Siga na ordem e me mostre um resumo no final.
 
 REGRAS
 - Não envie mensagem manual para nenhuma paciente. Não apague leads, campos nem etapas.
@@ -166,9 +166,16 @@ REGRAS
 
 4) TESTE: crie um lead de teste com o MEU número de WhatsApp no "Comercial 1", etapa
    "1. Novo · boas-vindas". Confira se chega só UMA mensagem de boas-vindas e se a tarefa foi criada.
-   Depois mova o lead de teste para "Perdido" (não apague nada).
+   Depois mova o mesmo lead para "3.1 Follow-up 1 · dia 1" e confira se chega a mensagem do
+   follow-up 1. Eu respondo pelo celular: confira se o lead voltou para "3. Interesse em agendar · Maria"
+   com a tarefa "🔥 Paciente respondeu: responder AGORA".
+   No fim, mova o lead de teste para "Perdido" (não apague nada).
 
-5) RESUMO: me mostre o que foi criado/removido em cada funil e qualquer passo que o Kommo não deixou fazer.
+5) SÓ DEPOIS DO TESTE OK, APAGAR os robôs antigos: TestBot, Robô de NPS, Teste ID Consulta SP,
+   Alice, Alice copiar(1), Alice- bot-teste, teste alice, testebottt Alice v1, testev2alice,
+   Salesbot #2. Se algum estiver ligado a uma etapa, remova o gatilho antes.
+
+6) RESUMO: me mostre o que foi criado/removido em cada funil e qualquer passo que o Kommo não deixou fazer.
 ```
 
 > Ordem recomendada: rode primeiro `node src/scripts/organizarKommo.js --aplicar` (renomeia as
