@@ -212,35 +212,36 @@ const BOT_TEMPLATES = [
   {
     name: '00 Alice · Boas-vindas',
     content:
-      'Oi! Que alegria ter você por aqui 💙\n' +
-      'Eu sou a Alice, da Clínica Blue, do Dr. Rafael Erthal.\n' +
+      'Oi! Que alegria receber sua mensagem 💙\n' +
+      'Eu sou a Alice, assistente de relacionamento do Dr. Rafael Erthal, aqui na Clínica Blue.\n' +
       '\n' +
-      'Pode ficar tranquila: aqui a gente escuta com calma, sem pressa e sem julgamento. Cada história é única, e a sua também.\n' +
+      'Pode ficar tranquila: por aqui a gente escuta com calma, sem pressa e sem julgamento.\n' +
       '\n' +
-      'A Maria, nossa consultora, já vai falar com você pessoalmente (de segunda a sexta, das 9h às 17h30).\n' +
+      'Para a Maria, nossa consultora, já chegar sabendo como cuidar de você, me conta rapidinho:\n' +
       '\n' +
-      'Enquanto isso, me conta um pouquinho de você?\n' +
-      '✨ Seu nome\n' +
-      '📍 A cidade onde você mora\n' +
-      '💭 O que te trouxe até a Blue (lipedema, cirurgia, contorno corporal…)\n' +
+      '1️⃣ Como você gostaria de ser chamada?\n' +
+      '2️⃣ De qual cidade você fala?\n' +
+      '3️⃣ O que te trouxe até o Dr. Rafael? (lipedema, dor ou inchaço nas pernas, cirurgia plástica, contorno corporal…)\n' +
+      '4️⃣ Você já tem diagnóstico de lipedema ou seria sua primeira avaliação?\n' +
       '\n' +
-      'Assim a Maria já chega sabendo como cuidar de você. 💙',
+      'Pode responder do seu jeito, até por áudio 😊\n' +
+      'A Maria vai falar com você pessoalmente em breve (de segunda a sexta, das 9h às 17h30). 💙',
   },
   {
     name: '00 Alice · Follow-up dia 2',
     content:
-      'Oi, {{contact.first_name}}! Aqui é a Alice, da Clínica Blue 💙\n' +
-      'Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação com o Dr. Rafael.\n' +
+      'Oi, {{contact.first_name}}! Aqui é a Alice, assistente de relacionamento do Dr. Rafael Erthal 💙\n' +
+      'Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação.\n' +
       '\n' +
-      'Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda.',
+      'Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda do Dr. Rafael.',
   },
   {
     name: '00 Alice · Follow-up último contato',
     content:
-      'Oi, {{contact.first_name}}, é a Alice de novo 💙\n' +
+      'Oi, {{contact.first_name}}, é a Alice, do Dr. Rafael Erthal 💙\n' +
       'Não quero ser inconveniente, então vou pausar nosso contato por aqui.\n' +
       '\n' +
-      'Mas fica o recado: quando você quiser retomar, a Blue vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!',
+      'Mas fica o recado: quando você quiser retomar, a gente vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!',
   },
 ];
 

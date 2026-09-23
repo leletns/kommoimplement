@@ -2,8 +2,6 @@
 
 O Kommo não deixa renomear templates pela API (é uma API privada, que devolve 403). Os 3 textos dos robôs, na voz da Alice (`00 Alice · …`), e as 19 objeções (`04 Objeção · … (5 passos)`) já foram criados. Faltam os nomes antigos abaixo.
 
-**Apagar na tela** os 3 templates antigos dos robôs (texto antigo, substituídos pelos `00 Alice · …`): `00 Robô · Boas-vindas`, `00 Robô · Follow-up dia 2`, `00 Robô · Follow-up último contato`.
-
 Onde renomear: **Configurações → Chats e mensagens → Templates** (ou pelo ícone de template no chat). Os que estão marcados com **REVISAR** têm nome de paciente fixo no texto.
 
 | Nome atual | Novo nome |
