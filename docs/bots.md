@@ -1,4 +1,4 @@
-# Robôs do Kommo — só 2: boas-vindas e follow-up
+# Robôs do Kommo — boas-vindas + régua de follow-up (3 etapas)
 
 A comercial (Maria) atende tudo pelo chat do Kommo. Os robôs só fazem duas coisas:
 avisar que ela vai entrar em contato e, se a paciente parar de responder, retomar
@@ -7,10 +7,13 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 
 ## Onde cada robô fica no funil (Comercial 1 e Comercial 2)
 
-| Etapa | Robô | Quando dispara |
+| Etapa | Robô | O que acontece |
 |---|---|---|
-| **1. Novo · boas-vindas** (é onde caem os leads novos do WhatsApp) | 🤖 **Boas-vindas** | Ao criar o lead / entrar na etapa. Uma vez por lead. |
-| **2. Qualificado** e **3. Interesse em agendar · Maria** | 🤖 **Follow-up** | Lead há **2 dias** na etapa sem resposta da paciente |
+| **1. Novo · boas-vindas** | 🤖 **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
+| **2. Qualificado** e **3. Interesse em agendar · Maria** | 🤖 **Alice · Porteiro** | 1 dia sem resposta da paciente → move para **3.1 Follow-up 1**. |
+| **3.1 Follow-up 1 · dia 1** | 🤖 **Alice · Follow-up 1** | Mensagem de atenção. Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
+| **3.2 Follow-up 2 · dia 3** | 🤖 **Alice · Follow-up 2** | Prova social + escolha fácil. Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
+| **3.3 Follow-up 3 · dia 7** | 🤖 **Alice · Follow-up 3** | Última mensagem, sem pressão. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
 | 4 a 8 | nenhum | A Maria conduz |
 
 ## Robô 1 — Boas-vindas
@@ -28,24 +31,38 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Maria
 **"Responder nova paciente"** com prazo de 1 hora.
 
-## Robô 2 — Follow-up
+## Régua de follow-up (etapas 3.1, 3.2 e 3.3)
 
-1. **Dia 2**: envia
-   > Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
-   > Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?
-   > É só responder SIM 😊
+Cada mensagem usa um gatilho diferente, sem cara de robô: primeiro **atenção** (pergunta
+pessoal e fácil de responder), depois **prova social + autoridade** com uma **escolha simples**
+(presencial ou online) e, por fim, a **última mensagem honesta**, que costuma ser a que mais recebe resposta.
 
-   Tag: `follow_up_day2`.
-2. **Espera a resposta por até 3 dias.**
-   - **Respondeu**: para o robô, adiciona a tag `follow_up_respondeu`, cria a tarefa para a Maria **"🔥 Paciente respondeu ao follow-up: mandar horários AGORA"** (prazo 30 minutos) e move o lead para **3. Interesse em agendar · Maria**.
-   - **Não respondeu (dia 5)**: envia o último contato
-     > Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙
-     > Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.
-     > É só responder QUERO que a Maria te chama 😊
+**Regra de ouro:** respondeu em qualquer momento → para a régua, volta para **3. Interesse em agendar · Maria**,
+tag `fu_respondeu` e tarefa **"🔥 Paciente respondeu: responder AGORA"** (30 minutos).
+Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
-     Tag: `follow_up_day5`. Move o lead para **8. Nutrição · retomar depois** (não para "Perdido": pelo manual, "vou pensar" não encerra a oportunidade).
+### Follow-up 1 · dia 1 (atenção)
+> Oi, {{contact.first_name}}! Tudo bem? 💙
+> Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?
+> Quero entender direitinho pra Maria te ajudar do jeito certo.
 
-Os três textos também existem como templates de chat (`00 Alice · …`), criados pelo
+Sem resposta em 2 dias → **3.2 Follow-up 2**.
+
+### Follow-up 2 · dia 3 (prova social + escolha fácil)
+> {{contact.first_name}}, lembrei de você 💙
+> Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.
+> Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.
+
+Sem resposta em 4 dias → **3.3 Follow-up 3**.
+
+### Follow-up 3 · dia 7 (última mensagem)
+> Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙
+> Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.
+> Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!
+
+Sem resposta em 5 dias → **8. Nutrição · retomar depois** + tag `fu_sem_resposta` (não vai para perdido).
+
+Os quatro textos também existem como templates de chat (`00 Alice · …`), criados pelo
 `organizarKommo.js --aplicar`, para a Maria usar manualmente quando quiser.
 
 ## Robôs para apagar
@@ -107,27 +124,43 @@ REGRAS
    imediatamente, em todos os canais (WhatsApp). Salve e ative.
    Repita no funil "Comercial 2" (mesmo bot, etapa "1. Novo · boas-vindas"; tarefa para a Mayra).
 
-3) ROBÔ "Alice · Follow-up"
-   Onde: etapas "2. Qualificado" e "3. Interesse em agendar · Maria" (as duas), do Comercial 1 e 2.
-   Passos no editor:
-   a) Condição: se a última mensagem da conversa foi da PACIENTE → parar (a Maria responde).
-   b) Mensagem (texto exato):
-      Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
-      Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?
-      É só responder SIM 😊
-   c) Ação → Adicionar tag: follow_up_day2
-   d) Esperar resposta por até 3 dias:
-      • Se RESPONDEU: tag follow_up_respondeu + tarefa para a Maria
-        "🔥 Paciente respondeu ao follow-up: mandar horários AGORA" (prazo 30 minutos) e mover o lead
-        para "3. Interesse em agendar · Maria" → fim.
-      • Se NÃO respondeu em 3 dias: enviar
-          Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙
-          Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.
-          É só responder QUERO que a Maria te chama 😊
-        depois: tag follow_up_day5 e mover o lead para a etapa "8. Nutrição · retomar depois" → fim.
-   Gatilho: 2 dias depois de o lead entrar na etapa (atraso personalizado de 2 dias),
-   UMA vez por lead. Se houver opção de "horário de funcionamento", use seg a sex 9h–17h30.
-   Salve e ative.
+3) RÉGUA DE FOLLOW-UP (as etapas "3.1 Follow-up 1 · dia 1", "3.2 Follow-up 2 · dia 3" e
+   "3.3 Follow-up 3 · dia 7" JÁ EXISTEM nos dois funis). Crie 4 robôs, nos dois funis:
+
+   REGRA EM TODOS: se a paciente RESPONDER em qualquer momento → adicionar tag fu_respondeu,
+   mover para "3. Interesse em agendar · Maria" e criar tarefa para a Maria
+   "🔥 Paciente respondeu: responder AGORA" (prazo 30 minutos) → fim.
+   Se o lead tiver a tag opt_out → não enviar nada.
+
+   3a) "Alice · Porteiro" — etapas "2. Qualificado" e "3. Interesse em agendar · Maria".
+       Gatilho: 1 dia depois de entrar na etapa (ou da última mensagem da equipe).
+       Condição: se NÃO houve mensagem da paciente nesse período → mover para "3.1 Follow-up 1 · dia 1".
+       Se houve → não fazer nada.
+
+   3b) "Alice · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
+       Mensagem (texto exato):
+         Oi, {{contact.first_name}}! Tudo bem? 💙
+         Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?
+         Quero entender direitinho pra Maria te ajudar do jeito certo.
+       Esperar resposta por 2 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.2 Follow-up 2 · dia 3".
+
+   3c) "Alice · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
+       Mensagem (texto exato):
+         {{contact.first_name}}, lembrei de você 💙
+         Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.
+         Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.
+       Esperar resposta por 4 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.3 Follow-up 3 · dia 7".
+
+   3d) "Alice · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
+       Mensagem (texto exato):
+         Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙
+         Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.
+         Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!
+       Esperar resposta por 5 dias. Respondeu → REGRA acima. Não respondeu → tag fu_sem_resposta e
+       mover para "8. Nutrição · retomar depois".
+
+   Em todos: enviar só em horário comercial (seg a sex, 9h–17h30) se o Kommo tiver essa opção,
+   e executar UMA vez por lead em cada etapa.
 
 4) TESTE: crie um lead de teste com o MEU número de WhatsApp no "Comercial 1", etapa
    "1. Novo · boas-vindas". Confira se chega só UMA mensagem de boas-vindas e se a tarefa foi criada.

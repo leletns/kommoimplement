@@ -37,6 +37,10 @@ const ETAPAS = [
   { key: 'novo', name: '1. Novo · boas-vindas', color: '#fffeb2' },
   { key: 'qualificado', name: '2. Qualificado', color: '#ffeab2' },
   { key: 'negociacao', name: '3. Interesse em agendar · Maria', color: '#ffdc7f' },
+  // Régua de follow-up da Alice: sem resposta da paciente, desce 3.1 → 3.2 → 3.3; respondeu, volta para a 3 (Maria).
+  { key: 'fu1', name: '3.1 Follow-up 1 · dia 1', color: '#ffc8c8' },
+  { key: 'fu2', name: '3.2 Follow-up 2 · dia 3', color: '#ffdbdb' },
+  { key: 'fu3', name: '3.3 Follow-up 3 · dia 7', color: '#ff8f92' },
   { key: 'agendada', name: '4. Consulta agendada', color: '#98cbff' },
   { key: 'realizada', name: '5. Consulta realizada', color: '#c1e0ff' },
   { key: 'oportunidade', name: '6. Oportunidade cirúrgica', color: '#f3beff' },
@@ -223,18 +227,25 @@ const BOT_TEMPLATES = [
       'Em breve a Maria, nossa consultora, fala com você 😊',
   },
   {
-    name: '00 Alice · Follow-up dia 2',
+    name: '00 Alice · Follow-up 1 · dia 1',
     content:
-      'Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙\n' +
-      'Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?\n' +
-      'É só responder SIM 😊',
+      'Oi, {{contact.first_name}}! Tudo bem? 💙\n' +
+      'Fiquei pensando em você por aqui. Me conta: hoje, o que mais te incomoda?\n' +
+      'Quero entender direitinho pra Maria te ajudar do jeito certo.',
   },
   {
-    name: '00 Alice · Follow-up último contato',
+    name: '00 Alice · Follow-up 2 · dia 3',
     content:
-      'Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙\n' +
-      'Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.\n' +
-      'É só responder QUERO que a Maria te chama 😊',
+      '{{contact.first_name}}, lembrei de você 💙\n' +
+      'Muitas pacientes chegam ao Dr. Rafael depois de anos sem uma resposta clara, e saem da avaliação entendendo o próprio caso pela primeira vez.\n' +
+      'Você prefere avaliação presencial ou online? Aí eu já peço pra Maria ver um horário.',
+  },
+  {
+    name: '00 Alice · Follow-up 3 · dia 7',
+    content:
+      'Oi, {{contact.first_name}}! Não quero ser insistente, então essa é minha última mensagem por aqui 💙\n' +
+      'Sei que o primeiro passo nem sempre é fácil, e a gente está aqui pra tornar ele leve.\n' +
+      'Se ainda fizer sentido, é só responder QUERO que a Maria te chama. Se não for o momento, tudo bem!',
   },
 ];
 
@@ -357,7 +368,7 @@ async function funis(k, apply) {
             await k.request('patch', `/leads/pipelines/${pid}/statuses/${target[etapa.key]}`, { data: { name: etapa.name, sort: pass + i * 10 } });
           }
         }
-        if (wrong(await fresh())) log('  ⚠️ a ordem das etapas não ficou 1→8; ajuste arrastando na tela do funil');
+        if (wrong(await fresh())) log('  ⚠️ a ordem das etapas não ficou certa; ajuste arrastando na tela do funil');
         else log('  ordem das etapas ajustada (1→8)');
       }
     }
@@ -482,7 +493,7 @@ async function templates(k, apply) {
   const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Alice|00 Robô) ·/.test(t.name));
   if (semMapa.length) log(`  sem mapeamento (mantidos): ${semMapa.map((t) => t.name).join(' · ')}`);
   const novos = [...BOT_TEMPLATES, ...OBJECTIONS.map(objectionTemplate)].filter((n) => !list.some((t) => t.name === n.name));
-  log(`  + criar ${novos.length} templates (3 dos robôs + objeções em 5 passos)`);
+  log(`  + criar ${novos.length} templates (4 da Alice + objeções em 5 passos)`);
   if (!apply) return;
   let falhas = 0;
   for (const t of renames) {
