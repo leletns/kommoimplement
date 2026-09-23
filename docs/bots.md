@@ -31,19 +31,15 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 ## Robô 2 — Follow-up
 
 1. **Dia 2**: envia
-   > Oi, {{contact.first_name}}! Aqui é a Alice, assistente de relacionamento do Dr. Rafael Erthal 💙
-   > Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação.
-   >
-   > Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda do Dr. Rafael.
+   > Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
+   > Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊
 
    Tag: `follow_up_day2`.
 2. **Espera a resposta por até 3 dias.**
    - **Respondeu**: para o robô, adiciona a tag `follow_up_respondeu` e cria a tarefa para a Maria **"Paciente respondeu ao follow-up"** (prazo 1 hora).
    - **Não respondeu (dia 5)**: envia o último contato
-     > Oi, {{contact.first_name}}, é a Alice, do Dr. Rafael Erthal 💙
-     > Não quero ser inconveniente, então vou pausar nosso contato por aqui.
-     >
-     > Mas fica o recado: quando você quiser retomar, a gente vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!
+     > Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙
+     > Quando quiser retomar, é só me chamar. Estamos aqui pra você!
 
      Tag: `follow_up_day5`. Move o lead para **8. Nutrição · retomar depois** (não para "Perdido": pelo manual, "vou pensar" não encerra a oportunidade).
 
@@ -73,65 +69,66 @@ em "Qualificado" (ela infla os agendamentos).
 
 ## Prompt para o Claude no Chrome (com o Kommo aberto)
 
+O Kommo não deixa criar robôs pela API (só pela tela). Cole este prompt no Claude do Chrome:
+
 ```
-Você está na conta comercialblueclinica.kommo.com. Quero só 2 robôs (Salesbot) nos funis
-"Comercial 1" e "Comercial 2". Siga na ordem e me mostre um resumo no final.
+Você está no Kommo da Clínica Blue (comercialblueclinica.kommo.com). Vou criar 2 robôs (Salesbot)
+nos funis "Comercial 1" e "Comercial 2". Siga na ordem e me mostre um resumo no final.
 
-1) ANTES DE APAGAR QUALQUER COISA: vá em Leads > Automatizar (configuração do funil) do
-   Comercial 1 e do Comercial 2 e me liste todos os gatilhos/robôs ligados a cada etapa.
+REGRAS
+- Não envie mensagem manual para nenhuma paciente. Não apague leads, campos nem etapas.
+- Copie os textos EXATAMENTE como estão abaixo (com os emojis e as quebras de linha).
+- Onde aparece {{contact.first_name}}, use a variável "Nome do contato" do editor (ou digite igual).
 
-2) DESLIGAR:
-   - O Agente de IA "Clínica Blue".
-   - No Comercial 1, a regra da etapa "Qualificado" (ou "2. Qualificado") que move o lead
-     para "Agendamento Confirmado" após 48h sem mensagem. Apague essa regra.
+1) ANTES DE CRIAR: abra Leads → funil "Comercial 1" → botão "Automatizar" (canto superior direito).
+   Me liste todos os gatilhos/robôs de cada etapa. Na etapa "2. Qualificado", APAGUE a regra que
+   move o lead para "Consulta agendada"/"Agendamento Confirmado" depois de 48 horas.
+   Se na etapa "1. Novo · boas-vindas" já existir outro robô de boas-vindas, remova o gatilho dele
+   (senão a paciente recebe duas mensagens). Desligue o "Agente de IA" se ele responder no WhatsApp.
 
-3) CRIAR o robô "Alice · Boas-vindas" (editor visual do Salesbot):
-   - Passo 1: enviar mensagem (texto exato):
-     Oi! Que bom ter você aqui 💙
-     Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
+2) ROBÔ "Alice · Boas-vindas"
+   Onde: etapa "1. Novo · boas-vindas" → "+ Adicionar gatilho" → Salesbot → Criar novo bot.
+   Passos no editor:
+   a) Mensagem (texto exato):
+      Oi! Que bom ter você aqui 💙
+      Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
 
-     Pra te atender melhor, me conta:
-     1️⃣ Seu nome
-     2️⃣ Sua cidade
-     3️⃣ O que te trouxe até nós?
+      Pra te atender melhor, me conta:
+      1️⃣ Seu nome
+      2️⃣ Sua cidade
+      3️⃣ O que te trouxe até nós?
 
-     Em breve a Maria, nossa consultora, fala com você 😊
-   - Passo 2: adicionar tag "boas_vindas_enviada".
-   - Passo 3: criar tarefa para a Maria "Responder nova paciente", prazo 1 hora.
-   - Gatilho: na etapa onde os leads novos do WhatsApp caem ("1. Novo · boas-vindas",
-     hoje chamada "Qualificação Bot"), ao criar ou mover o lead para a etapa. Só uma vez por lead.
-     Faça o mesmo no Comercial 2 (etapa "1. Novo · boas-vindas").
+      Em breve a Maria, nossa consultora, fala com você 😊
+   b) Ação → Adicionar tag: boas_vindas_enviada
+   c) Ação → Criar tarefa para a Maria: "Responder nova paciente", prazo 1 hora.
+   Gatilho: "Quando o lead é criado ou movido para esta etapa", executar UMA vez por lead,
+   imediatamente, em todos os canais (WhatsApp). Salve e ative.
+   Repita no funil "Comercial 2" (mesmo bot, etapa "1. Novo · boas-vindas"; tarefa para a Mayra).
 
-4) CRIAR o robô "Alice · Follow-up":
-   - Passo 1: enviar:
-     Oi, {{contact.first_name}}! Aqui é a Alice, assistente de relacionamento do Dr. Rafael Erthal 💙
-     Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação.
+3) ROBÔ "Alice · Follow-up"
+   Onde: etapas "2. Qualificado" e "3. Interesse em agendar · Maria" (as duas), do Comercial 1 e 2.
+   Passos no editor:
+   a) Condição: se a última mensagem da conversa foi da PACIENTE → parar (a Maria responde).
+   b) Mensagem (texto exato):
+      Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
+      Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊
+   c) Ação → Adicionar tag: follow_up_day2
+   d) Esperar resposta por até 3 dias:
+      • Se RESPONDEU: tag follow_up_respondeu + tarefa para a Maria
+        "Paciente respondeu ao follow-up" (prazo 1 hora) → fim.
+      • Se NÃO respondeu em 3 dias: enviar
+          Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙
+          Quando quiser retomar, é só me chamar. Estamos aqui pra você!
+        depois: tag follow_up_day5 e mover o lead para a etapa "8. Nutrição · retomar depois" → fim.
+   Gatilho: 2 dias depois de o lead entrar na etapa (atraso personalizado de 2 dias),
+   UMA vez por lead. Se houver opção de "horário de funcionamento", use seg a sex 9h–17h30.
+   Salve e ative.
 
-     Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda do Dr. Rafael.
-   - Passo 2: adicionar tag "follow_up_day2".
-   - Passo 3: aguardar resposta por até 3 dias.
-     • Se a paciente responder: adicionar tag "follow_up_respondeu", criar tarefa para a Maria
-       "Paciente respondeu ao follow-up" (prazo 1 hora) e encerrar o robô.
-     • Se não responder: enviar
-       Oi, {{contact.first_name}}, é a Alice, do Dr. Rafael Erthal 💙
-       Não quero ser inconveniente, então vou pausar nosso contato por aqui.
+4) TESTE: crie um lead de teste com o MEU número de WhatsApp no "Comercial 1", etapa
+   "1. Novo · boas-vindas". Confira se chega só UMA mensagem de boas-vindas e se a tarefa foi criada.
+   Depois mova o lead de teste para "Perdido" (não apague nada).
 
-       Mas fica o recado: quando você quiser retomar, a gente vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!
-       depois adicionar tag "follow_up_day5" e mover o lead para a etapa "8. Nutrição · retomar depois"
-       (se ainda não existir, use "Nutrição").
-   - Gatilho: nas etapas "2. Qualificado" e "3. Interesse em agendar · Maria" (hoje "Qualificado"
-     e "Em Negociação"), 2 dias após o lead entrar na etapa. Se houver a opção de
-     "somente se não houver mensagem da paciente" ou "horário comercial", ative.
-     Faça o mesmo no Comercial 2.
-
-5) TESTAR: crie um lead de teste com o seu próprio número, confira se chega só a mensagem
-   de boas-vindas (uma vez) e depois apague o lead de teste.
-
-6) SÓ DEPOIS DO TESTE OK, APAGAR estes robôs: TestBot, Robô de NPS, Teste ID Consulta SP,
-   Alice, Alice copiar(1), Alice- bot-teste, teste alice, testebottt Alice v1, testev2alice,
-   Salesbot #2. Se algum estiver ligado a uma etapa, remova o gatilho antes.
-
-Não altere leads, campos nem nomes de etapas além do que está acima.
+5) RESUMO: me mostre o que foi criado/removido em cada funil e qualquer passo que o Kommo não deixou fazer.
 ```
 
 > Ordem recomendada: rode primeiro `node src/scripts/organizarKommo.js --aplicar` (renomeia as

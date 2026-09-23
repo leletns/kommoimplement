@@ -225,18 +225,14 @@ const BOT_TEMPLATES = [
   {
     name: '00 Alice · Follow-up dia 2',
     content:
-      'Oi, {{contact.first_name}}! Aqui é a Alice, assistente de relacionamento do Dr. Rafael Erthal 💙\n' +
-      'Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação.\n' +
-      '\n' +
-      'Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda do Dr. Rafael.',
+      'Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙\n' +
+      'Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊',
   },
   {
     name: '00 Alice · Follow-up último contato',
     content:
-      'Oi, {{contact.first_name}}, é a Alice, do Dr. Rafael Erthal 💙\n' +
-      'Não quero ser inconveniente, então vou pausar nosso contato por aqui.\n' +
-      '\n' +
-      'Mas fica o recado: quando você quiser retomar, a gente vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!',
+      'Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙\n' +
+      'Quando quiser retomar, é só me chamar. Estamos aqui pra você!',
   },
 ];
 
