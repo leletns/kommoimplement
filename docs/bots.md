@@ -11,9 +11,9 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 |---|---|---|
 | **1. Novo · boas-vindas** | 🤖 **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
 | **2. Qualificado** e **3. Interesse em agendar · Maria** | 🤖 **Alice · Porteiro** | 1 dia sem resposta da paciente → move para **3.1 Follow-up 1**. |
-| **3.1 Follow-up 1 · dia 1** | 🤖 **Maria · Follow-up 1** | Mensagem de atenção. Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
-| **3.2 Follow-up 2 · dia 3** | 🤖 **Maria · Follow-up 2** | Prova social + escolha fácil. Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
-| **3.3 Follow-up 3 · dia 7** | 🤖 **Maria · Follow-up 3** | Última mensagem, sem pressão. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
+| **3.1 Follow-up 1 · dia 1** | 🤖 **Maria · Follow-up 1** | Resgate com curiosidade ("separei uma informação"). Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
+| **3.2 Follow-up 2 · dia 3** | 🤖 **Maria · Follow-up 2** | Curiosidade: "precisa mesmo de cirurgia?". Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
+| **3.3 Follow-up 3 · dia 7** | 🤖 **Maria · Follow-up 3** | Última informação antes de encerrar. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
 | 4 a 8 | nenhum | A Maria conduz |
 
 ## Robô 1 — Boas-vindas
@@ -33,37 +33,37 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 
 ## Régua de follow-up (etapas 3.1, 3.2 e 3.3)
 
-Os follow-ups falam **como a Maria** (SDR), em primeira pessoa, sem se apresentar: profissionais,
-curtos e sempre com um **próximo passo claro**. Primeiro **qualifica** (qual a principal queixa),
-depois mostra o **valor da avaliação** com uma **escolha simples** (presencial ou online) e, por fim,
-**encerra com a porta aberta** para reservar horário.
+A régua é de **resgate**: a paciente já conversou com a Maria e parou de responder. Os follow-ups
+falam **como a Maria** (SDR), em primeira pessoa, sem se apresentar: curtos, profissionais e cada um
+**abre uma curiosidade** ("separei uma informação", "a resposta costuma surpreender", "uma última
+informação") que só se resolve se ela responder. Terminam com um "sim" fácil.
 A Maria precisa ter a continuação pronta (abaixo de cada mensagem).
 
 **Regra de ouro:** respondeu em qualquer momento → para a régua, volta para **3. Interesse em agendar · Maria**,
 tag `fu_respondeu` e tarefa **"🔥 Paciente respondeu: responder AGORA"** (30 minutos).
 Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
-### Follow-up 1 · dia 1 (atenção)
-> Oi, {{contact.first_name}}, tudo bem?
-> Pra eu te orientar sobre o melhor próximo passo, me conta: hoje sua maior queixa é dor e peso nas pernas, o formato do corpo ou a qualidade da pele?
+### Follow-up 1 · dia 1 (resgate: "separei uma informação")
+> Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.
+> Posso te mandar?
 
-**Se responder, a Maria continua:** acolhe a queixa, explica em uma frase como o Dr. Rafael avalia esse caso e pergunta se ela prefere avaliação presencial ou online.
+**Se responder, a Maria continua:** "Na avaliação, o Dr. Rafael analisa seus sintomas, histórico e exames e te diz com clareza qual é o melhor caminho para o seu caso. É o passo que tira a dúvida de vez. Você prefere presencial ou online?"
 
 Sem resposta em 2 dias → **3.2 Follow-up 2**.
 
-### Follow-up 2 · dia 3 (prova social + escolha fácil)
-> {{contact.first_name}}, a avaliação com o Dr. Rafael é o momento de entender o seu caso com clareza: ele analisa sintomas, histórico e exames e indica o caminho mais seguro pra você.
-> Tenho horários nas próximas semanas. Você prefere presencial ou online?
+### Follow-up 2 · dia 3 (curiosidade: a dúvida que toda paciente tem)
+> {{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.
+> Quer que eu te explique como o Dr. Rafael avalia isso?
 
-**Se responder, a Maria continua:** manda 2 ou 3 opções de data e horário no formato escolhido e o valor da consulta.
+**Se responder, a Maria continua:** "Nem toda paciente precisa operar no primeiro momento. Só a avaliação individualizada confirma o diagnóstico e a melhor conduta, e é isso que o Dr. Rafael faz na consulta, com calma. Quer que eu veja um horário pra você?"
 
 Sem resposta em 4 dias → **3.3 Follow-up 3**.
 
-### Follow-up 3 · dia 7 (última mensagem)
-> {{contact.first_name}}, vou encerrar seu atendimento por aqui para não te incomodar.
-> Se ainda fizer sentido avaliar o seu caso com o Dr. Rafael, é só me responder que eu reservo um horário pra você.
+### Follow-up 3 · dia 7 (última informação antes de encerrar)
+> {{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.
+> Te mando?
 
-**Se responder, a Maria continua:** manda 2 ou 3 opções de data e horário e o valor da consulta.
+**Se responder, a Maria continua:** mostra o que facilita: formas de pagamento da consulta, opção de avaliação online para quem mora longe e o que a consulta inclui. Em seguida, 2 ou 3 opções de horário.
 
 Sem resposta em 5 dias → **8. Nutrição · retomar depois** + tag `fu_sem_resposta` (não vai para perdido).
 
@@ -144,20 +144,20 @@ REGRAS
 
    3b) "Maria · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         Oi, {{contact.first_name}}, tudo bem?
-         Pra eu te orientar sobre o melhor próximo passo, me conta: hoje sua maior queixa é dor e peso nas pernas, o formato do corpo ou a qualidade da pele?
+         Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.
+         Posso te mandar?
        Esperar resposta por 2 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.2 Follow-up 2 · dia 3".
 
    3c) "Maria · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         {{contact.first_name}}, a avaliação com o Dr. Rafael é o momento de entender o seu caso com clareza: ele analisa sintomas, histórico e exames e indica o caminho mais seguro pra você.
-         Tenho horários nas próximas semanas. Você prefere presencial ou online?
+         {{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.
+         Quer que eu te explique como o Dr. Rafael avalia isso?
        Esperar resposta por 4 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.3 Follow-up 3 · dia 7".
 
    3d) "Maria · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         {{contact.first_name}}, vou encerrar seu atendimento por aqui para não te incomodar.
-         Se ainda fizer sentido avaliar o seu caso com o Dr. Rafael, é só me responder que eu reservo um horário pra você.
+         {{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.
+         Te mando?
        Esperar resposta por 5 dias. Respondeu → REGRA acima. Não respondeu → tag fu_sem_resposta e
        mover para "8. Nutrição · retomar depois".
 

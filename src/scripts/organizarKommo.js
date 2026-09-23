@@ -229,20 +229,20 @@ const BOT_TEMPLATES = [
   {
     name: '00 Maria · Follow-up 1 · dia 1',
     content:
-      'Oi, {{contact.first_name}}, tudo bem?\n' +
-      'Pra eu te orientar sobre o melhor próximo passo, me conta: hoje sua maior queixa é dor e peso nas pernas, o formato do corpo ou a qualidade da pele?',
+      'Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.\n' +
+      'Posso te mandar?',
   },
   {
     name: '00 Maria · Follow-up 2 · dia 3',
     content:
-      '{{contact.first_name}}, a avaliação com o Dr. Rafael é o momento de entender o seu caso com clareza: ele analisa sintomas, histórico e exames e indica o caminho mais seguro pra você.\n' +
-      'Tenho horários nas próximas semanas. Você prefere presencial ou online?',
+      '{{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.\n' +
+      'Quer que eu te explique como o Dr. Rafael avalia isso?',
   },
   {
     name: '00 Maria · Follow-up 3 · dia 7',
     content:
-      '{{contact.first_name}}, vou encerrar seu atendimento por aqui para não te incomodar.\n' +
-      'Se ainda fizer sentido avaliar o seu caso com o Dr. Rafael, é só me responder que eu reservo um horário pra você.',
+      '{{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.\n' +
+      'Te mando?',
   },
 ];
 
