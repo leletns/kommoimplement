@@ -207,30 +207,40 @@ const TEMPLATES_NOMES = {
 };
 
 /** Textos dos 2 robôs (docs/bots.md). Ficam também como templates para a comercial usar no chat. */
+// Voz da Alice (Manual Comercial Blue): "Não pressionamos. Não abandonamos. Entendemos, acolhemos e conduzimos."
 const BOT_TEMPLATES = [
   {
-    name: '00 Robô · Boas-vindas',
+    name: '00 Alice · Boas-vindas',
     content:
-      'Olá! 💙 Seja muito bem-vinda à Blue Clínica, do Dr. Rafael Erthal.\n\n' +
-      'Recebemos sua mensagem e, em breve, nossa consultora Maria vai entrar em contato para te atender pessoalmente ' +
-      '(de segunda a sexta, das 9h às 17h30).\n\n' +
-      'Enquanto isso, se quiser, você já pode ir me contando:\n' +
-      '• seu nome;\n' +
-      '• a cidade onde você mora;\n' +
-      '• o que te trouxe até nós (lipedema, cirurgia, qualidade da pele…).\n\n' +
-      'Assim a Maria já chega sabendo como te ajudar. 💙',
+      'Oi! Que alegria ter você por aqui 💙\n' +
+      'Eu sou a Alice, da Clínica Blue, do Dr. Rafael Erthal.\n' +
+      '\n' +
+      'Pode ficar tranquila: aqui a gente escuta com calma, sem pressa e sem julgamento. Cada história é única, e a sua também.\n' +
+      '\n' +
+      'A Maria, nossa consultora, já vai falar com você pessoalmente (de segunda a sexta, das 9h às 17h30).\n' +
+      '\n' +
+      'Enquanto isso, me conta um pouquinho de você?\n' +
+      '✨ Seu nome\n' +
+      '📍 A cidade onde você mora\n' +
+      '💭 O que te trouxe até a Blue (lipedema, cirurgia, contorno corporal…)\n' +
+      '\n' +
+      'Assim a Maria já chega sabendo como cuidar de você. 💙',
   },
   {
-    name: '00 Robô · Follow-up dia 2',
+    name: '00 Alice · Follow-up dia 2',
     content:
-      'Oi, {{contact.first_name}}! 💙 Passando para saber se ficou alguma dúvida sobre a avaliação que eu possa esclarecer para você.\n\n' +
-      'Se fizer sentido, posso verificar as próximas possibilidades de agenda.',
+      'Oi, {{contact.first_name}}! Aqui é a Alice, da Clínica Blue 💙\n' +
+      'Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação com o Dr. Rafael.\n' +
+      '\n' +
+      'Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda.',
   },
   {
-    name: '00 Robô · Follow-up último contato',
+    name: '00 Alice · Follow-up último contato',
     content:
-      'Oi, {{contact.first_name}}. 💙 Vou encerrar nosso acompanhamento por aqui para não ser inconveniente.\n\n' +
-      'Quando quiser retomar, será um prazer continuar de onde paramos.',
+      'Oi, {{contact.first_name}}, é a Alice de novo 💙\n' +
+      'Não quero ser inconveniente, então vou pausar nosso contato por aqui.\n' +
+      '\n' +
+      'Mas fica o recado: quando você quiser retomar, a Blue vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!',
   },
 ];
 
@@ -475,7 +485,7 @@ async function templates(k, apply) {
   const list = await k.listAll('/chats/templates', { embeddedKey: 'chat_templates' });
   const renames = list.filter((t) => TEMPLATES_NOMES[t.id] && t.name !== TEMPLATES_NOMES[t.id]);
   log(`  renomear ${renames.length} templates (ex.: "${renames[0]?.name}" → "${TEMPLATES_NOMES[renames[0]?.id]}")`);
-  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Robô) ·/.test(t.name));
+  const semMapa = list.filter((t) => !TEMPLATES_NOMES[t.id] && !/^(04 Objeção|00 Alice|00 Robô) ·/.test(t.name));
   if (semMapa.length) log(`  sem mapeamento (mantidos): ${semMapa.map((t) => t.name).join(' · ')}`);
   const novos = [...BOT_TEMPLATES, ...OBJECTIONS.map(objectionTemplate)].filter((n) => !list.some((t) => t.name === n.name));
   log(`  + criar ${novos.length} templates (3 dos robôs + objeções em 5 passos)`);

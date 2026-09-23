@@ -82,6 +82,22 @@ function isCirurgia(lead) {
   return CIRURGIA_REGEX.test(text) || Number(lead.price) >= CIRURGIA_MIN_PRICE;
 }
 
+const PAGAMENTO_FIELD_ID = config.kommo.pagamentoFieldId || null;
+
+/** Valor (unix) de um campo de data do lead, ou null. */
+function fieldDate(lead, fieldId) {
+  if (!fieldId) return null;
+  const f = (lead.custom_fields_values || []).find((c) => c.field_id === fieldId);
+  const v = f && f.values && f.values[0] && f.values[0].value;
+  if (v == null || v === '') return null;
+  return typeof v === 'number' ? v : Math.floor(new Date(v).getTime() / 1000) || null;
+}
+
+function consultaEventosDesde() {
+  const d = config.kommo.consultaEventosDesde;
+  return d ? Math.floor(new Date(`${d}T00:00:00-03:00`).getTime() / 1000) || null : null;
+}
+
 function hasRenda(lead) {
   if (!RENDA_FIELD_ID) return false;
   const f = (lead.custom_fields_values || []).find((c) => c.field_id === RENDA_FIELD_ID);
@@ -112,7 +128,7 @@ function reachedStage(lead, stage, ctxFor, entered) {
 }
 
 /** Monta um período no formato do PERIODS a partir dos dados brutos. */
-function buildPeriod(win, { created, won, ctxByPipeline, entered, users, cirurgiaLeads, teamPipelines }) {
+function buildPeriod(win, { created, won, todos = [], ctxByPipeline, entered, users, cirurgiaLeads, teamPipelines }) {
   const inScope = (l) => ctxByPipeline.has(l.pipeline_id);
   const inWin = (t) => t >= win.from && t <= win.to;
   const ctxFor = (l) => ctxByPipeline.get(l.pipeline_id);
@@ -125,20 +141,36 @@ function buildPeriod(win, { created, won, ctxByPipeline, entered, users, cirurgi
   // Cirurgia vendida = entrou em "7. Cirurgia confirmada" no mês. Sem essa etapa no funil,
   // cai na regra antiga (tag/nome de cirurgia ou valor alto no ganho).
   const hasCirurgiaStage = [...ctxByPipeline.values()].some((c) => c.cirurgia);
-  let cirurgias;
-  let consultas;
-  if (hasCirurgiaStage) {
-    const porEtapa = cirurgiaLeads.filter((l) =>
-      (entered.get(l.id) || []).some((e) => ctxFor(l)?.cirurgia?.ids.has(e.id) && inWin(e.at))
-    );
-    // Ganho que é claramente cirurgia (valor alto / tag) continua contando como cirurgia.
-    const ids = new Set(porEtapa.map((l) => l.id));
-    cirurgias = [...porEtapa, ...ganhos.filter((l) => isCirurgia(l) && !ids.has(l.id))];
-    consultas = ganhos.filter((l) => !isCirurgia(l) && !ids.has(l.id));
-  } else {
-    cirurgias = ganhos.filter(isCirurgia);
-    consultas = ganhos.filter((l) => !isCirurgia(l));
+  const porEtapa = hasCirurgiaStage
+    ? cirurgiaLeads.filter((l) => (entered.get(l.id) || []).some((e) => ctxFor(l)?.cirurgia?.ids.has(e.id) && inWin(e.at)))
+    : [];
+  const ids = new Set(porEtapa.map((l) => l.id));
+  // Cirurgia: entrou em "7. Cirurgia confirmada" no mês, ou ganho que é claramente cirurgia (valor alto / tag).
+  const cirurgias = [...porEtapa, ...ganhos.filter((l) => isCirurgia(l) && !ids.has(l.id))];
+
+  // Consulta vendida, com a data da venda:
+  //   1. campo "Data do pagamento" no mês (vale em qualquer etapa: agendada, realizada, ganho...);
+  //   2. ganho no mês sem esse campo (regra antiga);
+  //   3. a partir de KOMMO_CONSULTA_EVENTOS_DESDE, entrou em "4. Consulta agendada" no mês sem o campo.
+  const vendas = new Map();
+  for (const l of todos) {
+    const at = inScope(l) && fieldDate(l, PAGAMENTO_FIELD_ID);
+    if (at && inWin(at)) vendas.set(l.id, { lead: l, at });
   }
+  for (const l of ganhos) {
+    if (vendas.has(l.id) || fieldDate(l, PAGAMENTO_FIELD_ID) || isCirurgia(l) || ids.has(l.id)) continue;
+    vendas.set(l.id, { lead: l, at: l.closed_at });
+  }
+  const eventosDesde = consultaEventosDesde();
+  if (eventosDesde) {
+    for (const l of todos) {
+      if (!inScope(l) || vendas.has(l.id) || fieldDate(l, PAGAMENTO_FIELD_ID)) continue;
+      const e = (entered.get(l.id) || []).find((x) => ctxFor(l)?.apn?.ids.has(x.id) && x.at >= eventosDesde && inWin(x.at));
+      if (e) vendas.set(l.id, { lead: l, at: e.at });
+    }
+  }
+  const consultas = [...vendas.values()].map((v) => v.lead);
+  const vendidaEm = (l) => vendas.get(l.id).at;
   const sales = [...consultas, ...cirurgias];
 
   const sum = (arr) => arr.reduce((a, l) => a + (Number(l.price) || 0), 0);
@@ -147,13 +179,13 @@ function buildPeriod(win, { created, won, ctxByPipeline, entered, users, cirurgi
   const receita = receitaCm1 + receitaCm2;
 
   const ads = Number(parseJsonEnv('ADS_INVESTIMENTO_JSON')[win.ym] || 0);
-  const ciclos = consultas.filter((l) => l.created_at && l.closed_at).map((l) => (l.closed_at - l.created_at) / 86400);
+  const ciclos = consultas.filter((l) => l.created_at && vendidaEm(l) > l.created_at).map((l) => (vendidaEm(l) - l.created_at) / 86400);
   const lastLead = leads.reduce((max, l) => Math.max(max, l.created_at), 0);
 
   const leadSeries = [0, 0, 0, 0, 0];
   const saleSeries = [0, 0, 0, 0, 0];
   leads.forEach((l) => (leadSeries[weekIndex(l.created_at)] += 1));
-  consultas.forEach((l) => (saleSeries[weekIndex(l.closed_at)] += 1));
+  consultas.forEach((l) => (saleSeries[weekIndex(vendidaEm(l))] += 1));
   cirurgias.forEach((l) => {
     const e = (entered.get(l.id) || []).find((x) => ctxFor(l)?.cirurgia?.ids.has(x.id) && inWin(x.at));
     saleSeries[weekIndex(e ? e.at : l.closed_at || l.updated_at)] += 1;
@@ -276,7 +308,7 @@ async function fetchRaw(kommo, windows) {
   }
   const pipelineIds = [...ctxByPipeline.keys()];
 
-  const [created, won, events, userList] = await Promise.all([
+  const [created, won, todos, events, userList] = await Promise.all([
     kommo.listAll('/leads', {
       embeddedKey: 'leads',
       params: { 'filter[created_at][from]': from, 'filter[created_at][to]': to, 'filter[pipeline_id]': pipelineIds },
@@ -285,6 +317,10 @@ async function fetchRaw(kommo, windows) {
       embeddedKey: 'leads',
       params: { 'filter[closed_at][from]': from, 'filter[closed_at][to]': to, 'filter[pipeline_id]': pipelineIds },
     }),
+    // Todos os leads dos funis: a "Data do pagamento" pode estar em lead de qualquer etapa.
+    PAGAMENTO_FIELD_ID
+      ? kommo.listAll('/leads', { embeddedKey: 'leads', params: { 'filter[pipeline_id]': pipelineIds } })
+      : Promise.resolve([]),
     kommo.listAll('/events', {
       embeddedKey: 'events',
       limit: 100,
@@ -309,6 +345,7 @@ async function fetchRaw(kommo, windows) {
     ctxByPipeline,
     created,
     won,
+    todos,
     entered,
     cirurgiaLeads: cirurgiaLeads.filter((l) => ctxByPipeline.has(l.pipeline_id)),
     users: new Map(userList.map((u) => [u.id, u])),

@@ -224,6 +224,7 @@ function parseAmigoClinic(csvText) {
       byAtendimento.set(id, {
         atendimento: id,
         data: isoFromBr(r['Data do Agendamento']),
+        hora: /^\d{1,2}:\d{2}$/.test(r['Hora do Agendamento'] || '') ? r['Hora do Agendamento'] : null,
         agendadoEm: r['Agendado em'] ? isoFromBr(r['Agendado em']) : null,
         nome: cleanName(r.Paciente),
         telefone: normPhone(r.Telefone),

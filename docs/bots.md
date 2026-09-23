@@ -2,7 +2,8 @@
 
 A comercial (Maria) atende tudo pelo chat do Kommo. Os robôs só fazem duas coisas:
 avisar que ela vai entrar em contato e, se a paciente parar de responder, retomar
-com elegância, sem pressão. Os textos seguem o Manual Comercial Blue (Módulo 9).
+com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comercial Blue:
+"Não pressionamos. Não abandonamos. Entendemos, acolhemos e conduzimos."
 
 ## Onde cada robô fica no funil (Comercial 1 e Comercial 2)
 
@@ -14,16 +15,19 @@ com elegância, sem pressão. Os textos seguem o Manual Comercial Blue (Módulo 
 
 ## Robô 1 — Boas-vindas
 
-> Olá! 💙 Seja muito bem-vinda à Blue Clínica, do Dr. Rafael Erthal.
+> Oi! Que alegria ter você por aqui 💙
+> Eu sou a Alice, da Clínica Blue, do Dr. Rafael Erthal.
 >
-> Recebemos sua mensagem e, em breve, nossa consultora Maria vai entrar em contato para te atender pessoalmente (de segunda a sexta, das 9h às 17h30).
+> Pode ficar tranquila: aqui a gente escuta com calma, sem pressa e sem julgamento. Cada história é única, e a sua também.
 >
-> Enquanto isso, se quiser, você já pode ir me contando:
-> • seu nome;
-> • a cidade onde você mora;
-> • o que te trouxe até nós (lipedema, cirurgia, qualidade da pele…).
+> A Maria, nossa consultora, já vai falar com você pessoalmente (de segunda a sexta, das 9h às 17h30).
 >
-> Assim a Maria já chega sabendo como te ajudar. 💙
+> Enquanto isso, me conta um pouquinho de você?
+> ✨ Seu nome
+> 📍 A cidade onde você mora
+> 💭 O que te trouxe até a Blue (lipedema, cirurgia, contorno corporal…)
+>
+> Assim a Maria já chega sabendo como cuidar de você. 💙
 
 Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Maria
 **"Responder nova paciente"** com prazo de 1 hora.
@@ -31,21 +35,23 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 ## Robô 2 — Follow-up
 
 1. **Dia 2**: envia
-   > Oi, {{contact.first_name}}! 💙 Passando para saber se ficou alguma dúvida sobre a avaliação que eu possa esclarecer para você.
+   > Oi, {{contact.first_name}}! Aqui é a Alice, da Clínica Blue 💙
+   > Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação com o Dr. Rafael.
    >
-   > Se fizer sentido, posso verificar as próximas possibilidades de agenda.
+   > Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda.
 
    Tag: `follow_up_day2`.
 2. **Espera a resposta por até 3 dias.**
    - **Respondeu**: para o robô, adiciona a tag `follow_up_respondeu` e cria a tarefa para a Maria **"Paciente respondeu ao follow-up"** (prazo 1 hora).
    - **Não respondeu (dia 5)**: envia o último contato
-     > Oi, {{contact.first_name}}. 💙 Vou encerrar nosso acompanhamento por aqui para não ser inconveniente.
+     > Oi, {{contact.first_name}}, é a Alice de novo 💙
+     > Não quero ser inconveniente, então vou pausar nosso contato por aqui.
      >
-     > Quando quiser retomar, será um prazer continuar de onde paramos.
+     > Mas fica o recado: quando você quiser retomar, a Blue vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!
 
      Tag: `follow_up_day5`. Move o lead para **8. Nutrição · retomar depois** (não para "Perdido": pelo manual, "vou pensar" não encerra a oportunidade).
 
-Os três textos também existem como templates de chat (`00 Robô · …`), criados pelo
+Os três textos também existem como templates de chat (`00 Alice · …`), criados pelo
 `organizarKommo.js --aplicar`, para a Maria usar manualmente quando quiser.
 
 ## Robôs para apagar
@@ -83,37 +89,42 @@ Você está na conta comercialblueclinica.kommo.com. Quero só 2 robôs (Salesbo
    - No Comercial 1, a regra da etapa "Qualificado" (ou "2. Qualificado") que move o lead
      para "Agendamento Confirmado" após 48h sem mensagem. Apague essa regra.
 
-3) CRIAR o robô "Blue · Boas-vindas" (editor visual do Salesbot):
+3) CRIAR o robô "Alice · Boas-vindas" (editor visual do Salesbot):
    - Passo 1: enviar mensagem (texto exato):
-     Olá! 💙 Seja muito bem-vinda à Blue Clínica, do Dr. Rafael Erthal.
+     Oi! Que alegria ter você por aqui 💙
+     Eu sou a Alice, da Clínica Blue, do Dr. Rafael Erthal.
 
-     Recebemos sua mensagem e, em breve, nossa consultora Maria vai entrar em contato para te atender pessoalmente (de segunda a sexta, das 9h às 17h30).
+     Pode ficar tranquila: aqui a gente escuta com calma, sem pressa e sem julgamento. Cada história é única, e a sua também.
 
-     Enquanto isso, se quiser, você já pode ir me contando:
-     • seu nome;
-     • a cidade onde você mora;
-     • o que te trouxe até nós (lipedema, cirurgia, qualidade da pele…).
+     A Maria, nossa consultora, já vai falar com você pessoalmente (de segunda a sexta, das 9h às 17h30).
 
-     Assim a Maria já chega sabendo como te ajudar. 💙
+     Enquanto isso, me conta um pouquinho de você?
+     ✨ Seu nome
+     📍 A cidade onde você mora
+     💭 O que te trouxe até a Blue (lipedema, cirurgia, contorno corporal…)
+
+     Assim a Maria já chega sabendo como cuidar de você. 💙
    - Passo 2: adicionar tag "boas_vindas_enviada".
    - Passo 3: criar tarefa para a Maria "Responder nova paciente", prazo 1 hora.
    - Gatilho: na etapa onde os leads novos do WhatsApp caem ("1. Novo · boas-vindas",
      hoje chamada "Qualificação Bot"), ao criar ou mover o lead para a etapa. Só uma vez por lead.
      Faça o mesmo no Comercial 2 (etapa "1. Novo · boas-vindas").
 
-4) CRIAR o robô "Blue · Follow-up":
+4) CRIAR o robô "Alice · Follow-up":
    - Passo 1: enviar:
-     Oi, {{contact.first_name}}! 💙 Passando para saber se ficou alguma dúvida sobre a avaliação que eu possa esclarecer para você.
+     Oi, {{contact.first_name}}! Aqui é a Alice, da Clínica Blue 💙
+     Passei só para saber como você está e se ficou alguma dúvida sobre a avaliação com o Dr. Rafael.
 
-     Se fizer sentido, posso verificar as próximas possibilidades de agenda.
+     Sem pressa, tá? Quando fizer sentido para você, a Maria vê os melhores horários na agenda.
    - Passo 2: adicionar tag "follow_up_day2".
    - Passo 3: aguardar resposta por até 3 dias.
      • Se a paciente responder: adicionar tag "follow_up_respondeu", criar tarefa para a Maria
        "Paciente respondeu ao follow-up" (prazo 1 hora) e encerrar o robô.
      • Se não responder: enviar
-       Oi, {{contact.first_name}}. 💙 Vou encerrar nosso acompanhamento por aqui para não ser inconveniente.
+       Oi, {{contact.first_name}}, é a Alice de novo 💙
+       Não quero ser inconveniente, então vou pausar nosso contato por aqui.
 
-       Quando quiser retomar, será um prazer continuar de onde paramos.
+       Mas fica o recado: quando você quiser retomar, a Blue vai estar aqui para te acolher, do ponto em que paramos. Um abraço carinhoso!
        depois adicionar tag "follow_up_day5" e mover o lead para a etapa "8. Nutrição · retomar depois"
        (se ainda não existir, use "Nutrição").
    - Gatilho: nas etapas "2. Qualificado" e "3. Interesse em agendar · Maria" (hoje "Qualificado"

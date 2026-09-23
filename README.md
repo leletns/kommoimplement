@@ -68,7 +68,7 @@ node src/scripts/organizarKommo.js --aplicar  # backup + aplica tudo
 | Campos | Aba principal só com o que a comercial preenche (10 campos); "Qualificação (Alice)" com o que é automático; "Financeiro". Remove 12 campos nunca usados. Corrige "Classificação" (Fria/Morna/Quente) e "Data e horário da consulta". |
 | Tags | frio/ia-frio/morno/quente/muito_quente → `lead_fria`/`lead_morna`/`lead_quente`; alice_rj/sp/internacional → rj/sp/internacional |
 | Tarefas | Conclui as tarefas automáticas vencidas "NOVO LEAD CHEGOU" (95 na primeira execução) |
-| Templates | Cria os 19 de objeção (5 passos) e os 3 textos dos robôs (`00 Robô · …`). Renomear os 104 antigos por etapa da jornada **só pela tela**: a API do Kommo devolve 403 (API privada). A tabela de nomes está em [`docs/templates-renomear.md`](docs/templates-renomear.md). |
+| Templates | Cria os 19 de objeção (5 passos) e os 3 textos dos robôs na voz da Alice (`00 Alice · …`). Renomear os 104 antigos por etapa da jornada **só pela tela**: a API do Kommo devolve 403 (API privada). A tabela de nomes está em [`docs/templates-renomear.md`](docs/templates-renomear.md). |
 
 Depois, o retroativo preenche o card (Score, Classificação, Objeção registrada, Resumo Alice Bot) sem poluir a timeline:
 ```bash
@@ -81,6 +81,29 @@ Para desfazer: o JSON em `backups/` tem funis, campos, templates, tarefas e as t
 
 ### Robôs (Salesbot)
 Só dois robôs: **boas-vindas** e **follow-up**. Textos, onde ficam no funil e o passo a passo para criar esses dois e apagar os outros estão em [`docs/bots.md`](docs/bots.md). A API do Kommo só lista robôs; criar e apagar se faz na tela.
+
+## Consultas pagas e etapas (grupo de comprovantes + AmigoClinic)
+
+Os arquivos com dados de pacientes ficam fora do git. Rode sempre nesta ordem (sem `--aplicar` = simulação):
+
+```bash
+A="--whatsapp grupo.txt --amigoclinic amigoclinic.csv"
+node src/scripts/importarConsultasPagas.js $A --aplicar   # paciente com consulta paga → lead confirmado (tag consulta_paga + "Data do pagamento")
+node src/scripts/organizarConsultas.js $A --aplicar       # etapa certa: 4. Consulta agendada / 5. Consulta realizada / ganho (cirurgia)
+node src/scripts/corrigirAgendadas.js $A --aplicar        # "4. Consulta agendada" sem comprovante volta para "2. Qualificado"
+```
+
+| Situação no AmigoClinic | Etapa no Kommo |
+|---|---|
+| consulta "Finalizado" (data já passou) | **5. Consulta realizada** (tag `consulta_realizada`) |
+| consulta "Agendado" (data futura) | **4. Consulta agendada** |
+| cirurgia "Finalizado" | continua **ganho** |
+| paga antes do início do relatório | 5. Consulta realizada |
+| paga, sem nenhum atendimento no relatório | 4. Consulta agendada + tag `confirmar_se_realizou` (a Maria confirma) |
+
+O painel conta a **consulta vendida** pela data do campo **"Data do pagamento"** (em qualquer etapa),
+pelos ganhos sem esse campo e, a partir de `KOMMO_CONSULTA_EVENTOS_DESDE`, por lead que entra em
+"4. Consulta agendada". Por isso, ao mover uma paciente que pagou para a etapa 4, preencha a "Data do pagamento".
 
 ## Publicar no Netlify
 

@@ -108,38 +108,52 @@ function escolherLead(leads) {
   return leads.slice().sort((a, b) => score(b) - score(a))[0];
 }
 
+const PAGAMENTO_FIELD = config.kommo.pagamentoFieldId;
+const temTag = (l) => (l._embedded?.tags || []).some((t) => t.name === TAG);
+const temPagamento = (l) => (l.custom_fields_values || []).some((c) => c.field_id === PAGAMENTO_FIELD && c.values?.[0]?.value);
+/** Data da venda da consulta: campo "Data do pagamento" (lead fora do ganho) ou closed_at. */
+function dataVenda(l) {
+  const f = (l.custom_fields_values || []).find((c) => c.field_id === PAGAMENTO_FIELD);
+  const v = f && f.values && f.values[0] && f.values[0].value;
+  return typeof v === 'number' ? v : v ? Math.floor(new Date(v).getTime() / 1000) : l.status_id === WON ? l.closed_at : null;
+}
+const campoPagamento = (iso) => (PAGAMENTO_FIELD && iso ? [{ field_id: PAGAMENTO_FIELD, values: [{ value: unixDate(iso) }] }] : null);
+
 const mesDe = (unix) => (unix ? new Date(unix * 1000 - 3 * 3600 * 1000).toISOString().slice(0, 7) : null);
 
 function planejar(pacientes, idx, byName, criarDesde) {
   const plano = [];
   for (const p of pacientes) {
+    // Guarda a paciente no item (não enumerável: não vai para o relatório).
+    const push = (it) => plano.push(Object.defineProperty(it, 'p', { value: p }));
     if (!p.consultaPaga) continue;
     const { contatos, via } = acharContatos(p, idx, byName);
     const leads = contatos.flatMap((c) => (c._embedded?.leads || []).map((x) => idx.leads.get(x.id)).filter(Boolean));
     const base = { paciente: p.nome, telefone: p.telefones[0] || '', dataGanho: p.dataGanho, valor: p.valorConsulta, via: via || '' };
     if (!contatos.length) {
       const criar = criarDesde && p.dataGanho && p.dataGanho >= criarDesde && p.nome;
-      plano.push({ ...base, acao: criar ? 'criar' : 'sem_contato', email: p.email });
+      push({ ...base, acao: criar ? 'criar' : 'sem_contato', email: p.email });
       continue;
     }
     if (via === 'nome (revisar)') {
-      plano.push({ ...base, acao: 'revisar_nome', leadId: (leads[0] || {}).id || '' });
+      push({ ...base, acao: 'revisar_nome', leadId: (leads[0] || {}).id || '' });
       continue;
     }
     if (!leads.length) {
-      plano.push({ ...base, acao: 'contato_sem_lead', contatoId: contatos[0].id });
+      push({ ...base, acao: 'contato_sem_lead', contatoId: contatos[0].id });
       continue;
     }
-    const ganho = leads.find((l) => l.status_id === WON);
+    // Já confirmado: ganho, ou com a tag consulta_paga (agendada/realizada/cirurgia, fora do ganho).
+    const ganho = leads.find((l) => l.status_id === WON) || leads.find((l) => (temTag(l) || temPagamento(l)) && l.status_id !== LOST);
     if (ganho) {
       const semValor = !(Number(ganho.price) > 0) && p.valorConsulta;
-      const outroMes = p.noGrupo && p.dataGanho && mesDe(ganho.closed_at) !== p.dataGanho.slice(0, 7);
+      const outroMes = p.noGrupo && p.dataGanho && mesDe(dataVenda(ganho)) !== p.dataGanho.slice(0, 7);
       const acao = outroMes ? 'ajustar_data' : semValor ? 'ja_ganho_completar_valor' : 'ja_ganho';
-      plano.push({ ...base, acao, leadId: ganho.id, lead: ganho, mesAntes: mesDe(ganho.closed_at) });
+      push({ ...base, acao, leadId: ganho.id, lead: ganho, mesAntes: mesDe(dataVenda(ganho)) });
       continue;
     }
     const alvo = escolherLead(leads);
-    plano.push({ ...base, acao: 'marcar_ganho', leadId: alvo.id, lead: alvo, moverParaC1: !COMERCIAIS.has(alvo.pipeline_id) });
+    push({ ...base, acao: 'marcar_ganho', leadId: alvo.id, lead: alvo, moverParaC1: !COMERCIAIS.has(alvo.pipeline_id) });
   }
   // Várias fichas da mesma paciente podem cair no mesmo lead: vale a data da 1ª venda,
   // e o lead recebe uma ação só (senão a data ficaria indo e voltando a cada execução).
@@ -152,7 +166,7 @@ function planejar(pacientes, idx, byName, criarDesde) {
   return plano.map((it) => {
     const escolhido = it.leadId && porLead.get(it.leadId);
     if (!escolhido || escolhido === it) {
-      if (escolhido && escolhido.acao === 'ajustar_data' && mesDe(escolhido.lead.closed_at) === (escolhido.dataGanho || '').slice(0, 7)) return { ...it, acao: 'ja_ganho' };
+      if (escolhido && escolhido.acao === 'ajustar_data' && mesDe(dataVenda(escolhido.lead)) === (escolhido.dataGanho || '').slice(0, 7)) return { ...it, acao: 'ja_ganho' };
       return it;
     }
     return { ...it, acao: 'duplicada' };
@@ -164,12 +178,14 @@ function patchDe(item) {
   const tags = [...new Set([...(l._embedded?.tags || []).map((t) => t.name), TAG])].map((name) => ({ name }));
   const patch = { id: l.id, _embedded: { tags } };
   if (!(Number(l.price) > 0) && item.valor) patch.price = Math.round(item.valor);
-  if (item.acao === 'ajustar_data' && item.dataGanho) patch.closed_at = unixDate(item.dataGanho);
+  if (item.acao === 'ajustar_data' && item.dataGanho && l.status_id === WON) patch.closed_at = unixDate(item.dataGanho);
   if (item.acao === 'marcar_ganho') {
     patch.status_id = WON;
     patch.pipeline_id = item.moverParaC1 ? PIPE_C1 : l.pipeline_id;
     if (item.dataGanho) patch.closed_at = unixDate(item.dataGanho);
   }
+  // "Data do pagamento" acompanha a venda (é ela que conta no painel quando o lead sai do ganho).
+  if (['marcar_ganho', 'ajustar_data'].includes(item.acao) && campoPagamento(item.dataGanho)) patch.custom_fields_values = campoPagamento(item.dataGanho);
   return patch;
 }
 
@@ -284,6 +300,7 @@ async function main() {
       status_id: WON,
       closed_at: it.dataGanho ? unixDate(it.dataGanho) : undefined,
       created_at: it.dataGanho ? unixDate(it.dataGanho) : undefined,
+      ...(campoPagamento(it.dataGanho) ? { custom_fields_values: campoPagamento(it.dataGanho) } : {}),
       _embedded: {
         tags: [{ name: TAG }],
         contacts: [
@@ -322,4 +339,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { planejar, escolherLead, patchDe, unixDate, carregarKommo };
+module.exports = { planejar, escolherLead, patchDe, unixDate, carregarKommo, dataVenda, TAG };
