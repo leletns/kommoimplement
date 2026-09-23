@@ -322,4 +322,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { planejar, escolherLead, patchDe, unixDate };
+module.exports = { planejar, escolherLead, patchDe, unixDate, carregarKommo };
