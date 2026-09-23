@@ -15,20 +15,15 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 
 ## Robô 1 — Boas-vindas
 
-> Oi! Que alegria receber sua mensagem 💙
-> Eu sou a Alice, assistente de relacionamento do Dr. Rafael Erthal, aqui na Clínica Blue.
+> Oi! Que bom ter você aqui 💙
+> Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
 >
-> Pode ficar tranquila: por aqui a gente escuta com calma, sem pressa e sem julgamento.
+> Pra te atender melhor, me conta:
+> 1️⃣ Seu nome
+> 2️⃣ Sua cidade
+> 3️⃣ O que te trouxe até nós?
 >
-> Para a Maria, nossa consultora, já chegar sabendo como cuidar de você, me conta rapidinho:
->
-> 1️⃣ Como você gostaria de ser chamada?
-> 2️⃣ De qual cidade você fala?
-> 3️⃣ O que te trouxe até o Dr. Rafael? (lipedema, dor ou inchaço nas pernas, cirurgia plástica, contorno corporal…)
-> 4️⃣ Você já tem diagnóstico de lipedema ou seria sua primeira avaliação?
->
-> Pode responder do seu jeito, até por áudio 😊
-> A Maria vai falar com você pessoalmente em breve (de segunda a sexta, das 9h às 17h30). 💙
+> Em breve a Maria, nossa consultora, fala com você 😊
 
 Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Maria
 **"Responder nova paciente"** com prazo de 1 hora.
@@ -92,20 +87,15 @@ Você está na conta comercialblueclinica.kommo.com. Quero só 2 robôs (Salesbo
 
 3) CRIAR o robô "Alice · Boas-vindas" (editor visual do Salesbot):
    - Passo 1: enviar mensagem (texto exato):
-     Oi! Que alegria receber sua mensagem 💙
-     Eu sou a Alice, assistente de relacionamento do Dr. Rafael Erthal, aqui na Clínica Blue.
+     Oi! Que bom ter você aqui 💙
+     Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
 
-     Pode ficar tranquila: por aqui a gente escuta com calma, sem pressa e sem julgamento.
+     Pra te atender melhor, me conta:
+     1️⃣ Seu nome
+     2️⃣ Sua cidade
+     3️⃣ O que te trouxe até nós?
 
-     Para a Maria, nossa consultora, já chegar sabendo como cuidar de você, me conta rapidinho:
-
-     1️⃣ Como você gostaria de ser chamada?
-     2️⃣ De qual cidade você fala?
-     3️⃣ O que te trouxe até o Dr. Rafael? (lipedema, dor ou inchaço nas pernas, cirurgia plástica, contorno corporal…)
-     4️⃣ Você já tem diagnóstico de lipedema ou seria sua primeira avaliação?
-
-     Pode responder do seu jeito, até por áudio 😊
-     A Maria vai falar com você pessoalmente em breve (de segunda a sexta, das 9h às 17h30). 💙
+     Em breve a Maria, nossa consultora, fala com você 😊
    - Passo 2: adicionar tag "boas_vindas_enviada".
    - Passo 3: criar tarefa para a Maria "Responder nova paciente", prazo 1 hora.
    - Gatilho: na etapa onde os leads novos do WhatsApp caem ("1. Novo · boas-vindas",

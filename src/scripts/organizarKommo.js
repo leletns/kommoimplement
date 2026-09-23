@@ -212,20 +212,15 @@ const BOT_TEMPLATES = [
   {
     name: '00 Alice · Boas-vindas',
     content:
-      'Oi! Que alegria receber sua mensagem 💙\n' +
-      'Eu sou a Alice, assistente de relacionamento do Dr. Rafael Erthal, aqui na Clínica Blue.\n' +
+      'Oi! Que bom ter você aqui 💙\n' +
+      'Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.\n' +
       '\n' +
-      'Pode ficar tranquila: por aqui a gente escuta com calma, sem pressa e sem julgamento.\n' +
+      'Pra te atender melhor, me conta:\n' +
+      '1️⃣ Seu nome\n' +
+      '2️⃣ Sua cidade\n' +
+      '3️⃣ O que te trouxe até nós?\n' +
       '\n' +
-      'Para a Maria, nossa consultora, já chegar sabendo como cuidar de você, me conta rapidinho:\n' +
-      '\n' +
-      '1️⃣ Como você gostaria de ser chamada?\n' +
-      '2️⃣ De qual cidade você fala?\n' +
-      '3️⃣ O que te trouxe até o Dr. Rafael? (lipedema, dor ou inchaço nas pernas, cirurgia plástica, contorno corporal…)\n' +
-      '4️⃣ Você já tem diagnóstico de lipedema ou seria sua primeira avaliação?\n' +
-      '\n' +
-      'Pode responder do seu jeito, até por áudio 😊\n' +
-      'A Maria vai falar com você pessoalmente em breve (de segunda a sexta, das 9h às 17h30). 💙',
+      'Em breve a Maria, nossa consultora, fala com você 😊',
   },
   {
     name: '00 Alice · Follow-up dia 2',
