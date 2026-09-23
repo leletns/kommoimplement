@@ -226,13 +226,15 @@ const BOT_TEMPLATES = [
     name: '00 Alice · Follow-up dia 2',
     content:
       'Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙\n' +
-      'Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊',
+      'Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?\n' +
+      'É só responder SIM 😊',
   },
   {
     name: '00 Alice · Follow-up último contato',
     content:
-      'Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙\n' +
-      'Quando quiser retomar, é só me chamar. Estamos aqui pra você!',
+      'Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙\n' +
+      'Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.\n' +
+      'É só responder QUERO que a Maria te chama 😊',
   },
 ];
 

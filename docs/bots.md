@@ -32,14 +32,16 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 
 1. **Dia 2**: envia
    > Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
-   > Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊
+   > Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?
+   > É só responder SIM 😊
 
    Tag: `follow_up_day2`.
 2. **Espera a resposta por até 3 dias.**
-   - **Respondeu**: para o robô, adiciona a tag `follow_up_respondeu` e cria a tarefa para a Maria **"Paciente respondeu ao follow-up"** (prazo 1 hora).
+   - **Respondeu**: para o robô, adiciona a tag `follow_up_respondeu`, cria a tarefa para a Maria **"🔥 Paciente respondeu ao follow-up: mandar horários AGORA"** (prazo 30 minutos) e move o lead para **3. Interesse em agendar · Maria**.
    - **Não respondeu (dia 5)**: envia o último contato
-     > Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙
-     > Quando quiser retomar, é só me chamar. Estamos aqui pra você!
+     > Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙
+     > Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.
+     > É só responder QUERO que a Maria te chama 😊
 
      Tag: `follow_up_day5`. Move o lead para **8. Nutrição · retomar depois** (não para "Perdido": pelo manual, "vou pensar" não encerra a oportunidade).
 
@@ -111,14 +113,17 @@ REGRAS
    a) Condição: se a última mensagem da conversa foi da PACIENTE → parar (a Maria responde).
    b) Mensagem (texto exato):
       Oi, {{contact.first_name}}! Aqui é a Alice, do Dr. Rafael Erthal 💙
-      Ficou alguma dúvida? Se quiser, a Maria já vê um horário pra você 😊
+      Posso pedir pra Maria te mandar os próximos horários de avaliação, presencial ou online?
+      É só responder SIM 😊
    c) Ação → Adicionar tag: follow_up_day2
    d) Esperar resposta por até 3 dias:
       • Se RESPONDEU: tag follow_up_respondeu + tarefa para a Maria
-        "Paciente respondeu ao follow-up" (prazo 1 hora) → fim.
+        "🔥 Paciente respondeu ao follow-up: mandar horários AGORA" (prazo 30 minutos) e mover o lead
+        para "3. Interesse em agendar · Maria" → fim.
       • Se NÃO respondeu em 3 dias: enviar
-          Oi, {{contact.first_name}}! Vou pausar nosso contato por aqui pra não te incomodar 💙
-          Quando quiser retomar, é só me chamar. Estamos aqui pra você!
+          Oi, {{contact.first_name}}! Vou deixar a porta aberta por aqui 💙
+          Quando quiser dar o primeiro passo, a avaliação com o Dr. Rafael é o caminho pra entender o seu caso com clareza e segurança.
+          É só responder QUERO que a Maria te chama 😊
         depois: tag follow_up_day5 e mover o lead para a etapa "8. Nutrição · retomar depois" → fim.
    Gatilho: 2 dias depois de o lead entrar na etapa (atraso personalizado de 2 dias),
    UMA vez por lead. Se houver opção de "horário de funcionamento", use seg a sex 9h–17h30.
