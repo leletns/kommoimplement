@@ -98,7 +98,7 @@ test('fluxo completo contra Kommo falso', async (t) => {
   process.env.SUPABASE_URL = '';
   process.env.ADS_INVESTIMENTO_JSON = '{}';
   // Isola o teste do .env local (dotenv não sobrescreve variáveis já definidas).
-  for (const k of ['KOMMO_PIPELINE_ID', 'KOMMO_STATUS_QUALIFICADOS_ID', 'KOMMO_STATUS_NOVOS_ID', 'KOMMO_APN_STATUS_IDS', 'KOMMO_SCORE_FIELD_ID', 'KOMMO_RENDA_FIELD_ID', 'KOMMO_TEAM_ROLES_JSON', 'SUPABASE_SERVICE_ROLE_KEY']) {
+  for (const k of ['KOMMO_STATUS_INTERESSE_ID', 'KOMMO_CLASSIFICACAO_FIELD_ID', 'KOMMO_OBJECAO_FIELD_ID', 'KOMMO_RESUMO_FIELD_ID', 'KOMMO_PIPELINE_ID', 'KOMMO_STATUS_QUALIFICADOS_ID', 'KOMMO_STATUS_NOVOS_ID', 'KOMMO_APN_STATUS_IDS', 'KOMMO_SCORE_FIELD_ID', 'KOMMO_RENDA_FIELD_ID', 'KOMMO_TEAM_ROLES_JSON', 'SUPABASE_SERVICE_ROLE_KEY']) {
     process.env[k] = '';
   }
   const app = require('../src/server');
@@ -188,8 +188,8 @@ test('fluxo completo contra Kommo falso', async (t) => {
     const byId = new Map(kommo.received.patches.map((p) => [p.id, p]));
     assert.ok(!byId.has(1004) && !byId.has(1006), 'ganhos/perdidos não são alterados');
     const hot = byId.get(1001);
-    assert.deepStrictEqual(hot._embedded.tags.map((t) => t.name), ['lead_quente', 'follow_up_day2', 'alice_bot_finalizado']);
-    assert.strictEqual(hot.status_id, 3, 'quente vai para QUALIFICADOS');
+    assert.deepStrictEqual(hot._embedded.tags.map((t) => t.name), ['lead_quente', 'handoff_maria', 'follow_up_day2', 'alice_bot_finalizado']);
+    assert.strictEqual(hot.status_id, 3, 'sem etapa "Interesse em agendar", quente vai para QUALIFICADOS');
     const cold = byId.get(1002);
     assert.ok(cold._embedded.tags.some((t) => t.name === 'lead_fria'));
     assert.strictEqual(cold.status_id, undefined, 'fria já está em NOVOS');

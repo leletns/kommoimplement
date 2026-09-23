@@ -19,16 +19,16 @@ function findStatus(statuses, regex) {
     .sort((a, b) => a.sort - b.sort)[0];
 }
 
-async function resolvePipeline(kommo) {
+async function resolvePipeline(kommo, { pipelineId = config.kommo.pipelineId } = {}) {
   const pipelines = await kommo.getPipelines();
   if (!pipelines.length) throw new Error('Nenhum funil encontrado na conta Kommo.');
 
   const pipeline =
-    (config.kommo.pipelineId && pipelines.find((p) => p.id === config.kommo.pipelineId)) ||
+    (pipelineId && pipelines.find((p) => p.id === pipelineId)) ||
     pipelines.find((p) => p.is_main) ||
     pipelines[0];
-  if (config.kommo.pipelineId && pipeline.id !== config.kommo.pipelineId) {
-    throw new Error(`KOMMO_PIPELINE_ID=${config.kommo.pipelineId} não existe na conta.`);
+  if (pipelineId && pipeline.id !== pipelineId) {
+    throw new Error(`Funil ${pipelineId} não existe na conta.`);
   }
 
   const statuses = (pipeline._embedded?.statuses || []).slice().sort((a, b) => a.sort - b.sort);
@@ -42,10 +42,12 @@ async function resolvePipeline(kommo) {
   const novos = pick(config.kommo.statusNovosId, /\bnovo/, open[0]);
   // "Qualificado(s)" antes de "Qualificação …" (ex.: "Qualificação Bot" é a etapa de triagem, não a de qualificados).
   const qualificados = pick(config.kommo.statusQualificadosId, /qualificad/, null) || findStatus(statuses, /qualific/);
+  // Handoff para a comercial (leads quentes). Sem essa etapa no funil, quentes vão para Qualificados.
+  const interesse = pick(config.kommo.statusInteresseId, /interesse em agendar|handoff/, null) || qualificados;
 
   let apnStatuses = config.kommo.apnStatusIds.map((id) => byId.get(id)).filter(Boolean);
   if (!apnStatuses.length) {
-    apnStatuses = statuses.filter((s) => s.id !== WON && s.id !== LOST && /agend|\bapn\b/.test(normalize(s.name)));
+    apnStatuses = statuses.filter((s) => s.id !== WON && s.id !== LOST && /agend|\bapn\b/.test(normalize(s.name)) && !/interesse/.test(normalize(s.name)));
   }
   const apnSort = apnStatuses.length ? Math.min(...apnStatuses.map((s) => s.sort)) : null;
 
@@ -61,6 +63,7 @@ async function resolvePipeline(kommo) {
     sortById,
     novos,
     qualificados,
+    interesse,
     apnStatuses,
     stages: {
       sortById,

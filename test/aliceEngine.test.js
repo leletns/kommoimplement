@@ -8,8 +8,8 @@ const NOW = Date.parse('2026-09-23T12:00:00Z');
 const note = (text) => ({ params: { text } });
 
 test('classify segue a régua do Manual Comercial Blue', () => {
-  assert.deepStrictEqual(alice.classify(70), { temperatura: 'quente', tag: 'lead_quente', stage: 'QUALIFICADOS' });
-  assert.deepStrictEqual(alice.classify(100).stage, 'QUALIFICADOS');
+  assert.deepStrictEqual(alice.classify(70), { temperatura: 'quente', tag: 'lead_quente', stage: 'INTERESSE_AGENDAR' });
+  assert.deepStrictEqual(alice.classify(100).stage, 'INTERESSE_AGENDAR');
   assert.deepStrictEqual(alice.classify(69), { temperatura: 'morna', tag: 'lead_morna', stage: 'QUALIFICADOS' });
   assert.deepStrictEqual(alice.classify(40).temperatura, 'morna');
   assert.deepStrictEqual(alice.classify(39), { temperatura: 'fria', tag: 'lead_fria', stage: 'NOVOS' });
@@ -26,7 +26,8 @@ test('lead com sintomas, diagnóstico e intenção de agendar fica quente', () =
   const r = alice.evaluateLead({ lead, notes, now: NOW });
   assert.ok(r.score >= 70, `score ${r.score}`);
   assert.strictEqual(r.temperatura, 'quente');
-  assert.deepStrictEqual(r.tags, ['lead_quente', 'follow_up_day2', 'alice_bot_finalizado']);
+  assert.deepStrictEqual(r.tags, ['lead_quente', 'handoff_maria', 'follow_up_day2', 'alice_bot_finalizado']);
+  assert.match(alice.buildSummary(r), /Score \d+\/100 · QUENTE[\s\S]*Maria assume/);
 });
 
 test('lead sem sinais e parada há meses fica fria', () => {
@@ -53,7 +54,9 @@ test('score sempre entre 0 e 100', () => {
 
 test('mergeTags preserva tags existentes e troca a temperatura', () => {
   const tags = alice.mergeTags([{ name: 'Lipedema' }, { name: 'lead_fria' }, { name: 'follow_up_day2' }], 'lead_quente');
-  assert.deepStrictEqual(tags, ['Lipedema', 'follow_up_day2', 'lead_quente', 'alice_bot_finalizado']);
+  assert.deepStrictEqual(tags, ['Lipedema', 'follow_up_day2', 'lead_quente', 'handoff_maria', 'alice_bot_finalizado']);
+  // quente → morna tira o handoff
+  assert.deepStrictEqual(alice.mergeTags(tags, 'lead_morna'), ['Lipedema', 'follow_up_day2', 'alice_bot_finalizado', 'lead_morna']);
 });
 
 test('19 objeções com os 5 passos completos', () => {

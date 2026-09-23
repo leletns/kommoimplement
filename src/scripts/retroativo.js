@@ -25,6 +25,10 @@
  *   --pagina N        Começa na página N
  *   --limite N        Processa no máximo N leads
  *   --desde AAAA-MM-DD Só leads criados a partir desta data
+ *   --funil ID        Processa outro funil (padrão: KOMMO_PIPELINE_ID). Ex.: Comercial 2
+ *
+ * Campos do card preenchidos (quando configurados no .env): Score, Classificação,
+ * Objeção registrada e Resumo Alice Bot.
  */
 
 const fs = require('fs');
@@ -38,7 +42,7 @@ const CHECKPOINT_FILE = path.resolve(process.cwd(), 'retroativo-checkpoint.json'
 const NOTES_ID_CHUNK = 50; // ids por chamada em GET /leads/notes (limite de tamanho de URL)
 
 function parseArgs(argv) {
-  const args = { dryRun: false, force: false, move: true, readNotes: true, writeNote: true, resume: false, page: 1, limit: Infinity, since: null };
+  const args = { dryRun: false, force: false, move: true, readNotes: true, writeNote: true, resume: false, page: 1, limit: Infinity, since: null, pipelineId: null };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--dry-run') args.dryRun = true;
@@ -50,6 +54,7 @@ function parseArgs(argv) {
     else if (a === '--pagina') args.page = parseInt(argv[++i], 10) || 1;
     else if (a === '--limite') args.limit = parseInt(argv[++i], 10) || Infinity;
     else if (a === '--desde') args.since = argv[++i];
+    else if (a === '--funil') args.pipelineId = parseInt(argv[++i], 10) || null;
     else if (a === '--help' || a === '-h') {
       console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0]);
       process.exit(0);
@@ -73,12 +78,34 @@ function hasTag(lead, name) {
  * para NOVOS) e nunca mexe em leads de entrada (incoming), ganhos ou perdidos.
  */
 function planMove(lead, evaluation, ctx) {
-  const target = evaluation.stage === 'QUALIFICADOS' ? ctx.qualificados : ctx.novos;
+  const target = { INTERESSE_AGENDAR: ctx.interesse, QUALIFICADOS: ctx.qualificados, NOVOS: ctx.novos }[evaluation.stage];
   if (!target || lead.pipeline_id !== ctx.pipeline.id) return null;
   const current = ctx.byId.get(lead.status_id);
   if (!current || current.type === 1) return null;
   if (current.sort >= target.sort) return null;
   return target;
+}
+
+/** Objeção detectada → opção do campo "Objeção registrada" (KOMMO_OBJECAO_ENUMS). */
+function objectionEnums() {
+  try {
+    return JSON.parse(process.env.KOMMO_OBJECAO_ENUMS || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function buildFieldValues(evaluation) {
+  const k = config.kommo;
+  const out = [];
+  if (k.scoreFieldId) out.push({ field_id: k.scoreFieldId, values: [{ value: evaluation.score }] });
+  const cls = k.classificacaoEnums[evaluation.temperatura];
+  if (k.classificacaoFieldId && cls) out.push({ field_id: k.classificacaoFieldId, values: [{ enum_id: Number(cls) }] });
+  const map = objectionEnums();
+  const obj = evaluation.objections.map((o) => map[o.id]).find(Boolean);
+  if (k.objecaoFieldId && obj) out.push({ field_id: k.objecaoFieldId, values: [{ enum_id: Number(obj) }] });
+  if (k.resumoFieldId) out.push({ field_id: k.resumoFieldId, values: [{ value: alice.buildSummary(evaluation) }] });
+  return out;
 }
 
 async function fetchNotesByLead(kommo, leadIds) {
@@ -124,8 +151,8 @@ async function main() {
 
   const account = await kommo.getAccount();
   log(`Conta: ${account.name} (${config.kommo.subdomain}.kommo.com)`);
-  const ctx = await resolvePipeline(kommo);
-  log(`Funil: ${ctx.pipeline.name} (#${ctx.pipeline.id}) · NOVOS=${ctx.novos?.name || '—'} · QUALIFICADOS=${ctx.qualificados?.name || '—'}`);
+  const ctx = await resolvePipeline(kommo, { pipelineId: args.pipelineId });
+  log(`Funil: ${ctx.pipeline.name} (#${ctx.pipeline.id}) · NOVOS=${ctx.novos?.name || '—'} · QUALIFICADOS=${ctx.qualificados?.name || '—'} · QUENTES→${ctx.interesse?.name || '—'}`);
   if (args.dryRun) log('🧪 DRY-RUN: nada será gravado no Kommo.');
 
   const params = { 'filter[pipeline_id]': ctx.pipeline.id, 'order[id]': 'asc' };
@@ -155,9 +182,8 @@ async function main() {
       stats[evaluation.temperatura] += 1;
 
       const patch = { id: lead.id, _embedded: { tags: evaluation.tags.map((name) => ({ name })) } };
-      if (config.kommo.scoreFieldId) {
-        patch.custom_fields_values = [{ field_id: config.kommo.scoreFieldId, values: [{ value: evaluation.score }] }];
-      }
+      const fields = buildFieldValues(evaluation);
+      if (fields.length) patch.custom_fields_values = fields;
       const target = args.move ? planMove(lead, evaluation, ctx) : null;
       if (target) {
         patch.status_id = target.id;
@@ -211,4 +237,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { planMove, parseArgs };
+module.exports = { planMove, parseArgs, buildFieldValues };

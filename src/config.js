@@ -29,6 +29,17 @@ const config = {
     pipelineId: optionalInt(process.env.KOMMO_PIPELINE_ID),
     statusQualificadosId: optionalInt(process.env.KOMMO_STATUS_QUALIFICADOS_ID),
     statusNovosId: optionalInt(process.env.KOMMO_STATUS_NOVOS_ID),
+    statusInteresseId: optionalInt(process.env.KOMMO_STATUS_INTERESSE_ID),
+    classificacaoFieldId: optionalInt(process.env.KOMMO_CLASSIFICACAO_FIELD_ID),
+    classificacaoEnums: (() => {
+      try {
+        return JSON.parse(process.env.KOMMO_CLASSIFICACAO_ENUMS || '{}');
+      } catch {
+        return {};
+      }
+    })(),
+    objecaoFieldId: optionalInt(process.env.KOMMO_OBJECAO_FIELD_ID),
+    resumoFieldId: optionalInt(process.env.KOMMO_RESUMO_FIELD_ID),
     apnStatusIds: intList(process.env.KOMMO_APN_STATUS_IDS),
     scoreFieldId: optionalInt(process.env.KOMMO_SCORE_FIELD_ID),
   },

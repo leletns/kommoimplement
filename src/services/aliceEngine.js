@@ -3,9 +3,9 @@
 /**
  * Alice Bot — régua de qualificação e triagem (Manual Comercial Blue).
  *
- *   Score >= 70  → lead_quente + follow_up_day2 → QUALIFICADOS
- *   Score 40–69  → lead_morna  + follow_up_day2 → QUALIFICADOS
- *   Score <  40  → lead_fria   + follow_up_day2 → NOVOS
+ *   Score >= 70  → lead_quente + handoff_maria + follow_up_day2 → INTERESSE EM AGENDAR (Maria assume)
+ *   Score 40–69  → lead_morna  + follow_up_day2                 → QUALIFICADOS
+ *   Score <  40  → lead_fria   + follow_up_day2                 → NOVOS
  *
  * O score (0–100) é uma soma de sinais explicáveis extraídos do texto do lead
  * (nome, tags, notas, campos) e do comportamento no funil. Cada sinal aparece no
@@ -22,11 +22,12 @@ const TAGS = Object.freeze({
   FINALIZADO: 'alice_bot_finalizado',
   FOLLOW_UP: 'follow_up_day2',
   QUENTE: 'lead_quente',
+  HANDOFF: 'handoff_maria',
   MORNA: 'lead_morna',
   FRIA: 'lead_fria',
 });
 
-const TEMPERATURE_TAGS = [TAGS.QUENTE, TAGS.MORNA, TAGS.FRIA];
+const TEMPERATURE_TAGS = [TAGS.QUENTE, TAGS.MORNA, TAGS.FRIA, TAGS.HANDOFF];
 
 const FRASE_SEGURANCA =
   'Apenas uma avaliação médica individualizada pode confirmar diagnóstico, estágio e melhor conduta para o seu caso.';
@@ -191,7 +192,7 @@ function buildCorpus(lead, notes) {
 
 /** Classifica o score segundo a régua do Manual Comercial Blue. */
 function classify(score) {
-  if (score >= 70) return { temperatura: 'quente', tag: TAGS.QUENTE, stage: 'QUALIFICADOS' };
+  if (score >= 70) return { temperatura: 'quente', tag: TAGS.QUENTE, stage: 'INTERESSE_AGENDAR' };
   if (score >= 40) return { temperatura: 'morna', tag: TAGS.MORNA, stage: 'QUALIFICADOS' };
   return { temperatura: 'fria', tag: TAGS.FRIA, stage: 'NOVOS' };
 }
@@ -203,7 +204,7 @@ function classify(score) {
 function mergeTags(currentTags, temperatureTag) {
   const names = (currentTags || []).map((t) => (typeof t === 'string' ? t : t.name)).filter(Boolean);
   const kept = names.filter((n) => !TEMPERATURE_TAGS.includes(n));
-  const wanted = [temperatureTag, TAGS.FOLLOW_UP, TAGS.FINALIZADO];
+  const wanted = [temperatureTag, ...(temperatureTag === TAGS.QUENTE ? [TAGS.HANDOFF] : []), TAGS.FOLLOW_UP, TAGS.FINALIZADO];
   const result = [...kept];
   for (const t of wanted) if (!result.includes(t)) result.push(t);
   return result;
@@ -225,7 +226,7 @@ function buildNote(evaluation) {
   const lines = [
     `🤖 Alice Bot — qualificação automática`,
     `Score: ${evaluation.score}/100 → Lead ${evaluation.temperatura.toUpperCase()} (${evaluation.stage})`,
-    `Tags: ${[evaluation.tag, TAGS.FOLLOW_UP, TAGS.FINALIZADO].join(', ')}`,
+    `Tags: ${evaluation.tags.filter((t) => [...TEMPERATURE_TAGS, TAGS.FOLLOW_UP, TAGS.FINALIZADO].includes(t)).join(', ')}`,
     '',
     'Composição do score:',
     ...evaluation.breakdown.map((b) => `• ${b.label}: ${b.points > 0 ? '+' : ''}${b.points}${b.detail ? ` (${b.detail})` : ''}`),
@@ -242,6 +243,32 @@ function buildNote(evaluation) {
     }
   }
   lines.push('', 'Próximo passo: follow-up no dia 2 (follow_up_day2).');
+  return lines.join('\n');
+}
+
+/** Resumo curto para o campo "Resumo Alice Bot" do card (a nota longa fica opcional). */
+function buildSummary(evaluation, now = new Date()) {
+  const quando = now.toLocaleDateString('pt-BR');
+  const sinais = evaluation.breakdown
+    .filter((b) => b.label !== 'Base' && b.points > 0)
+    .map((b) => b.label.toLowerCase())
+    .join(', ');
+  const lines = [
+    `Alice · ${quando} · Score ${evaluation.score}/100 · ${evaluation.temperatura.toUpperCase()}`,
+    `Sinais: ${sinais || 'poucos sinais de interesse'}`,
+  ];
+  if (evaluation.objections.length) {
+    lines.push(`Objeções: ${evaluation.objections.map((o) => o.titulo).join(', ')}`);
+    const o = evaluation.objections[0];
+    lines.push(`Sugestão (${o.titulo}): ${o.passos.acolher} ${o.passos.investigar}`);
+  }
+  lines.push(
+    evaluation.temperatura === 'quente'
+      ? 'Próximo passo: Maria assume e oferece horários de avaliação.'
+      : evaluation.temperatura === 'morna'
+        ? 'Próximo passo: follow-up no dia 2 esclarecendo dúvidas.'
+        : 'Próximo passo: follow-up leve no dia 2; sem pressão.'
+  );
   return lines.join('\n');
 }
 
@@ -494,5 +521,6 @@ module.exports = {
   mergeTags,
   evaluateLead,
   buildNote,
+  buildSummary,
   detectObjections,
 };
