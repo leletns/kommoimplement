@@ -337,16 +337,24 @@ async function funis(k, apply) {
       }
     }
 
-    // 3) Garante a ordem 1→8 (o Kommo desloca a ordem ao criar etapas no meio).
+    // 3) Garante a ordem 1→8. O Kommo reembaralha quando duas etapas disputam a mesma
+    //    posição no meio da troca, então primeiro manda para posições temporárias livres.
     if (apply) {
-      const fresh = (await k.getPipelines()).find((p) => p.id === pid)._embedded.statuses;
-      for (const [i, etapa] of ETAPAS.entries()) {
-        const st = fresh.find((s) => s.id === target[etapa.key]);
-        const sort = 20 + i * 10;
-        // Sempre com o nome: um PATCH só com "sort" apaga o nome da etapa no Kommo.
-        if (st && (st.sort !== sort || st.name !== etapa.name)) {
-          await k.request('patch', `/leads/pipelines/${pid}/statuses/${st.id}`, { data: { name: etapa.name, sort } });
+      const fresh = () => k.getPipelines().then((ps) => ps.find((p) => p.id === pid)._embedded.statuses);
+      const wrong = (sts) => ETAPAS.some((e, i) => {
+        const st = sts.find((s) => s.id === target[e.key]);
+        return st && (st.sort !== 20 + i * 10 || st.name !== e.name);
+      });
+      if (wrong(await fresh())) {
+        for (const pass of [500, 20]) {
+          for (const [i, etapa] of ETAPAS.entries()) {
+            if (!target[etapa.key]) continue;
+            // Sempre com o nome: um PATCH só com "sort" apaga o nome da etapa no Kommo.
+            await k.request('patch', `/leads/pipelines/${pid}/statuses/${target[etapa.key]}`, { data: { name: etapa.name, sort: pass + i * 10 } });
+          }
         }
+        if (wrong(await fresh())) log('  ⚠️ a ordem das etapas não ficou 1→8; ajuste arrastando na tela do funil');
+        else log('  ordem das etapas ajustada (1→8)');
       }
     }
 

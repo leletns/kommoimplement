@@ -21,7 +21,7 @@ const { createMetricsCache } = require('./services/metricsService');
 const { handleKommoWebhook, handleWhatsAppGroupWebhook } = require('./services/webhooks');
 
 const ROOT = path.resolve(__dirname, '..');
-const DASHBOARD_FILE = 'Blue Painel Comercial v1 claro.dc.html';
+const DASHBOARD_FILE = 'Blue Painel Comercial.dc.html';
 
 const app = express();
 app.disable('x-powered-by');
@@ -54,6 +54,7 @@ function sendRootFile(name) {
   };
 }
 app.get(['/', '/painel'], sendRootFile(DASHBOARD_FILE));
+app.get('/painel-v1', sendRootFile('Blue Painel Comercial v1 claro.dc.html'));
 app.get('/support.js', sendRootFile('support.js'));
 
 // ─── Métricas ─────────────────────────────────────────────────────────────────

@@ -4,3 +4,4 @@ node_modules/
 *.bak
 retroativo-*.json
 backups/
+site/

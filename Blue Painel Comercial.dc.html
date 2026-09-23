@@ -195,7 +195,7 @@
         </div>
       </section>
 
-      <div style="padding-bottom:24px; font-size:11.5px; color:#5f7488;">Clínica Blue · dados de demonstração espelhando a estrutura do CRM</div>
+      <div style="padding-bottom:24px; font-size:11.5px; color:#5f7488;">Clínica Blue · dados reais do CRM, atualizados automaticamente</div>
     </div>
     </sc-if>
 
@@ -323,6 +323,32 @@ const SEED = [
 ];
 
 const STORE = 'blue_dash_team_v1';
+
+// Dados reais do Kommo: o servidor (src/server.js) ou o build do Netlify publicam /api/metrics.
+// Sem resposta válida, o painel continua com os dados de exemplo acima.
+let META = null;
+function fromApi(p, key) {
+  const n = p.num || {};
+  const [ini, fim] = String(p.range || '').split(' — ');
+  return {
+    key: key, label: p.label, range: (ini || '').slice(0, 5) + ' — ' + (fim || ''), real: true,
+    receita: n.receita || 0, consultas: n.consultas || 0, cirurgias: n.cirurgias || 0,
+    ads: n.ads || 0, ticket: n.ticket || 0, ciclo: n.cicloDias == null ? '—' : n.cicloDias + ' dias',
+    weeks: p.weeks, leadSeries: p.leadSeries, saleSeries: p.saleSeries,
+    // Queda aparece como informação neutra (o selo do layout é verde).
+    delta: !p.prev ? '' : p.prev.receita && (n.receita || 0) < p.prev.receita ? BRL(p.prev.receita) + ' em ' + p.prev.mes : (p.delta || ''),
+    semValor: n.vendasSemValor || 0,
+    totals: { leads: n.leads || 0, apn: n.apn || 0, sales: n.vendas || 0, revenue: n.receita || 0 },
+    funnelReal: [
+      { label: 'Leads', count: n.leads || 0, value: '—' },
+      { label: 'Qualificados', count: n.qualificados || 0, value: BRL(n.pipeQualificados || 0) + ' em pipe' },
+      { label: 'APNs agendadas', count: n.apn || 0, value: BRL(n.pipeApn || 0) + ' em pipe' },
+      { label: 'Consultas vendidas', count: n.consultas || 0, value: BRL(n.receitaConsultas || 0) },
+      { label: 'Cirurgias vendidas', count: n.cirurgias || 0, value: BRL(n.receitaCirurgias || 0) }
+    ],
+    teamReal: (p.team || []).map(t => ({ role: t.role, name: t.name, leads: t.leads, apn: t.apn, sales: t.sales, revenue: t.revenue }))
+  };
+}
 const BRL = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 
 class Component extends DCLogic {
@@ -347,10 +373,36 @@ class Component extends DCLogic {
       const raw = localStorage.getItem(STORE);
       if (raw) { const t = JSON.parse(raw); if (Array.isArray(t) && t.length) this.setState({ team: t }); }
     } catch (e) {}
+    this.loadData(false);
+    this._timer = setInterval(() => this.loadData(false), 5 * 60 * 1000);
   }
   componentWillUnmount() {
     window.removeEventListener('resize', this._measure);
     if (this._ro) this._ro.disconnect();
+    if (this._timer) clearInterval(this._timer);
+  }
+
+  loadData(force) {
+    const base = window.KOMMO_API_BASE || (location.protocol === 'file:' ? 'http://localhost:3000' : '');
+    return fetch(base + '/api/metrics' + (force ? '?refresh=1' : ''), { headers: { Accept: 'application/json' }, cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(data => {
+        const keys = Object.keys(data || {}).filter(k => k !== '_meta' && data[k] && data[k].num && Array.isArray(data[k].leadSeries));
+        if (!keys.length) throw new Error('resposta sem períodos');
+        Object.keys(PERIODS).forEach(k => { delete PERIODS[k]; });
+        keys.forEach(k => { PERIODS[k] = fromApi(data[k], k); });
+        META = data._meta || null;
+        const t = META && META.generatedAt ? new Date(META.generatedAt) : new Date();
+        this.setState({
+          period: PERIODS[this.state.period] ? this.state.period : keys[0],
+          updatedAt: String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0'),
+          apiError: ''
+        });
+      })
+      .catch(err => {
+        console.warn('[painel] /api/metrics indisponível:', err.message);
+        this.setState({ apiError: err.message });
+      });
   }
 
   persist(team) {
@@ -383,8 +435,8 @@ class Component extends DCLogic {
   buildChart(d) {
     const e = React.createElement;
     const W = 700, H = 240, padL = 44, padR = 16, padT = 16, padB = 30;
-    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15;
-    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6;
+    const maxLead = Math.max.apply(null, d.leadSeries) * 1.15 || 1;
+    const maxSale = Math.max.apply(null, d.saleSeries) * 1.6 || 1;
     const n = d.leadSeries.length;
     const x = i => padL + (i * (W - padL - padR)) / (n - 1);
     const y = (v, m) => padT + (H - padT - padB) * (1 - v / m);
@@ -447,17 +499,23 @@ class Component extends DCLogic {
     const compact = this.state.w < 900;
     const card = 'background:#ffffff; border:1px solid #e4e8eb; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:7px; min-width:0; transition:border-color 160ms ease;';
 
+    const norm = v => String(v || '').trim().toLowerCase();
     const team = this.state.team.map(r => {
+      if (d.real) {
+        const t = (d.teamReal || []).find(x => norm(x.role) === norm(r.pipeline) || norm(x.role) === norm(r.role)) || { leads: 0, apn: 0, sales: 0, revenue: 0 };
+        return Object.assign({}, r, { leads: t.leads, apn: t.apn, sales: t.sales, revenueNum: t.revenue });
+      }
       const b = r.base || { leads: 0, apn: 0, sales: 0, revenue: 0 };
       return Object.assign({}, r, {
         leads: Math.round(b.leads * d.f), apn: Math.round(b.apn * d.f),
         sales: Math.round(b.sales * d.f), revenueNum: Math.round(b.revenue * d.f)
       });
     });
-    const totLeads = team.reduce((a, r) => a + r.leads, 0);
-    const totApn = team.reduce((a, r) => a + r.apn, 0);
-    const totSales = team.reduce((a, r) => a + r.sales, 0);
-    const totRev = team.reduce((a, r) => a + r.revenueNum, 0);
+    const tt = d.real ? d.totals : null;
+    const totLeads = tt ? tt.leads : team.reduce((a, r) => a + r.leads, 0);
+    const totApn = tt ? tt.apn : team.reduce((a, r) => a + r.apn, 0);
+    const totSales = tt ? tt.sales : team.reduce((a, r) => a + r.sales, 0);
+    const totRev = tt ? tt.revenue : team.reduce((a, r) => a + r.revenueNum, 0);
     const topRev = Math.max(1, Math.max.apply(null, team.map(r => r.revenueNum)));
     const pct = (a, b) => b ? (Math.round((a / b) * 1000) / 10) + '%' : '—';
 
@@ -476,7 +534,7 @@ class Component extends DCLogic {
       subColor: '#5f7488'
     }));
 
-    const funnelRaw = [
+    const funnelRaw = d.real ? d.funnelReal : [
       { label: 'Leads', count: totLeads, value: '—' },
       { label: 'Qualificados', count: Math.round(totLeads * 0.65), value: 'pipe aberto' },
       { label: 'APNs agendadas', count: totApn, value: 'pipe em negociação' },
@@ -525,11 +583,12 @@ class Component extends DCLogic {
       screenTitle: nav === 'Painel' ? 'Período' : nav === 'Equipe' ? 'Administração' : 'Infraestrutura',
       screenSub: nav === 'Painel' ? d.range : nav === 'Equipe' ? this.state.team.length + ' comerciais ativas' : '3 origens conectadas',
       updatedAt: this.state.updatedAt,
-      recordCount: (totLeads + totApn).toLocaleString('pt-BR'),
+      recordCount: (META && META.records != null ? META.records : totLeads + totApn).toLocaleString('pt-BR'),
       receita: BRL(d.receita), deltaLabel: d.delta,
-      receitaSub: d.consultas + ' consultas e ' + d.cirurgias + ' cirurgias · ticket médio ' + BRL(d.ticket),
+      receitaSub: d.consultas + ' consultas e ' + d.cirurgias + ' cirurgias · ticket médio ' + BRL(d.ticket) +
+        (d.semValor ? ' · ' + d.semValor + (d.semValor === 1 ? ' venda sem valor' : ' vendas sem valor') + ' no CRM' : ''),
       kpis: kpis, funnel: funnel, chart: this.buildChart(d),
-      periodTabs: ['set', 'ago', 'mai'].map(k => ({
+      periodTabs: Object.keys(PERIODS).map(k => ({
         label: PERIODS[k].label, style: this.pill(this.state.period === k),
         onClick: () => this.setState({ period: k })
       })),
@@ -544,7 +603,7 @@ class Component extends DCLogic {
       })),
       teamTotals: totLeads.toLocaleString('pt-BR') + ' leads · ' + totSales + ' vendas · ' + BRL(totRev) + ' em receita',
       velocity: [
-        { label: 'Ticket médio', value: BRL(d.ticket), sub: 'por venda fechada' },
+        { label: 'Ticket médio', value: BRL(d.ticket), sub: d.semValor ? 'por venda com valor no CRM' : 'por venda fechada' },
         { label: 'Ciclo médio', value: d.ciclo, sub: 'do lead ao fechamento' },
         { label: 'Leads por comercial', value: this.state.team.length ? Math.round(totLeads / this.state.team.length).toLocaleString('pt-BR') : '—', sub: 'distribuição do período' },
         { label: 'Receita por lead', value: totLeads ? BRL(totRev / totLeads) : '—', sub: 'valor médio gerado' }
@@ -553,6 +612,7 @@ class Component extends DCLogic {
       refresh: () => {
         const n = new Date();
         this.setState({ updatedAt: String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0') });
+        this.loadData(true);
       },
       formOpen: this.state.formOpen,
       formTitle: this.state.draft && this.state.draft.id ? 'Editar ' + (this.state.draft.name || 'comercial') : 'Nova comercial',
@@ -579,7 +639,11 @@ class Component extends DCLogic {
         this.setState({ formOpen: false, draft: null, saveState: '' });
       },
       teamAdmin: teamAdmin,
-      connections: [
+      connections: META ? [
+        { name: 'CRM — pipeline comercial', detail: 'Leads, APNs, etapas e responsáveis de ' + (META.pipelines || []).map(p => p.role || p.id).join(' e '), status: this.state.apiError ? 'Sem leitura' : 'Conectado', dot: this.state.apiError ? '#8a5e10' : '#1c7a4a', badgeBorder: this.state.apiError ? '#5c4a28' : '#2c5a3f', cadence: 'Última leitura ' + new Date(META.generatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) + ' · atualização a cada hora' },
+        { name: 'Painel consolidado', detail: 'KPIs por período, funil e comercial', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: (META.records || 0).toLocaleString('pt-BR') + ' registros lidos' },
+        { name: 'Armazenamento de mídia', detail: 'Fotos de perfil da equipe (neste navegador)', status: 'Local', dot: '#8a5e10', badgeBorder: '#5c4a28', cadence: 'Salvas no dispositivo' }
+      ] : [
         { name: 'CRM — pipeline comercial', detail: 'Leads, APNs, etapas e responsáveis', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Leitura a cada 15 min' },
         { name: 'Banco de dados analítico', detail: 'Histórico consolidado por período e comercial', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Materialização diária às 03h' },
         { name: 'Armazenamento de mídia', detail: 'Fotos de perfil da equipe', status: 'Conectado', dot: '#1c7a4a', badgeBorder: '#2c5a3f', cadence: 'Upload imediato' }

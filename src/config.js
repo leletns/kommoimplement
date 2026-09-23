@@ -1,6 +1,10 @@
 'use strict';
 
+const path = require('path');
+
 require('dotenv').config();
+// IDs da conta (não secretos, versionados). Não sobrescreve o que veio do .env / Netlify.
+require('dotenv').config({ path: path.resolve(__dirname, '..', 'config', 'conta.env') });
 
 // Datas do painel (meses, semanas, "último formulário") no fuso da clínica.
 process.env.TZ = process.env.TZ || 'America/Sao_Paulo';

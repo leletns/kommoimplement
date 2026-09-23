@@ -98,7 +98,7 @@ test('fluxo completo contra Kommo falso', async (t) => {
   process.env.SUPABASE_URL = '';
   process.env.ADS_INVESTIMENTO_JSON = '{}';
   // Isola o teste do .env local (dotenv não sobrescreve variáveis já definidas).
-  for (const k of ['KOMMO_STATUS_INTERESSE_ID', 'KOMMO_CLASSIFICACAO_FIELD_ID', 'KOMMO_OBJECAO_FIELD_ID', 'KOMMO_RESUMO_FIELD_ID', 'KOMMO_PIPELINE_ID', 'KOMMO_STATUS_QUALIFICADOS_ID', 'KOMMO_STATUS_NOVOS_ID', 'KOMMO_APN_STATUS_IDS', 'KOMMO_SCORE_FIELD_ID', 'KOMMO_RENDA_FIELD_ID', 'KOMMO_TEAM_ROLES_JSON', 'SUPABASE_SERVICE_ROLE_KEY']) {
+  for (const k of ['KOMMO_METRICS_PIPELINES', 'KOMMO_CLASSIFICACAO_ENUMS', 'KOMMO_OBJECAO_ENUMS', 'KOMMO_STATUS_INTERESSE_ID', 'KOMMO_CLASSIFICACAO_FIELD_ID', 'KOMMO_OBJECAO_FIELD_ID', 'KOMMO_RESUMO_FIELD_ID', 'KOMMO_PIPELINE_ID', 'KOMMO_STATUS_QUALIFICADOS_ID', 'KOMMO_STATUS_NOVOS_ID', 'KOMMO_APN_STATUS_IDS', 'KOMMO_SCORE_FIELD_ID', 'KOMMO_RENDA_FIELD_ID', 'KOMMO_TEAM_ROLES_JSON', 'SUPABASE_SERVICE_ROLE_KEY']) {
     process.env[k] = '';
   }
   const app = require('../src/server');
@@ -111,8 +111,9 @@ test('fluxo completo contra Kommo falso', async (t) => {
     const res = await fetch(`${base}/api/metrics`);
     assert.strictEqual(res.status, 200);
     metrics = await res.json();
-    const keys = Object.keys(metrics);
+    const keys = Object.keys(metrics).filter((k) => k !== '_meta');
     assert.strictEqual(keys.length, 3);
+    assert.ok(metrics._meta.generatedAt);
     const cur = metrics[keys[0]];
     for (const k of ['label', 'range', 'leads', 'apn', 'consultas', 'cirurgias', 'vendas', 'receita', 'ads', 'cac', 'cm1', 'cm2', 'ticket', 'ciclo', 'leadsRenda', 'form']) {
       assert.strictEqual(typeof cur[k], 'string', k);
@@ -149,17 +150,56 @@ test('fluxo completo contra Kommo falso', async (t) => {
     const c = new sandbox.Component();
     c.props = {};
     await c.loadMetrics(false);
-    assert.deepStrictEqual(Object.keys(sandbox.PERIODS), Object.keys(metrics));
-    assert.strictEqual(c.state.period, Object.keys(metrics)[0]);
+    const months = Object.keys(metrics).filter((k) => k !== '_meta');
+    assert.deepStrictEqual(Object.keys(sandbox.PERIODS), months);
+    assert.strictEqual(c.state.period, months[0]);
     const vals = c.renderVals();
     assert.strictEqual(vals.periodTabs.length, 3);
     assert.strictEqual(vals.kpis[0].value, 'R$ 46.200');
     for (const s of vals.funnel) assert.ok(!/NaN|Infinity/.test(s.width + s.conv), JSON.stringify(s));
     for (const r of vals.team) assert.ok(!/NaN|Infinity/.test(r.share), r.share);
-    c.setState({ period: Object.keys(metrics)[2] }); // mês vazio não pode quebrar o painel
+    c.setState({ period: months[2] }); // mês vazio não pode quebrar o painel
     const empty = c.renderVals();
     assert.ok(!JSON.stringify(empty.funnel).includes('NaN'));
     assert.ok(!JSON.stringify(empty.chart).includes('NaN'));
+  });
+
+  await t.test('o painel v2 renderiza com os dados reais (sem NaN, com time por funil)', async () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'Blue Painel Comercial.dc.html'), 'utf8');
+    const script = html.split('<script type="text/x-dc"')[1].split('>').slice(1).join('>').split('</script>')[0];
+    const store = {};
+    const sandbox = {
+      DCLogic: class { setState(p) { this.state = { ...this.state, ...p }; } },
+      React: { createElement: (...a) => a },
+      window: { addEventListener() {}, innerWidth: 1400 },
+      document: { querySelector: () => null },
+      location: { protocol: 'http:' },
+      localStorage: { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } },
+      requestAnimationFrame() {}, setTimeout() {}, setInterval() { return 1; }, clearInterval() {},
+      FileReader: class {}, console,
+      fetch: (url) => fetch(base + url),
+    };
+    vm.runInNewContext(`${script}\nthis.Component = Component; this.PERIODS = PERIODS;`, sandbox);
+    const c = new sandbox.Component();
+    c.props = {};
+    await c.loadData(false);
+    const months = Object.keys(metrics).filter((k) => k !== '_meta');
+    assert.deepStrictEqual(Object.keys(sandbox.PERIODS), months);
+    for (const m of months) {
+      c.setState({ period: m });
+      for (const nav of ['Painel', 'Equipe', 'Conexões']) {
+        c.setState({ nav });
+        const v = c.renderVals();
+        const json = JSON.stringify({ ...v, chart: undefined });
+        assert.ok(!/NaN|Infinity|undefined/.test(json), `${m}/${nav}: ${json.match(/.{40}(NaN|Infinity|undefined).{20}/)?.[0]}`);
+        assert.ok(!JSON.stringify(v.chart).includes('NaN'));
+      }
+    }
+    c.setState({ period: months[0], nav: 'Painel' });
+    const v = c.renderVals();
+    assert.strictEqual(v.receita, 'R$ 46.200');
+    assert.match(v.receitaSub, /1 consultas e 1 cirurgias/);
+    assert.strictEqual(v.periodTabs.length, 3);
   });
 
   await t.test('webhook exige token e aceita payload form-urlencoded do Kommo', async () => {

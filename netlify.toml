@@ -1,0 +1,33 @@
+# Painel Comercial Blue no Netlify.
+# Variáveis do site (Site configuration → Environment variables):
+#   KOMMO_TOKEN        (obrigatório) token de longa duração do Kommo — só no build, nunca no HTML
+#   PAINEL_SENHA       (recomendado) senha para abrir o painel
+#   NETLIFY_BUILD_HOOK (opcional)    URL do build hook, para atualizar os dados a cada hora
+#   ADS_INVESTIMENTO_JSON (opcional) ex.: {"2026-09":15034.66}
+
+[build]
+  command = "npm ci --omit=dev && node src/scripts/snapshot.js"
+  publish = "site"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  directory = "netlify/functions"
+
+# O painel busca /api/metrics (igual ao servidor local); aqui é o arquivo gerado no build.
+[[redirects]]
+  from = "/api/metrics"
+  to = "/api/metrics.json"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"

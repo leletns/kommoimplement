@@ -10,7 +10,8 @@ Integração da conta **https://comercialblueclinica.kommo.com** (API v4):
 | Servidor | `src/server.js` | Painel, `/api/metrics` (cache 60 s), webhooks do Kommo e do WhatsApp |
 | Métricas | `src/services/metricsService.js` | Monta o objeto `PERIODS` do painel a partir do Kommo |
 | Espelho | `src/services/supabaseSync.js` + `supabase/schema.sql` | UPSERT em `leads`, `historico_status`, `vendedores` |
-| Painel | `Blue Painel Comercial v1 claro.dc.html` | Carrega `/api/metrics` no `componentDidMount()` |
+| Painel | `Blue Painel Comercial.dc.html` (v2) + `support.js` | Painel · Equipe · Conexões com dados reais de `/api/metrics` (a v1 fica em `/painel-v1`) |
+| Netlify | `netlify.toml`, `src/scripts/snapshot.js`, `netlify/` | Publica o painel com os dados do Kommo gerados no build; atualiza de hora em hora; senha opcional |
 
 ## Comandos
 
@@ -18,7 +19,7 @@ Integração da conta **https://comercialblueclinica.kommo.com** (API v4):
 npm install
 cp .env.example .env                  # preencha KOMMO_TOKEN (e Supabase, se for usar o espelho)
 
-npm test                              # 34 testes (inclui ponta a ponta contra um Kommo simulado)
+npm test                              # 35 testes (inclui ponta a ponta contra um Kommo simulado)
 
 # 1) Retroativo — SEMPRE rode o dry-run primeiro (não grava nada, só mostra o que faria)
 node src/scripts/retroativo.js --dry-run --limite 50
@@ -81,7 +82,34 @@ Para desfazer: o JSON em `backups/` tem funis, campos, templates, tarefas e as t
 ### Robôs (Salesbot)
 Só dois robôs: **boas-vindas** e **follow-up**. Textos, onde ficam no funil e o passo a passo para criar esses dois e apagar os outros estão em [`docs/bots.md`](docs/bots.md). A API do Kommo só lista robôs; criar e apagar se faz na tela.
 
-## Painel (`Blue Painel Comercial v1 claro.dc.html`)
+## Publicar no Netlify
+
+O Netlify não roda o servidor Express, e o token **nunca** pode ir para o HTML. Por isso, o build do Netlify lê o Kommo com o token (variável secreta do site) e publica o painel + `api/metrics.json`. O painel busca `/api/metrics`, que o `netlify.toml` redireciona para o JSON.
+
+1. No Netlify: **Add new site → Import from GitHub →** `leletns/kommoimplement`, branch `claude/loving-curie-mz2qi8` (ou `main` depois do merge). O `netlify.toml` já define build e pasta.
+2. **Site configuration → Environment variables**:
+   - `KOMMO_TOKEN`: o token de longa duração (obrigatório).
+   - `PAINEL_SENHA`: senha para abrir o painel (recomendado; o usuário pode ser qualquer um).
+   - `ADS_INVESTIMENTO_JSON` (opcional): ex.: `{"2026-09":15034.66}`, para os cards de mídia e CAC.
+3. **Deploy.** O build leva cerca de 1 minuto (cerca de 110 chamadas ao Kommo a 4 req/s).
+4. Atualização automática: em **Build & deploy → Build hooks** crie um hook e salve a URL na variável `NETLIFY_BUILD_HOOK`. A função agendada `atualizar-painel` refaz o build a cada hora. Se o Kommo falhar num build, o Netlify mantém no ar a última versão boa.
+
+IDs de funis, etapas e campos (não secretos) ficam em `config/conta.env`, então o Netlify só precisa do token.
+
+Para testar localmente o mesmo site: `npm run snapshot` gera a pasta `site/`.
+
+## Painel v2 (`Blue Painel Comercial.dc.html`)
+
+O layout do protótipo (linhas 1–306) está idêntico; o único texto trocado é o rodapé, que dizia "dados de demonstração". Só o `<script type="text/x-dc">` mudou:
+- `componentDidMount()` → `loadData()` busca `/api/metrics` (a cada 5 min; "Atualizar dados" força uma nova leitura). As abas de mês vêm dos dados.
+- **Time**: números reais por funil. Maria = Comercial 1 e Mayra = Comercial 2 (`KOMMO_METRICS_PIPELINES`). Uma comercial nova cadastrada na tela Equipe aparece com números quando o "Funil atribuído" for o nome do funil (ex.: "Comercial 2").
+- **Precisão**: o ticket médio considera só vendas com valor; a linha da receita avisa "N vendas sem valor no CRM"; queda de receita aparece como "R$ X em agosto" (o selo do layout é verde).
+- **Conexões**: horário real da última leitura e registros lidos. As fotos da tela Equipe ficam salvas no navegador (localStorage), como no protótipo. Upload para um storage é o próximo passo (`docs/referencias/INTEGRACAO-TECNICA.md`, §4).
+- Sem API (ex.: arquivo aberto sem servidor), mostra os dados de exemplo do protótipo.
+
+Testado no Chromium (desktop 1440px e celular 390px): as 3 telas renderizam sem erros ou avisos no console.
+
+## Painel v1 (`Blue Painel Comercial v1 claro.dc.html`, em `/painel-v1`)
 
 Só o bloco `<script type="text/x-dc">` mudou. Layout, temas, fontes e todos os `sc-for` / `sc-if` (linhas 1–237) estão idênticos ao original.
 
@@ -89,7 +117,7 @@ Só o bloco `<script type="text/x-dc">` mudou. Layout, temas, fontes e todos os 
 - A resposta substitui o conteúdo de `PERIODS`, e as abas de mês passam a ser geradas a partir dela. Se a API falhar, o painel continua com os últimos dados (ou os de exemplo).
 - Foram adicionadas proteções contra divisão por zero (mês sem leads/vendas não gera `NaN`).
 - Abra por **http://localhost:3000/** (mesma origem). Aberto via `file://`, ele usa `http://localhost:3000` automaticamente; para outro host, defina `window.KOMMO_API_BASE`.
-- ⚠️ O HTML carrega `./support.js` (runtime do DC), que **não veio junto com o arquivo**. Coloque o `support.js` exportado na raiz do projeto; o servidor já o serve em `/support.js`.
+- Usa o mesmo `support.js` da raiz (runtime do DC, que carrega React do unpkg).
 
 ### Formato de `/api/metrics`
 

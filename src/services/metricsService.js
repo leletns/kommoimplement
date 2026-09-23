@@ -11,12 +11,14 @@
  *     ago: {...}, jul: {...} }
  *
  * Definições (ajustáveis pelo .env):
- *   - Leads: leads criados no mês (funil principal).
+ *   - Funis: KOMMO_METRICS_PIPELINES (Comercial 1 e 2); o time do painel é um por funil.
+ *   - Leads: leads criados no mês nesses funis.
  *   - Qualificados / APN: leads da safra do mês que chegaram na etapa (etapa atual ≥ etapa
  *     alvo, ganhos, ou evento de mudança de status para a etapa — cobre leads perdidos depois).
- *   - Vendas / Receita: leads ganhos (status 142) com data de fechamento no mês.
- *   - Consulta × Cirurgia: tag/nome com "cirurgia|lipedefinition|sublift" ou valor ≥
- *     KOMMO_CIRURGIA_MIN_PRICE = cirurgia (CM2); demais = consulta (CM1).
+ *   - Consultas (CM1): ganhos (status 142 = "Consulta concluída") com fechamento no mês.
+ *   - Cirurgias (CM2): leads que entraram em "7. Cirurgia confirmada" no mês. Sem essa etapa,
+ *     tag/nome com cirurgia ou valor ≥ KOMMO_CIRURGIA_MIN_PRICE.
+ *   - Receita: soma do valor (price) das consultas e cirurgias.
  *   - ADS: não existe no Kommo — vem de ADS_INVESTIMENTO_JSON ({"2026-09": 15034.66}).
  */
 
@@ -86,73 +88,104 @@ function hasRenda(lead) {
   return Boolean(f && f.values && f.values.some((v) => v.value != null && v.value !== ''));
 }
 
-/** Conjunto de status_id que cada evento de mudança de etapa levou o lead. */
+/** Para cada lead, as etapas em que entrou (evento lead_status_changed) e quando. */
 function statusesEnteredByLead(events) {
   const map = new Map();
   for (const ev of events) {
     const id = ev.value_after?.[0]?.lead_status?.id;
     if (!id) continue;
-    if (!map.has(ev.entity_id)) map.set(ev.entity_id, new Set());
-    map.get(ev.entity_id).add(id);
+    if (!map.has(ev.entity_id)) map.set(ev.entity_id, []);
+    map.get(ev.entity_id).push({ id, at: ev.created_at });
   }
   return map;
 }
 
-function reachedStage(lead, targetSort, stageIds, ctx, entered) {
-  if (targetSort == null) return false;
+/** Chegou na etapa: está nela ou depois (sem ter sido perdido), foi ganho, ou passou por ela. */
+function reachedStage(lead, stage, ctxFor, entered) {
+  const pctx = ctxFor(lead);
+  const target = pctx && pctx[stage];
+  if (!target || target.sort == null) return false;
   if (lead.status_id === WON) return true;
-  const sort = ctx.sortById.get(lead.status_id);
-  if (lead.status_id !== LOST && sort != null && sort >= targetSort) return true;
-  const history = entered.get(lead.id);
-  return Boolean(history && [...history].some((id) => stageIds.has(id)));
+  const sort = pctx.sortById.get(lead.status_id);
+  if (lead.status_id !== LOST && sort != null && sort >= target.sort) return true;
+  return (entered.get(lead.id) || []).some((e) => target.ids.has(e.id));
 }
 
 /** Monta um período no formato do PERIODS a partir dos dados brutos. */
-function buildPeriod(win, { created, won, ctx, entered, users }) {
-  const inPipeline = (l) => !ctx.pipeline || l.pipeline_id === ctx.pipeline.id;
-  const leads = created.filter((l) => inPipeline(l) && l.created_at >= win.from && l.created_at <= win.to);
-  // Vendas contam todos os funis, a menos que KOMMO_PIPELINE_ID restrinja explicitamente.
-  const salesInScope = config.kommo.pipelineId ? inPipeline : () => true;
-  const sales = won.filter((l) => l.status_id === WON && salesInScope(l) && l.closed_at >= win.from && l.closed_at <= win.to);
+function buildPeriod(win, { created, won, ctxByPipeline, entered, users, cirurgiaLeads, teamPipelines }) {
+  const inScope = (l) => ctxByPipeline.has(l.pipeline_id);
+  const inWin = (t) => t >= win.from && t <= win.to;
+  const ctxFor = (l) => ctxByPipeline.get(l.pipeline_id);
+  const leads = created.filter((l) => inScope(l) && inWin(l.created_at));
+  const ganhos = won.filter((l) => l.status_id === WON && inScope(l) && inWin(l.closed_at));
 
-  const qualSort = ctx.qualificados ? ctx.qualificados.sort : null;
-  const qualIds = new Set(ctx.statuses.filter((s) => qualSort != null && s.sort >= qualSort && s.id !== LOST).map((s) => s.id));
-  const apnIds = new Set(ctx.apnStatuses.map((s) => s.id));
-  const apnSort = ctx.apnStatuses.length ? Math.min(...ctx.apnStatuses.map((s) => s.sort)) : null;
+  const qualificados = leads.filter((l) => reachedStage(l, 'qualificados', ctxFor, entered));
+  const apn = leads.filter((l) => reachedStage(l, 'apn', ctxFor, entered));
 
-  const qualificados = leads.filter((l) => reachedStage(l, qualSort, qualIds, ctx, entered));
-  const apn = leads.filter((l) => reachedStage(l, apnSort, apnIds, ctx, entered));
-  const cirurgias = sales.filter(isCirurgia);
-  const consultas = sales.filter((l) => !isCirurgia(l));
+  // Cirurgia vendida = entrou em "7. Cirurgia confirmada" no mês. Sem essa etapa no funil,
+  // cai na regra antiga (tag/nome de cirurgia ou valor alto no ganho).
+  const hasCirurgiaStage = [...ctxByPipeline.values()].some((c) => c.cirurgia);
+  let cirurgias;
+  let consultas;
+  if (hasCirurgiaStage) {
+    const porEtapa = cirurgiaLeads.filter((l) =>
+      (entered.get(l.id) || []).some((e) => ctxFor(l)?.cirurgia?.ids.has(e.id) && inWin(e.at))
+    );
+    // Ganho que é claramente cirurgia (valor alto / tag) continua contando como cirurgia.
+    const ids = new Set(porEtapa.map((l) => l.id));
+    cirurgias = [...porEtapa, ...ganhos.filter((l) => isCirurgia(l) && !ids.has(l.id))];
+    consultas = ganhos.filter((l) => !isCirurgia(l) && !ids.has(l.id));
+  } else {
+    cirurgias = ganhos.filter(isCirurgia);
+    consultas = ganhos.filter((l) => !isCirurgia(l));
+  }
+  const sales = [...consultas, ...cirurgias];
 
   const sum = (arr) => arr.reduce((a, l) => a + (Number(l.price) || 0), 0);
-  const receita = sum(sales);
   const receitaCm1 = sum(consultas);
   const receitaCm2 = sum(cirurgias);
+  const receita = receitaCm1 + receitaCm2;
 
   const ads = Number(parseJsonEnv('ADS_INVESTIMENTO_JSON')[win.ym] || 0);
-  const ciclos = sales.filter((l) => l.created_at && l.closed_at).map((l) => (l.closed_at - l.created_at) / 86400);
+  const ciclos = consultas.filter((l) => l.created_at && l.closed_at).map((l) => (l.closed_at - l.created_at) / 86400);
   const lastLead = leads.reduce((max, l) => Math.max(max, l.created_at), 0);
 
   const leadSeries = [0, 0, 0, 0, 0];
   const saleSeries = [0, 0, 0, 0, 0];
   leads.forEach((l) => (leadSeries[weekIndex(l.created_at)] += 1));
-  sales.forEach((l) => (saleSeries[weekIndex(l.closed_at)] += 1));
+  consultas.forEach((l) => (saleSeries[weekIndex(l.closed_at)] += 1));
+  cirurgias.forEach((l) => {
+    const e = (entered.get(l.id) || []).find((x) => ctxFor(l)?.cirurgia?.ids.has(x.id) && inWin(x.at));
+    saleSeries[weekIndex(e ? e.at : l.closed_at || l.updated_at)] += 1;
+  });
 
-  // Time comercial (responsável pelo lead no Kommo)
+  // Time comercial: por funil (Comercial 1 / Comercial 2) quando KOMMO_METRICS_PIPELINES
+  // está definido; senão, pelo responsável do lead no Kommo.
   const roles = parseJsonEnv('KOMMO_TEAM_ROLES_JSON');
   const rows = new Map();
-  const row = (uid) => {
-    if (!rows.has(uid)) {
-      const user = users.get(uid);
-      rows.set(uid, { name: user ? user.name : `Usuário ${uid}`, role: roles[uid] || 'Comercial', leads: 0, apn: 0, sales: 0, revenue: 0 });
+  const keyOf = (l) => (teamPipelines ? `p${l.pipeline_id}` : `u${l.responsible_user_id}`);
+  const row = (l) => {
+    const key = keyOf(l);
+    if (!rows.has(key)) {
+      const tp = teamPipelines && teamPipelines[l.pipeline_id];
+      const user = users.get(l.responsible_user_id);
+      rows.set(key, {
+        pipelineId: teamPipelines ? l.pipeline_id : null,
+        name: tp ? tp.name : user ? user.name : `Usuário ${l.responsible_user_id}`,
+        role: tp ? tp.role : roles[l.responsible_user_id] || 'Comercial',
+        leads: 0,
+        apn: 0,
+        sales: 0,
+        revenue: 0,
+      });
     }
-    return rows.get(uid);
+    return rows.get(key);
   };
-  leads.forEach((l) => (row(l.responsible_user_id).leads += 1));
-  apn.forEach((l) => (row(l.responsible_user_id).apn += 1));
+  if (teamPipelines) for (const pid of Object.keys(teamPipelines)) row({ pipeline_id: Number(pid) });
+  leads.forEach((l) => (row(l).leads += 1));
+  apn.forEach((l) => (row(l).apn += 1));
   sales.forEach((l) => {
-    const r = row(l.responsible_user_id);
+    const r = row(l);
     r.sales += 1;
     r.revenue += Number(l.price) || 0;
   });
@@ -188,22 +221,69 @@ function buildPeriod(win, { created, won, ctx, entered, users }) {
       { label: 'Consultas vendidas', count: consultas.length, value: brl(receitaCm1) },
       { label: 'Cirurgias vendidas', count: cirurgias.length, value: brl(receitaCm2) },
     ],
+    // Valores numéricos (painel v2 formata no navegador).
+    num: {
+      leads: leads.length,
+      qualificados: qualificados.length,
+      apn: apn.length,
+      consultas: consultas.length,
+      cirurgias: cirurgias.length,
+      vendas: sales.length,
+      receita: Math.round(receita),
+      receitaConsultas: Math.round(receitaCm1),
+      receitaCirurgias: Math.round(receitaCm2),
+      pipeQualificados: Math.round(sum(qualificados)),
+      pipeApn: Math.round(sum(apn)),
+      ads,
+      // Ticket só sobre vendas com valor preenchido no Kommo (as sem valor distorceriam a média).
+      ticket: sales.filter((l) => Number(l.price) > 0).length
+        ? Math.round(receita / sales.filter((l) => Number(l.price) > 0).length)
+        : 0,
+      vendasSemValor: sales.filter((l) => !(Number(l.price) > 0)).length,
+      cicloDias: ciclos.length ? Math.round(ciclos.reduce((a, b) => a + b, 0) / ciclos.length) : null,
+    },
   };
+}
+
+/** Funis que entram nas métricas: KOMMO_METRICS_PIPELINES ({"id":{"name","role"}}) ou o funil principal. */
+function metricsPipelines() {
+  const tp = parseJsonEnv('KOMMO_METRICS_PIPELINES');
+  return Object.keys(tp).length ? tp : null;
+}
+
+function stageInfo(statuses, list) {
+  if (!list.length) return null;
+  return { sort: Math.min(...list.map((s) => s.sort)), ids: new Set(list.map((s) => s.id)) };
 }
 
 async function fetchRaw(kommo, windows) {
   const from = Math.min(...windows.map((w) => w.from));
   const to = Math.max(...windows.map((w) => w.to));
-  const ctx = await resolvePipeline(kommo);
+
+  const teamPipelines = metricsPipelines();
+  const ids = teamPipelines ? Object.keys(teamPipelines).map(Number) : [null];
+  const ctxByPipeline = new Map();
+  for (const id of ids) {
+    const c = await resolvePipeline(kommo, id ? { pipelineId: id } : undefined);
+    const after = (sort) => c.statuses.filter((s) => s.id !== LOST && s.sort >= sort);
+    const cirurgiaStatus = c.statuses.find((s) => /cirurgia confirmada/.test(normalize(s.name)));
+    ctxByPipeline.set(c.pipeline.id, {
+      sortById: c.sortById,
+      qualificados: c.qualificados ? stageInfo(c.statuses, after(c.qualificados.sort)) : null,
+      apn: c.apnStatuses.length ? stageInfo(c.statuses, c.apnStatuses) : null,
+      cirurgia: cirurgiaStatus ? stageInfo(c.statuses, [cirurgiaStatus]) : null,
+    });
+  }
+  const pipelineIds = [...ctxByPipeline.keys()];
 
   const [created, won, events, userList] = await Promise.all([
     kommo.listAll('/leads', {
       embeddedKey: 'leads',
-      params: { 'filter[created_at][from]': from, 'filter[created_at][to]': to, 'filter[pipeline_id]': ctx.pipeline.id },
+      params: { 'filter[created_at][from]': from, 'filter[created_at][to]': to, 'filter[pipeline_id]': pipelineIds },
     }),
     kommo.listAll('/leads', {
       embeddedKey: 'leads',
-      params: { 'filter[closed_at][from]': from, 'filter[closed_at][to]': to },
+      params: { 'filter[closed_at][from]': from, 'filter[closed_at][to]': to, 'filter[pipeline_id]': pipelineIds },
     }),
     kommo.listAll('/events', {
       embeddedKey: 'events',
@@ -212,8 +292,28 @@ async function fetchRaw(kommo, windows) {
     }),
     kommo.getUsers().catch(() => []),
   ]);
+  const entered = statusesEnteredByLead(events);
 
-  return { ctx, created, won, entered: statusesEnteredByLead(events), users: new Map(userList.map((u) => [u.id, u])) };
+  // Leads que entraram em "Cirurgia confirmada" no período (podem ter sido criados antes).
+  const cirurgiaIds = new Set();
+  for (const c of ctxByPipeline.values()) if (c.cirurgia) for (const id of c.cirurgia.ids) cirurgiaIds.add(id);
+  const cirurgiaLeadIds = [...entered.entries()].filter(([, evs]) => evs.some((e) => cirurgiaIds.has(e.id))).map(([id]) => id);
+  const cirurgiaLeads = [];
+  for (let i = 0; i < cirurgiaLeadIds.length; i += 50) {
+    cirurgiaLeads.push(
+      ...(await kommo.listAll('/leads', { embeddedKey: 'leads', params: { 'filter[id]': cirurgiaLeadIds.slice(i, i + 50) } }))
+    );
+  }
+
+  return {
+    ctxByPipeline,
+    created,
+    won,
+    entered,
+    cirurgiaLeads: cirurgiaLeads.filter((l) => ctxByPipeline.has(l.pipeline_id)),
+    users: new Map(userList.map((u) => [u.id, u])),
+    teamPipelines,
+  };
 }
 
 async function buildMetrics(kommo, { months = config.server.metricsMonths, now = new Date() } = {}) {
@@ -221,6 +321,29 @@ async function buildMetrics(kommo, { months = config.server.metricsMonths, now =
   const raw = await fetchRaw(kommo, windows);
   const periods = {};
   for (const win of windows) periods[win.key] = buildPeriod(win, raw);
+
+  // Variação da receita contra o mês anterior (o mais antigo da janela fica sem comparação).
+  const keys = windows.map((w) => w.key);
+  keys.forEach((key, i) => {
+    const prevKey = keys[i + 1];
+    const cur = periods[key].num.receita;
+    const prev = prevKey ? periods[prevKey].num.receita : null;
+    const prevName = prevKey ? windows[i + 1].label.split(' ')[0].toLowerCase() : '';
+    periods[key].delta = prev ? `${cur >= prev ? '+' : ''}${Math.round(((cur - prev) / prev) * 100)}% vs. ${prevName}` : '';
+    periods[key].prev = prevKey ? { mes: prevName, receita: prev || 0 } : null;
+  });
+
+  // Metadados (o painel v1 ignora esta chave: não tem "funnel"/"team").
+  periods._meta = {
+    generatedAt: new Date().toISOString(),
+    records: raw.created.length + raw.won.length,
+    calls: kommo.stats ? kommo.stats.requests : null,
+    pipelines: [...raw.ctxByPipeline.keys()].map((id) => ({
+      id,
+      name: raw.teamPipelines?.[id]?.name || null,
+      role: raw.teamPipelines?.[id]?.role || null,
+    })),
+  };
   return periods;
 }
 

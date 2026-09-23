@@ -13,7 +13,8 @@
     "retroativo": "node src/scripts/retroativo.js",
     "retroativo:dry": "node src/scripts/retroativo.js --dry-run",
     "test": "node --test test/*.test.js",
-    "importar-grupo": "node src/scripts/importarGrupo.js"
+    "importar-grupo": "node src/scripts/importarGrupo.js",
+    "snapshot": "node src/scripts/snapshot.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
