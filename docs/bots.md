@@ -33,10 +33,10 @@ Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Ma
 
 ## Régua de follow-up (etapas 3.1, 3.2 e 3.3)
 
-Os follow-ups falam **como a Maria**, em primeira pessoa, sem se apresentar: mensagens curtas que
-**abrem uma curiosidade** e terminam com uma pergunta fácil de responder. Primeiro **atenção**
-("posso te fazer uma pergunta?"), depois **identificação** (o que outras pacientes vivem) e, por fim,
-a **despedida honesta com uma curiosidade aberta**, que costuma ser a que mais recebe resposta.
+Os follow-ups falam **como a Maria** (SDR), em primeira pessoa, sem se apresentar: profissionais,
+curtos e sempre com um **próximo passo claro**. Primeiro **qualifica** (qual a principal queixa),
+depois mostra o **valor da avaliação** com uma **escolha simples** (presencial ou online) e, por fim,
+**encerra com a porta aberta** para reservar horário.
 A Maria precisa ter a continuação pronta (abaixo de cada mensagem).
 
 **Regra de ouro:** respondeu em qualquer momento → para a régua, volta para **3. Interesse em agendar · Maria**,
@@ -44,27 +44,26 @@ tag `fu_respondeu` e tarefa **"🔥 Paciente respondeu: responder AGORA"** (30 m
 Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
 ### Follow-up 1 · dia 1 (atenção)
-> Oi, {{contact.first_name}}! 💙
-> Fiquei com uma coisa na cabeça depois da sua mensagem… posso te fazer uma pergunta rápida?
+> Oi, {{contact.first_name}}, tudo bem?
+> Pra eu te orientar sobre o melhor próximo passo, me conta: hoje sua maior queixa é dor e peso nas pernas, o formato do corpo ou a qualidade da pele?
 
-**Se responder, a Maria continua:** "Hoje, o que mais te incomoda: dor, peso nas pernas, o formato do corpo ou a pele?"
+**Se responder, a Maria continua:** acolhe a queixa, explica em uma frase como o Dr. Rafael avalia esse caso e pergunta se ela prefere avaliação presencial ou online.
 
 Sem resposta em 2 dias → **3.2 Follow-up 2**.
 
 ### Follow-up 2 · dia 3 (prova social + escolha fácil)
-> {{contact.first_name}}, lembrei de você hoje 💙
-> Muitas pacientes me contam que passaram anos ouvindo que era "só emagrecer"… e na avaliação descobriram que tinha outra explicação.
-> Isso já aconteceu com você?
+> {{contact.first_name}}, a avaliação com o Dr. Rafael é o momento de entender o seu caso com clareza: ele analisa sintomas, histórico e exames e indica o caminho mais seguro pra você.
+> Tenho horários nas próximas semanas. Você prefere presencial ou online?
 
-**Se responder, a Maria continua:** acolhe a história dela e explica que a consulta com o Dr. Rafael serve justamente para avaliar sintomas, histórico e exames com calma. Pergunta se prefere presencial ou online.
+**Se responder, a Maria continua:** manda 2 ou 3 opções de data e horário no formato escolhido e o valor da consulta.
 
 Sem resposta em 4 dias → **3.3 Follow-up 3**.
 
 ### Follow-up 3 · dia 7 (última mensagem)
-> {{contact.first_name}}, vou parar de te mandar mensagem pra não ficar chata 😊
-> Só não queria ir sem te contar uma coisa que pode fazer diferença pra você. Posso?
+> {{contact.first_name}}, vou encerrar seu atendimento por aqui para não te incomodar.
+> Se ainda fizer sentido avaliar o seu caso com o Dr. Rafael, é só me responder que eu reservo um horário pra você.
 
-**Se responder, a Maria continua:** "Muita gente não sabe, mas dá para começar com uma avaliação online com o Dr. Rafael, sem sair de casa, e entender o seu caso com clareza antes de decidir qualquer coisa. Quer que eu veja um horário pra você?" (ajuste se a clínica não fizer avaliação online).
+**Se responder, a Maria continua:** manda 2 ou 3 opções de data e horário e o valor da consulta.
 
 Sem resposta em 5 dias → **8. Nutrição · retomar depois** + tag `fu_sem_resposta` (não vai para perdido).
 
@@ -145,21 +144,20 @@ REGRAS
 
    3b) "Maria · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         Oi, {{contact.first_name}}! 💙
-         Fiquei com uma coisa na cabeça depois da sua mensagem… posso te fazer uma pergunta rápida?
+         Oi, {{contact.first_name}}, tudo bem?
+         Pra eu te orientar sobre o melhor próximo passo, me conta: hoje sua maior queixa é dor e peso nas pernas, o formato do corpo ou a qualidade da pele?
        Esperar resposta por 2 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.2 Follow-up 2 · dia 3".
 
    3c) "Maria · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         {{contact.first_name}}, lembrei de você hoje 💙
-         Muitas pacientes me contam que passaram anos ouvindo que era "só emagrecer"… e na avaliação descobriram que tinha outra explicação.
-         Isso já aconteceu com você?
+         {{contact.first_name}}, a avaliação com o Dr. Rafael é o momento de entender o seu caso com clareza: ele analisa sintomas, histórico e exames e indica o caminho mais seguro pra você.
+         Tenho horários nas próximas semanas. Você prefere presencial ou online?
        Esperar resposta por 4 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.3 Follow-up 3 · dia 7".
 
    3d) "Maria · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
        Mensagem (texto exato):
-         {{contact.first_name}}, vou parar de te mandar mensagem pra não ficar chata 😊
-         Só não queria ir sem te contar uma coisa que pode fazer diferença pra você. Posso?
+         {{contact.first_name}}, vou encerrar seu atendimento por aqui para não te incomodar.
+         Se ainda fizer sentido avaliar o seu caso com o Dr. Rafael, é só me responder que eu reservo um horário pra você.
        Esperar resposta por 5 dias. Respondeu → REGRA acima. Não respondeu → tag fu_sem_resposta e
        mover para "8. Nutrição · retomar depois".
 
