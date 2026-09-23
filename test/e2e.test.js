@@ -97,6 +97,10 @@ test('fluxo completo contra Kommo falso', async (t) => {
   process.env.WEBHOOK_SECRET = 's3cret';
   process.env.SUPABASE_URL = '';
   process.env.ADS_INVESTIMENTO_JSON = '{}';
+  // Isola o teste do .env local (dotenv não sobrescreve variáveis já definidas).
+  for (const k of ['KOMMO_PIPELINE_ID', 'KOMMO_STATUS_QUALIFICADOS_ID', 'KOMMO_STATUS_NOVOS_ID', 'KOMMO_APN_STATUS_IDS', 'KOMMO_SCORE_FIELD_ID', 'KOMMO_RENDA_FIELD_ID', 'KOMMO_TEAM_ROLES_JSON', 'SUPABASE_SERVICE_ROLE_KEY']) {
+    process.env[k] = '';
+  }
   const app = require('../src/server');
   const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
   const base = `http://127.0.0.1:${server.address().port}`;

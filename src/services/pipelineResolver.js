@@ -40,7 +40,8 @@ async function resolvePipeline(kommo) {
   const pick = (id, regex, fallback) => (id && byId.get(id)) || findStatus(statuses, regex) || fallback;
 
   const novos = pick(config.kommo.statusNovosId, /\bnovo/, open[0]);
-  const qualificados = pick(config.kommo.statusQualificadosId, /qualific/, null);
+  // "Qualificado(s)" antes de "Qualificação …" (ex.: "Qualificação Bot" é a etapa de triagem, não a de qualificados).
+  const qualificados = pick(config.kommo.statusQualificadosId, /qualificad/, null) || findStatus(statuses, /qualific/);
 
   let apnStatuses = config.kommo.apnStatusIds.map((id) => byId.get(id)).filter(Boolean);
   if (!apnStatuses.length) {
