@@ -214,12 +214,14 @@ async function mensagemFollowUp(lead, etapa, { ia } = {}) {
   return { fonte: 'aprovada', texto: modelo };
 }
 
-/** Cliente de IA opcional (só com ANTHROPIC_API_KEY). Devolve uma função (contexto) => texto. */
+/**
+ * IA opcional para escrever as mensagens. Devolve uma função (contexto) => texto, ou null.
+ *   GEMINI_API_KEY    → Google Gemini (tem plano gratuito, aistudio.google.com)
+ *   ANTHROPIC_API_KEY → Claude (pago por uso)
+ * No plano gratuito do Gemini o Google pode usar o conteúdo para melhorar os produtos dele, então
+ * NÃO mandamos dados de saúde (resumo da conversa, tags): só o primeiro nome, objeção e classificação.
+ */
 function criarIA() {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  const mod = require('@anthropic-ai/sdk');
-  const Anthropic = mod.default || mod;
-  const client = new Anthropic();
   const system =
     'Você é a Maria, consultora comercial (SDR) da Clínica Blue, do Dr. Rafael Erthal, cirurgião plástico com foco em lipedema. ' +
     'Escreva UMA mensagem de WhatsApp em português do Brasil para uma paciente que já conversou com você e parou de responder. ' +
@@ -228,6 +230,35 @@ function criarIA() {
     'Use o objetivo e a mensagem modelo aprovada como base; personalize com os dados do lead só quando fizer sentido, sem citar dados sensíveis de saúde. ' +
     'Proibido: diagnosticar, prometer resultado, dizer que ela precisa operar, falar de preço, valores, datas, promoções, urgência ou links. ' +
     'Responda só com o texto da mensagem.';
+  if (process.env.GEMINI_API_KEY) return criarGemini(system);
+  if (process.env.ANTHROPIC_API_KEY) return criarClaude(system);
+  return null;
+}
+
+function criarGemini(system) {
+  const modelo = process.env.GEMINI_MODELO || 'gemini-2.5-flash';
+  return async (ctx) => {
+    const seguro = { ...ctx, resumo: undefined, tags: undefined };
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: `Contexto (campos podem estar vazios):\n${JSON.stringify(seguro, null, 2)}` }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+      }),
+    });
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    return parts.map((p) => p.text || '').join('').trim() || null;
+  };
+}
+
+function criarClaude(system) {
+  const mod = require('@anthropic-ai/sdk');
+  const Anthropic = mod.default || mod;
+  const client = new Anthropic();
   return async (ctx) => {
     const res = await client.beta.messages.create({
       model: process.env.AUTOMACAO_IA_MODELO || 'claude-opus-5',
@@ -446,4 +477,4 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   return resumo;
 }
 
-module.exports = { executarAutomacao, ultimaMensagemPorLead, entradaNaEtapa, sugestaoRetomada, mensagemFollowUp, mensagemSegura, MODELO_FOLLOWUP, REGRA, TAG_PENDENTE, TAREFA_RESPONDER };
+module.exports = { criarIA, executarAutomacao, ultimaMensagemPorLead, entradaNaEtapa, sugestaoRetomada, mensagemFollowUp, mensagemSegura, MODELO_FOLLOWUP, REGRA, TAG_PENDENTE, TAREFA_RESPONDER };

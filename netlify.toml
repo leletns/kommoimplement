@@ -4,7 +4,8 @@
 #   PAINEL_SENHA       (recomendado) senha para abrir o painel
 #   NETLIFY_BUILD_HOOK (opcional)    URL do build hook, para atualizar os dados a cada hora
 #   ADS_INVESTIMENTO_JSON (opcional) ex.: {"2026-09":15034.66}
-#   ANTHROPIC_API_KEY  (opcional)    sugestão de mensagem com IA na automação da Maria
+#   GEMINI_API_KEY     (opcional)    IA GRATUITA para as mensagens da automação (aistudio.google.com)
+#   ANTHROPIC_API_KEY  (opcional)    IA paga (Claude), usada se não houver GEMINI_API_KEY
 #   AUTOMACAO_KOMMO=0  (opcional)    pausa a automação da Maria (roda a cada 15 min)
 # O KOMMO_TOKEN precisa estar disponível para "Builds" E "Functions".
 

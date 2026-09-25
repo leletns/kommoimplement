@@ -136,3 +136,27 @@ test('follow-up: grava a mensagem da paciente no campo que o robô envia (IA com
 
   assert.ok(!mensagemSegura('Você tem lipedema, precisa operar.'));
 });
+
+test('Gemini (gratuito): chama a API certa e NÃO envia resumo nem tags', async () => {
+  const { criarIA } = require('../src/services/automacaoMaria');
+  const antes = { key: process.env.GEMINI_API_KEY, fetch: global.fetch };
+  let enviado;
+  process.env.GEMINI_API_KEY = 'teste';
+  global.fetch = async (url, opts) => {
+    enviado = { url, headers: opts.headers, body: JSON.parse(opts.body) };
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Oi, Ana! Posso te contar uma novidade?' }] } }] }) };
+  };
+  try {
+    const ia = criarIA();
+    const texto = await ia({ nome: 'Ana', resumo: 'dor nas pernas, hematomas', tags: ['lead_quente'], objetivo: 'x' });
+    assert.strictEqual(texto, 'Oi, Ana! Posso te contar uma novidade?');
+    assert.match(enviado.url, /generativelanguage\.googleapis\.com\/v1beta\/models\/.+:generateContent$/);
+    assert.strictEqual(enviado.headers['x-goog-api-key'], 'teste');
+    const txt = JSON.stringify(enviado.body);
+    assert.ok(!txt.includes('hematomas') && !txt.includes('lead_quente'));
+  } finally {
+    if (antes.key === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = antes.key;
+    global.fetch = antes.fetch;
+  }
+});
