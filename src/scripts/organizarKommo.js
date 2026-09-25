@@ -217,15 +217,12 @@ const BOT_TEMPLATES = [
   {
     name: '00 Alice · Boas-vindas',
     content:
-      'Oi! Que bom ter você aqui 💙\n' +
+      'Oi, {{contact.first_name}}! Que bom ter você aqui 💙\n' +
       'Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.\n' +
       '\n' +
-      'Pra te atender melhor, me conta:\n' +
-      '1️⃣ Seu nome\n' +
-      '2️⃣ Sua cidade\n' +
-      '3️⃣ O que te trouxe até nós?\n' +
-      '\n' +
-      'Em breve a Maria, nossa consultora, fala com você 😊',
+      'Em breve a nossa consultora Maria vai te atender. Enquanto isso, pode ir adiantando:\n' +
+      '1️⃣ Qual é o objetivo da sua consulta?\n' +
+      '2️⃣ Como podemos te ajudar?',
   },
   {
     name: '00 Maria · Follow-up 1 · dia 1',

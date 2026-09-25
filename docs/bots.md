@@ -30,15 +30,12 @@ paga: `ANTHROPIC_API_KEY`. Sem nenhuma chave, vai sempre a aprovada. No Gemini g
 
 ## Robô 1 — Boas-vindas
 
-> Oi! Que bom ter você aqui 💙
+> Oi, {{contact.first_name}}! Que bom ter você aqui 💙
 > Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
 >
-> Pra te atender melhor, me conta:
-> 1️⃣ Seu nome
-> 2️⃣ Sua cidade
-> 3️⃣ O que te trouxe até nós?
->
-> Em breve a Maria, nossa consultora, fala com você 😊
+> Em breve a nossa consultora Maria vai te atender. Enquanto isso, pode ir adiantando:
+> 1️⃣ Qual é o objetivo da sua consulta?
+> 2️⃣ Como podemos te ajudar?
 
 Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Maria
 **"Responder nova paciente"** com prazo de 1 hora.
@@ -121,20 +118,21 @@ REGRAS
    move o lead para "Consulta agendada"/"Agendamento Confirmado" depois de 48 horas.
    Se na etapa "1. Novo · boas-vindas" já existir outro robô de boas-vindas, remova o gatilho dele
    (senão a paciente recebe duas mensagens). Desligue o "Agente de IA" se ele responder no WhatsApp.
+   Procure de onde sai a mensagem "Olá! Obrigado por entrar em contato conosco. Entraremos em contato
+   com você em breve." e DESLIGUE/APAGUE essa mensagem. Lugares prováveis: o robô "TestBot" (é o único
+   robô ativo: desative), Configurações → Canais/Chats → WhatsApp → resposta automática / mensagem de
+   boas-vindas / fora do horário. Me diga onde estava.
 
 2) ROBÔ "Alice · Boas-vindas"
    Onde: etapa "1. Novo · boas-vindas" → "+ Adicionar gatilho" → Salesbot → Criar novo bot.
    Passos no editor:
    a) Mensagem (texto exato):
-      Oi! Que bom ter você aqui 💙
+      Oi, {{contact.first_name}}! Que bom ter você aqui 💙
       Sou a Alice, assistente de relacionamento do Dr. Rafael Erthal.
 
-      Pra te atender melhor, me conta:
-      1️⃣ Seu nome
-      2️⃣ Sua cidade
-      3️⃣ O que te trouxe até nós?
-
-      Em breve a Maria, nossa consultora, fala com você 😊
+      Em breve a nossa consultora Maria vai te atender. Enquanto isso, pode ir adiantando:
+      1️⃣ Qual é o objetivo da sua consulta?
+      2️⃣ Como podemos te ajudar?
    b) Ação → Adicionar tag: boas_vindas_enviada
    c) Ação → Criar tarefa para a Maria: "Responder nova paciente", prazo 1 hora.
    Gatilho: "Quando o lead é criado ou movido para esta etapa", executar UMA vez por lead,
