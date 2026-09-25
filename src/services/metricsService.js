@@ -111,7 +111,7 @@ function statusesEnteredByLead(events) {
     const id = ev.value_after?.[0]?.lead_status?.id;
     if (!id) continue;
     if (!map.has(ev.entity_id)) map.set(ev.entity_id, []);
-    map.get(ev.entity_id).push({ id, at: ev.created_at });
+    map.get(ev.entity_id).push({ id, at: ev.created_at, by: ev.created_by });
   }
   return map;
 }
@@ -165,7 +165,8 @@ function buildPeriod(win, { created, won, todos = [], ctxByPipeline, entered, us
   if (eventosDesde) {
     for (const l of todos) {
       if (!inScope(l) || vendas.has(l.id) || fieldDate(l, PAGAMENTO_FIELD_ID)) continue;
-      const e = (entered.get(l.id) || []).find((x) => ctxFor(l)?.apn?.ids.has(x.id) && x.at >= eventosDesde && inWin(x.at));
+      // Só quem a equipe moveu (created_by = usuário). Movimento do sistema (by 0, ex.: regra das 48h) não é venda.
+      const e = (entered.get(l.id) || []).find((x) => x.by && ctxFor(l)?.apn?.ids.has(x.id) && x.at >= eventosDesde && inWin(x.at));
       if (e) vendas.set(l.id, { lead: l, at: e.at });
     }
   }

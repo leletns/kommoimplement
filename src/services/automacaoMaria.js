@@ -12,6 +12,8 @@
  * 3. RÉGUA DE FOLLOW-UP: conversa parada há 1 dia (última mensagem foi nossa) em 2 ou 3
  *    → 3.2 Follow-up 1; 2 dias sem resposta → 3.3; 4 dias → 3.4; 5 dias → 3.1 Retomar depois.
  *    Os robôs do Kommo mandam a mensagem de cada etapa ao entrar nela.
+ * 5. GUARDA DA "CONSULTA AGENDADA": lead que o SISTEMA (regra automática do Kommo, ex.: a das 48h)
+ *    jogou em "4. Consulta agendada" sem pagamento confirmado volta para a etapa de onde veio.
  * 4. RETOMAR DEPOIS: sem "Data Próxima Ação" → coloca daqui a 30 dias. Chegou a data → volta
  *    para a etapa 3 com tarefa "Retomar contato hoje" e sugestão de mensagem (IA).
  */
@@ -25,6 +27,9 @@ const TAG_PENDENTE = 'aguardando_resposta';
 const TAG_RESPONDEU = 'fu_respondeu';
 const TAG_SEM_RESPOSTA = 'fu_sem_resposta';
 const TAG_OPT_OUT = 'opt_out';
+const TAG_CONSULTA_PAGA = 'consulta_paga';
+const TAG_48H = 'regra_48h_desfeita';
+const FIELD_PAGAMENTO = config.kommo.pagamentoFieldId;
 // Sem emoji: o Kommo apaga emojis do texto das tarefas (e aí a tarefa não seria reconhecida na próxima rodada).
 const TAREFA_RESPONDER = 'Responder paciente';
 const TAREFA_RETOMAR = 'Retomar contato hoje';
@@ -77,6 +82,9 @@ async function etapasDosFunis(kommo, pipelineIds) {
       fu1: achar(/follow-up 1|follow up 1/),
       fu2: achar(/follow-up 2|follow up 2/),
       fu3: achar(/follow-up 3|follow up 3/),
+      agendada: ctx.apnStatuses[0] || null,
+      abertas: new Set(ctx.statuses.filter((s) => s.id !== WON && s.id !== LOST).map((s) => s.id)),
+      nomes: new Map(ctx.statuses.map((s) => [s.id, s.name])),
     });
   }
   return out;
@@ -101,6 +109,20 @@ function entradaNaEtapa(eventos) {
     if (!st) continue;
     const k = `${e.entity_id}:${st}`;
     if (!map.has(k) || e.created_at > map.get(k)) map.set(k, e.created_at);
+  }
+  return map;
+}
+
+/** Último evento de entrada em cada etapa (com quem moveu e de onde veio). */
+function ultimaEntradaDetalhada(eventos) {
+  const map = new Map();
+  for (const e of eventos) {
+    const st = e.value_after?.[0]?.lead_status?.id;
+    if (!st) continue;
+    const k = `${e.entity_id}:${st}`;
+    if (!map.has(k) || e.created_at > map.get(k).at) {
+      map.set(k, { at: e.created_at, by: e.created_by, de: e.value_before?.[0]?.lead_status?.id || null });
+    }
   }
   return map;
 }
@@ -192,6 +214,7 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   ]);
   const ultima = ultimaMensagemPorLead(chat);
   const entrada = entradaNaEtapa(mudancas);
+  const entradaDet = ultimaEntradaDetalhada(mudancas);
   const tarefasAbertas = new Map();
   for (const t of tarefas) {
     if (!tarefasAbertas.has(t.entity_id)) tarefasAbertas.set(t.entity_id, []);
@@ -218,7 +241,7 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   const novasTarefas = [];
   const concluir = [];
   const notas = [];
-  const resumo = { pendentes: 0, respondidas: 0, movidos: [], tarefasCriadas: 0, tarefasConcluidas: 0, retomadas: 0 };
+  const resumo = { pendentes: 0, respondidas: 0, movidos: [], tarefasCriadas: 0, tarefasConcluidas: 0, retomadas: 0, desfeitos48h: 0 };
 
   let movRegua = 0;
   for (const l of leads) {
@@ -230,6 +253,22 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
     const tarefaResponder = abertas.filter((t) => (t.text || '').includes(TAREFA_RESPONDER));
     const pendente = Boolean(msg && msg.entrada && now - msg.at >= REGRA.esperaParaPendente);
     const naRegua = [e.fu1, e.fu2, e.fu3, e.retomar].filter(Boolean).find((s) => s.id === l.status_id);
+
+    // 5. Guarda da "Consulta agendada": só entra com pagamento (ou movido por uma pessoa).
+    if (e.agendada && l.status_id === e.agendada.id) {
+      const ent = entradaDet.get(`${l.id}:${l.status_id}`);
+      const pago = tags.includes(TAG_CONSULTA_PAGA) || (FIELD_PAGAMENTO && fieldValue(l, FIELD_PAGAMENTO));
+      if (ent && !ent.by && !pago) {
+        const volta = (ent.de && e.abertas.has(ent.de) && ent.de !== e.agendada.id && { id: ent.de, name: e.nomes.get(ent.de) }) || e.qualificado;
+        if (volta) {
+          mover(l, volta, 'movido para "Consulta agendada" por regra automática, sem pagamento');
+          setTags(l, (t) => t.add(TAG_48H));
+          notas.push({ leadId: l.id, text: 'Voltou da "Consulta agendada": foi movido por uma regra automática do Kommo (ex.: 48h), sem pagamento confirmado. Se a consulta foi paga, mova de novo e preencha a "Data do pagamento".' });
+          resumo.desfeitos48h += 1;
+          continue;
+        }
+      }
+    }
 
     // 1 e 2. Resposta pendente de verdade.
     if (pendente) {
@@ -323,7 +362,7 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   resumo.atualizacoes = patches.size;
   log(
     `Automação: ${resumo.pendentes} aguardando resposta · ${resumo.respondidas} respondidas · ${resumo.movidos.length} movidos · ` +
-      `${novasTarefas.length} tarefas novas · ${concluir.length} concluídas · ${resumo.retomadas} retomadas`
+      `${novasTarefas.length} tarefas novas · ${concluir.length} concluídas · ${resumo.retomadas} retomadas · ${resumo.desfeitos48h} desfeitos (regra 48h)`
   );
   for (const m of resumo.movidos) log(`  lead ${m.id} → ${m.para} (${m.motivo})`);
 

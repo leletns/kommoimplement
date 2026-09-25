@@ -52,7 +52,7 @@ test('painel conta a consulta pela "Data do pagamento", em qualquer etapa', () =
     { id: 5, pipeline_id: PIPE, status_id: 40, price: 900, created_at: unix('2026-09-01') }, // entrou antes da data de corte (regra antiga das 48h)
   ];
   const won = [{ ...todos[2], closed_at: unix('2026-09-02') }, { id: 6, pipeline_id: PIPE, status_id: 142, price: 700, closed_at: unix('2026-09-03'), created_at: unix('2026-09-01') }];
-  const entered = new Map([[4, [{ id: 40, at: unix('2026-09-15') }]], [5, [{ id: 40, at: unix('2026-09-05') }]]]);
+  const entered = new Map([[4, [{ id: 40, at: unix('2026-09-15'), by: 7 }]], [5, [{ id: 40, at: unix('2026-09-05'), by: 7 }]]]);
   const p = buildPeriod(win, {
     created: todos.filter((l) => l.created_at >= win.from),
     won,
@@ -65,4 +65,16 @@ test('painel conta a consulta pela "Data do pagamento", em qualquer etapa', () =
   });
   // 1 (campo) + 3 (campo, ganho) + 4 (evento novo) + 6 (ganho sem campo) = 4
   assert.strictEqual(Number(p.num.consultas), 4);
+});
+
+test('movimento do sistema para "Consulta agendada" (regra 48h) não conta como venda', () => {
+  const unix = (iso) => Math.floor(new Date(`${iso}T12:00:00-03:00`).getTime() / 1000);
+  const win = { key: 'set', ym: '2026-09', label: 'Setembro 2026', from: unix('2026-09-01') - 43200, to: unix('2026-09-30') + 43199 };
+  const ctx = { sortById: new Map([[40, 40]]), qualificados: null, apn: { sort: 40, ids: new Set([40]) }, cirurgia: null };
+  const l = { id: 9, pipeline_id: 1, status_id: 40, price: 900, created_at: unix('2026-09-01') };
+  const p = buildPeriod(win, {
+    created: [l], won: [], todos: [l], ctxByPipeline: new Map([[1, ctx]]),
+    entered: new Map([[9, [{ id: 40, at: unix('2026-09-15'), by: 0 }]]]), users: new Map(), cirurgiaLeads: [], teamPipelines: null,
+  });
+  assert.strictEqual(Number(p.num.consultas), 0);
 });
