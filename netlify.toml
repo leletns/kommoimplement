@@ -4,6 +4,9 @@
 #   PAINEL_SENHA       (recomendado) senha para abrir o painel
 #   NETLIFY_BUILD_HOOK (opcional)    URL do build hook, para atualizar os dados a cada hora
 #   ADS_INVESTIMENTO_JSON (opcional) ex.: {"2026-09":15034.66}
+#   ANTHROPIC_API_KEY  (opcional)    sugestão de mensagem com IA na automação da Maria
+#   AUTOMACAO_KOMMO=0  (opcional)    pausa a automação da Maria (roda a cada 15 min)
+# O KOMMO_TOKEN precisa estar disponível para "Builds" E "Functions".
 
 [build]
   command = "npm ci --omit=dev && node src/scripts/snapshot.js"
@@ -14,6 +17,9 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # IDs da conta usados pela automação (src/config.js lê este arquivo).
+  included_files = ["config/conta.env"]
 
 # O painel busca /api/metrics (igual ao servidor local); aqui é o arquivo gerado no build.
 [[redirects]]

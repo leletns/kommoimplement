@@ -7,14 +7,19 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 
 ## Onde cada robô fica no funil (Comercial 1 e Comercial 2)
 
-| Etapa | Robô | O que acontece |
+| Etapa | Quem cuida | O que acontece |
 |---|---|---|
-| **1. Novo · boas-vindas** | 🤖 **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
-| **2. Qualificado** e **3. Interesse em agendar · Maria** | 🤖 **Alice · Porteiro** | 1 dia sem resposta da paciente → move para **3.1 Follow-up 1**. |
-| **3.1 Follow-up 1 · dia 1** | 🤖 **Maria · Follow-up 1** | Resgate com curiosidade ("separei uma informação"). Respondeu → volta para a **3** (Maria). Sem resposta em 2 dias → **3.2**. |
-| **3.2 Follow-up 2 · dia 3** | 🤖 **Maria · Follow-up 2** | Curiosidade: "precisa mesmo de cirurgia?". Respondeu → **3**. Sem resposta em 4 dias → **3.3**. |
-| **3.3 Follow-up 3 · dia 7** | 🤖 **Maria · Follow-up 3** | Última informação antes de encerrar. Respondeu → **3**. Sem resposta em 5 dias → **8. Nutrição**. |
-| 4 a 8 | nenhum | A Maria conduz |
+| **1. Novo · boas-vindas** | 🤖 robô **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
+| **2. Qualificado** e **3. Interesse em agendar · Maria** | ⚙️ automação (15 em 15 min) | Conversa parada há 1 dia (última mensagem foi nossa) → **3.2 Follow-up 1**. |
+| **3.1 Retomar depois · Maria** | ⚙️ automação | Sem data → "Data Próxima Ação" daqui a 30 dias. Chegou a data → volta para a **3** com tarefa "Retomar contato hoje" e mensagem sugerida (IA). |
+| **3.2 Follow-up 1 · dia 1** | 🤖 robô **Maria · Follow-up 1** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 2 dias → **3.3**. |
+| **3.3 Follow-up 2 · dia 3** | 🤖 robô **Maria · Follow-up 2** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 4 dias → **3.4**. |
+| **3.4 Follow-up 3 · dia 7** | 🤖 robô **Maria · Follow-up 3** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 5 dias → **3.1 Retomar depois** (+30 dias). |
+| Qualquer etapa aberta | ⚙️ automação | Última mensagem é da paciente → tag `aguardando_resposta` + tarefa "Responder paciente". Respondeu em 3.1–3.4 → volta para a **3** com a resposta pronta na nota. A equipe respondeu → tira a tag e conclui a tarefa. |
+| 4 a 7 | a Maria | |
+
+A automação (⚙️) é o `src/services/automacaoMaria.js`, que roda sozinho no Netlify a cada 15 minutos
+(ou `node src/scripts/automacaoMaria.js --aplicar`). Os robôs do Kommo só enviam as mensagens.
 
 ## Robô 1 — Boas-vindas
 
@@ -31,7 +36,7 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 Depois de enviar: adiciona a tag `boas_vindas_enviada` e cria a tarefa para a Maria
 **"Responder nova paciente"** com prazo de 1 hora.
 
-## Régua de follow-up (etapas 3.1, 3.2 e 3.3)
+## Régua de follow-up (etapas 3.2, 3.3 e 3.4)
 
 A régua é de **resgate**: a paciente já conversou com a Maria e parou de responder. Os follow-ups
 falam **como a Maria** (SDR), em primeira pessoa, sem se apresentar: curtos, profissionais e cada um
@@ -40,7 +45,7 @@ informação") que só se resolve se ela responder. Terminam com um "sim" fácil
 A Maria precisa ter a continuação pronta (abaixo de cada mensagem).
 
 **Regra de ouro:** respondeu em qualquer momento → para a régua, volta para **3. Interesse em agendar · Maria**,
-tag `fu_respondeu` e tarefa **"🔥 Paciente respondeu: responder AGORA"** (30 minutos).
+tag `fu_respondeu`, tarefa **"Responder paciente"** (30 minutos) e a resposta pronta na nota do lead.
 Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
 ### Follow-up 1 · dia 1 (resgate: "separei uma informação")
@@ -49,7 +54,7 @@ Tem a tag `opt_out` ou a Maria marcou como perdido → a régua não manda nada.
 
 **Se responder, a Maria continua:** "Na avaliação, o Dr. Rafael analisa seus sintomas, histórico e exames e te diz com clareza qual é o melhor caminho para o seu caso. É o passo que tira a dúvida de vez. Você prefere presencial ou online?"
 
-Sem resposta em 2 dias → **3.2 Follow-up 2**.
+Sem resposta em 2 dias → **3.3 Follow-up 2**.
 
 ### Follow-up 2 · dia 3 (curiosidade: a dúvida que toda paciente tem)
 > {{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.
@@ -57,7 +62,7 @@ Sem resposta em 2 dias → **3.2 Follow-up 2**.
 
 **Se responder, a Maria continua:** "Nem toda paciente precisa operar no primeiro momento. Só a avaliação individualizada confirma o diagnóstico e a melhor conduta, e é isso que o Dr. Rafael faz na consulta, com calma. Quer que eu veja um horário pra você?"
 
-Sem resposta em 4 dias → **3.3 Follow-up 3**.
+Sem resposta em 4 dias → **3.4 Follow-up 3**.
 
 ### Follow-up 3 · dia 7 (última informação antes de encerrar)
 > {{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.
@@ -65,7 +70,7 @@ Sem resposta em 4 dias → **3.3 Follow-up 3**.
 
 **Se responder, a Maria continua:** mostra o que facilita: formas de pagamento da consulta, opção de avaliação online para quem mora longe e o que a consulta inclui. Em seguida, 2 ou 3 opções de horário.
 
-Sem resposta em 5 dias → **8. Nutrição · retomar depois** + tag `fu_sem_resposta` (não vai para perdido).
+Sem resposta em 5 dias → **3.1 Retomar depois · Maria** + tag `fu_sem_resposta`, com retorno automático em 30 dias (não vai para perdido).
 
 Os quatro textos também existem como templates de chat (`00 Alice · Boas-vindas` e `00 Maria · Follow-up …`), criados pelo
 `organizarKommo.js --aplicar`, para a Maria usar manualmente quando quiser.
@@ -96,8 +101,8 @@ em "Qualificado" (ela infla os agendamentos).
 O Kommo não deixa criar robôs pela API (só pela tela). Cole este prompt no Claude do Chrome:
 
 ```
-Você está no Kommo da Clínica Blue (comercialblueclinica.kommo.com). Vou criar 5 robôs (Salesbot)
-nos funis "Comercial 1" e "Comercial 2": boas-vindas, porteiro e 3 follow-ups. Siga na ordem e me mostre um resumo no final.
+Você está no Kommo da Clínica Blue (comercialblueclinica.kommo.com). Vou criar 4 robôs (Salesbot)
+nos funis "Comercial 1" e "Comercial 2": boas-vindas e 3 follow-ups. Siga na ordem e me mostre um resumo no final.
 
 REGRAS
 - Não envie mensagem manual para nenhuma paciente. Não apague leads, campos nem etapas.
@@ -129,46 +134,32 @@ REGRAS
    imediatamente, em todos os canais (WhatsApp). Salve e ative.
    Repita no funil "Comercial 2" (mesmo bot, etapa "1. Novo · boas-vindas"; tarefa para a Mayra).
 
-3) RÉGUA DE FOLLOW-UP (as etapas "3.1 Follow-up 1 · dia 1", "3.2 Follow-up 2 · dia 3" e
-   "3.3 Follow-up 3 · dia 7" JÁ EXISTEM nos dois funis). Crie 4 robôs, nos dois funis:
+3) ROBÔS DA RÉGUA DE FOLLOW-UP. As etapas "3.2 Follow-up 1 · dia 1", "3.3 Follow-up 2 · dia 3" e
+   "3.4 Follow-up 3 · dia 7" JÁ EXISTEM nos dois funis. Uma automação externa já move os leads
+   entre elas e devolve para a Maria quem responder: os robôs SÓ mandam a mensagem.
+   Crie 3 robôs, cada um com UM passo (Mensagem), gatilho "ao entrar na etapa", uma vez por lead,
+   nos dois funis. Se o lead tiver a tag opt_out, não enviar.
 
-   REGRA EM TODOS: se a paciente RESPONDER em qualquer momento → adicionar tag fu_respondeu,
-   mover para "3. Interesse em agendar · Maria" e criar tarefa para a Maria
-   "🔥 Paciente respondeu: responder AGORA" (prazo 30 minutos) → fim.
-   Se o lead tiver a tag opt_out → não enviar nada.
-
-   3a) "Alice · Porteiro" — etapas "2. Qualificado" e "3. Interesse em agendar · Maria".
-       Gatilho: 1 dia depois de entrar na etapa (ou da última mensagem da equipe).
-       Condição: se NÃO houve mensagem da paciente nesse período → mover para "3.1 Follow-up 1 · dia 1".
-       Se houve → não fazer nada.
-
-   3b) "Maria · Follow-up 1" — etapa "3.1 Follow-up 1 · dia 1". Gatilho: ao entrar na etapa.
-       Mensagem (texto exato):
+   3a) "Maria · Follow-up 1" — etapa "3.2 Follow-up 1 · dia 1". Mensagem (texto exato):
          Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.
          Posso te mandar?
-       Esperar resposta por 2 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.2 Follow-up 2 · dia 3".
 
-   3c) "Maria · Follow-up 2" — etapa "3.2 Follow-up 2 · dia 3". Gatilho: ao entrar na etapa.
-       Mensagem (texto exato):
+   3b) "Maria · Follow-up 2" — etapa "3.3 Follow-up 2 · dia 3". Mensagem (texto exato):
          {{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.
          Quer que eu te explique como o Dr. Rafael avalia isso?
-       Esperar resposta por 4 dias. Respondeu → REGRA acima. Não respondeu → mover para "3.3 Follow-up 3 · dia 7".
 
-   3d) "Maria · Follow-up 3" — etapa "3.3 Follow-up 3 · dia 7". Gatilho: ao entrar na etapa.
-       Mensagem (texto exato):
+   3c) "Maria · Follow-up 3" — etapa "3.4 Follow-up 3 · dia 7". Mensagem (texto exato):
          {{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.
          Te mando?
-       Esperar resposta por 5 dias. Respondeu → REGRA acima. Não respondeu → tag fu_sem_resposta e
-       mover para "8. Nutrição · retomar depois".
 
-   Em todos: enviar só em horário comercial (seg a sex, 9h–17h30) se o Kommo tiver essa opção,
-   e executar UMA vez por lead em cada etapa.
+   Se o Kommo tiver a opção de horário comercial, use seg a sex, 9h–17h30.
+   NÃO crie regras de "mover etapa" nem de "esperar resposta": isso já é automático.
 
 4) TESTE: crie um lead de teste com o MEU número de WhatsApp no "Comercial 1", etapa
    "1. Novo · boas-vindas". Confira se chega só UMA mensagem de boas-vindas e se a tarefa foi criada.
-   Depois mova o mesmo lead para "3.1 Follow-up 1 · dia 1" e confira se chega a mensagem do
-   follow-up 1. Eu respondo pelo celular: confira se o lead voltou para "3. Interesse em agendar · Maria"
-   com a tarefa "🔥 Paciente respondeu: responder AGORA".
+   Depois mova o mesmo lead para "3.2 Follow-up 1 · dia 1" e confira se chega a mensagem do
+   follow-up 1. Eu respondo pelo celular: em até 15 minutos o lead volta sozinho para
+   "3. Interesse em agendar · Maria" com a tarefa "Responder paciente".
    No fim, mova o lead de teste para "Perdido" (não apague nada).
 
 5) SÓ DEPOIS DO TESTE OK, APAGAR os robôs antigos: TestBot, Robô de NPS, Teste ID Consulta SP,

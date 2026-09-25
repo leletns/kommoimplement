@@ -37,15 +37,16 @@ const ETAPAS = [
   { key: 'novo', name: '1. Novo · boas-vindas', color: '#fffeb2' },
   { key: 'qualificado', name: '2. Qualificado', color: '#ffeab2' },
   { key: 'negociacao', name: '3. Interesse em agendar · Maria', color: '#ffdc7f' },
-  // Régua de follow-up da Alice: sem resposta da paciente, desce 3.1 → 3.2 → 3.3; respondeu, volta para a 3 (Maria).
-  { key: 'fu1', name: '3.1 Follow-up 1 · dia 1', color: '#ffc8c8' },
-  { key: 'fu2', name: '3.2 Follow-up 2 · dia 3', color: '#ffdbdb' },
-  { key: 'fu3', name: '3.3 Follow-up 3 · dia 7', color: '#ff8f92' },
+  // Ao lado da etapa da Maria: quem pediu para falar depois (volta sozinho na "Data Próxima Ação").
+  { key: 'nutricao', name: '3.1 Retomar depois · Maria', color: '#e6e8ea', aliases: ['8. Nutrição · retomar depois'] },
+  // Régua de follow-up: sem resposta da paciente, desce 3.2 → 3.3 → 3.4; respondeu, volta para a 3 (Maria).
+  { key: 'fu1', name: '3.2 Follow-up 1 · dia 1', color: '#ffc8c8', aliases: ['3.1 Follow-up 1 · dia 1'] },
+  { key: 'fu2', name: '3.3 Follow-up 2 · dia 3', color: '#ffdbdb', aliases: ['3.2 Follow-up 2 · dia 3'] },
+  { key: 'fu3', name: '3.4 Follow-up 3 · dia 7', color: '#ff8f92', aliases: ['3.3 Follow-up 3 · dia 7'] },
   { key: 'agendada', name: '4. Consulta agendada', color: '#98cbff' },
   { key: 'realizada', name: '5. Consulta realizada', color: '#c1e0ff' },
   { key: 'oportunidade', name: '6. Oportunidade cirúrgica', color: '#f3beff' },
   { key: 'cirurgia', name: '7. Cirurgia confirmada', color: '#87f2c0' },
-  { key: 'nutricao', name: '8. Nutrição · retomar depois', color: '#e6e8ea' },
 ];
 
 /** Etapa antiga → etapa padrão. Etapas antigas que caem na mesma chave têm os leads unificados. */
@@ -320,7 +321,9 @@ async function funis(k, apply) {
     for (const [i, etapa] of ETAPAS.entries()) {
       const sort = 20 + i * 10;
       const existing =
-        statuses.find((s) => s.name === etapa.name) || (keep[etapa.key] && statuses.find((s) => s.id === keep[etapa.key]));
+        statuses.find((s) => s.name === etapa.name) ||
+        statuses.find((s) => (etapa.aliases || []).includes(s.name)) ||
+        (keep[etapa.key] && statuses.find((s) => s.id === keep[etapa.key]));
       if (existing) {
         target[etapa.key] = existing.id;
         if (existing.name !== etapa.name || existing.sort !== sort) {

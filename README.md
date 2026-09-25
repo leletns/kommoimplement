@@ -64,7 +64,7 @@ node src/scripts/organizarKommo.js --aplicar  # backup + aplica tudo
 
 | Etapa | O que muda |
 |---|---|
-| Funis | **Comercial 1** e **Comercial 2** com as mesmas etapas: 1. Novo · boas-vindas → 2. Qualificado → 3. Interesse em agendar · Maria → 4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada → 8. Nutrição · retomar depois. No Comercial 1 é só renomear: os IDs das etapas e os leads não mudam, então os robôs ligados às etapas continuam funcionando. O funil vazio "Alice - Blue" é apagado. |
+| Funis | **Comercial 1** e **Comercial 2** com as mesmas etapas: 1. Novo · boas-vindas → 2. Qualificado → 3. Interesse em agendar · Maria → 3.1 Retomar depois · Maria → 3.2/3.3/3.4 Follow-up 1/2/3 → 4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada. No Comercial 1 é só renomear: os IDs das etapas e os leads não mudam, então os robôs ligados às etapas continuam funcionando. O funil vazio "Alice - Blue" é apagado. |
 | Campos | Aba principal só com o que a comercial preenche (10 campos); "Qualificação (Alice)" com o que é automático; "Financeiro". Remove 12 campos nunca usados. Corrige "Classificação" (Fria/Morna/Quente) e "Data e horário da consulta". |
 | Tags | frio/ia-frio/morno/quente/muito_quente → `lead_fria`/`lead_morna`/`lead_quente`; alice_rj/sp/internacional → rj/sp/internacional |
 | Tarefas | Conclui as tarefas automáticas vencidas "NOVO LEAD CHEGOU" (95 na primeira execução) |
@@ -104,6 +104,24 @@ node src/scripts/corrigirAgendadas.js $A --aplicar        # "4. Consulta agendad
 O painel conta a **consulta vendida** pela data do campo **"Data do pagamento"** (em qualquer etapa),
 pelos ganhos sem esse campo e, a partir de `KOMMO_CONSULTA_EVENTOS_DESDE`, por lead que entra em
 "4. Consulta agendada". Por isso, ao mover uma paciente que pagou para a etapa 4, preencha a "Data do pagamento".
+
+## Automação da Maria (`src/services/automacaoMaria.js`)
+
+Roda sozinha no Netlify a cada 15 minutos (`netlify/functions/automacao-kommo.mjs`), ou na mão:
+
+```bash
+node src/scripts/automacaoMaria.js            # simula
+node src/scripts/automacaoMaria.js --aplicar  # grava no Kommo
+```
+
+| O quê | Como |
+|---|---|
+| Resposta pendente **de verdade** | Última mensagem do WhatsApp é da paciente (há 3+ min) → tag `aguardando_resposta` + tarefa "Responder paciente" (30 min). A equipe respondeu → tira a tag e conclui a tarefa. Não depende do "não lida" do Kommo. |
+| Respondeu na régua / no Retomar depois | Volta para **3. Interesse em agendar · Maria**, com a resposta pronta numa nota. |
+| Régua de follow-up | 2 ou 3 com conversa parada há 1 dia (última mensagem nossa, conversa dos últimos 7 dias) → 3.2 Follow-up 1 → (2 dias) 3.3 → (4 dias) 3.4 → (5 dias) 3.1 Retomar depois. No máximo 40 por rodada. Tag `opt_out` fica fora. |
+| Retomar depois | Sem "Data Próxima Ação" → daqui a 30 dias. Chegou a data → volta para a 3 com tarefa "Retomar contato hoje" e mensagem sugerida: IA (Claude, com `ANTHROPIC_API_KEY`) ou o roteiro da objeção registrada. |
+
+No Netlify, o `KOMMO_TOKEN` precisa estar liberado para **Functions** (além de Builds). `AUTOMACAO_KOMMO=0` pausa.
 
 ## Publicar no Netlify
 

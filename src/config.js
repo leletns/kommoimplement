@@ -4,7 +4,10 @@ const path = require('path');
 
 require('dotenv').config();
 // IDs da conta (não secretos, versionados). Não sobrescreve o que veio do .env / Netlify.
-const CONTA_ENV = path.resolve(__dirname, '..', 'config', 'conta.env');
+// No Netlify Functions o código vem empacotado: procura também a partir da pasta do projeto.
+const CONTA_ENV = [path.resolve(__dirname, '..', 'config', 'conta.env'), path.resolve(process.cwd(), 'config', 'conta.env')].find((p) =>
+  require('fs').existsSync(p)
+) || path.resolve(__dirname, '..', 'config', 'conta.env');
 require('dotenv').config({ path: CONTA_ENV });
 
 // Se uma variável JSON chegou quebrada (ex.: o import do painel do Netlify tirou as aspas),

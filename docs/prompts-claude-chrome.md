@@ -23,8 +23,9 @@ REGRAS DE SEGURANÇA (obrigatórias)
 COMO O KOMMO ESTÁ ORGANIZADO
 Funis: "Comercial 1" (Maria) e "Comercial 2" (Mayra).
 Etapas: 1. Novo · boas-vindas → 2. Qualificado → 3. Interesse em agendar · Maria →
-4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada →
-8. Nutrição · retomar depois.
+3.1 Retomar depois · Maria → 3.2/3.3/3.4 Follow-up 1/2/3 (automáticas, não mexa) →
+4. Consulta agendada → 5. Consulta realizada → 6. Oportunidade cirúrgica → 7. Cirurgia confirmada.
+A tag "aguardando_resposta" marca quem está realmente esperando resposta (automático).
 Campos do lead: "Classificação" (quente / morna / fria), "Objeção registrada", "Próxima Ação",
 "Data Próxima Ação", "Resumo Alice Bot".
 
@@ -57,7 +58,9 @@ Para CADA conversa, uma de cada vez:
      que a Maria deve responder;
    - quente e está em "1. Novo" ou "2. Qualificado" → mover para "3. Interesse em agendar · Maria";
    - respondeu às perguntas e está em "1. Novo" → mover para "2. Qualificado";
-   - pediu para não receber mais mensagem → tag "opt_out" e mover para "8. Nutrição".
+   - pediu para não receber mais mensagem → tag "opt_out" e mover para "3.1 Retomar depois · Maria".
+   - pediu para falar em outra data → mover para "3.1 Retomar depois · Maria" e preencher
+     "Data Próxima Ação" com a data combinada (o lead volta sozinho para a Maria nesse dia).
 
 PARTE C: RELATÓRIO FINAL (escreva na conversa comigo, em português simples)
 1. Total de conversas com mensagem hoje e total de mensagens recebidas das pacientes.
