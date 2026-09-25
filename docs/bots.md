@@ -12,14 +12,20 @@ com elegância, sem pressão. Quem fala é a **Alice**, na voz do Manual Comerci
 | **1. Novo · boas-vindas** | 🤖 robô **Alice · Boas-vindas** | Ao entrar o lead: mensagem da Alice + tarefa para a Maria (1 hora). Uma vez por lead. |
 | **2. Qualificado** e **3. Interesse em agendar · Maria** | ⚙️ automação (15 em 15 min) | Conversa parada há 1 dia (última mensagem foi nossa) → **3.2 Follow-up 1**. |
 | **3.1 Retomar depois · Maria** | ⚙️ automação | Sem data → "Data Próxima Ação" daqui a 30 dias. Chegou a data → volta para a **3** com tarefa "Retomar contato hoje" e mensagem sugerida (IA). |
-| **3.2 Follow-up 1 · dia 1** | 🤖 robô **Maria · Follow-up 1** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 2 dias → **3.3**. |
-| **3.3 Follow-up 2 · dia 3** | 🤖 robô **Maria · Follow-up 2** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 4 dias → **3.4**. |
-| **3.4 Follow-up 3 · dia 7** | 🤖 robô **Maria · Follow-up 3** + ⚙️ | Robô manda a mensagem ao entrar. Sem resposta em 5 dias → **3.1 Retomar depois** (+30 dias). |
+| **3.2 Follow-up 1 · dia 1** | 🤖 robô **Maria · Follow-up 1** + ⚙️ | A automação escreve a mensagem da paciente (IA) e o robô envia ao entrar. Sem resposta em 2 dias → **3.3**. |
+| **3.3 Follow-up 2 · dia 3** | 🤖 robô **Maria · Follow-up 2** + ⚙️ | Idem, com a mensagem do follow-up 2. Sem resposta em 4 dias → **3.4**. |
+| **3.4 Follow-up 3 · dia 7** | 🤖 robô **Maria · Follow-up 3** + ⚙️ | Idem, com a mensagem do follow-up 3. Sem resposta em 5 dias → **3.1 Retomar depois** (+30 dias). |
 | Qualquer etapa aberta | ⚙️ automação | Última mensagem é da paciente → tag `aguardando_resposta` + tarefa "Responder paciente". Respondeu em 3.1–3.4 → volta para a **3** com a resposta pronta na nota. A equipe respondeu → tira a tag e conclui a tarefa. |
 | 4 a 7 | a Maria | |
 
 A automação (⚙️) é o `src/services/automacaoMaria.js`, que roda sozinho no Netlify a cada 15 minutos
 (ou `node src/scripts/automacaoMaria.js --aplicar`). Os robôs do Kommo só enviam as mensagens.
+
+**Follow-up com IA (quem fala é a Maria, não a Alice):** a cada passo da régua a automação escreve,
+para aquela paciente, uma mensagem nova a partir da mensagem aprovada + o que o CRM sabe dela
+(resumo, objeção, classificação) e grava no campo **"Follow-up · mensagem"**; o robô da etapa envia.
+Trava de segurança: se a IA escrever algo proibido (promessa, diagnóstico, preço, urgência, link,
+texto longo) ou estiver fora do ar, vai a mensagem aprovada. Sem `ANTHROPIC_API_KEY`, vai sempre a aprovada.
 
 ## Robô 1 — Boas-vindas
 
@@ -135,20 +141,27 @@ REGRAS
    Repita no funil "Comercial 2" (mesmo bot, etapa "1. Novo · boas-vindas"; tarefa para a Mayra).
 
 3) ROBÔS DA RÉGUA DE FOLLOW-UP. As etapas "3.2 Follow-up 1 · dia 1", "3.3 Follow-up 2 · dia 3" e
-   "3.4 Follow-up 3 · dia 7" JÁ EXISTEM nos dois funis. Uma automação externa já move os leads
-   entre elas e devolve para a Maria quem responder: os robôs SÓ mandam a mensagem.
-   Crie 3 robôs, cada um com UM passo (Mensagem), gatilho "ao entrar na etapa", uma vez por lead,
-   nos dois funis. Se o lead tiver a tag opt_out, não enviar.
+   "3.4 Follow-up 3 · dia 7" JÁ EXISTEM nos dois funis. Uma automação externa move os leads entre elas,
+   devolve para a Maria quem responder e ESCREVE a mensagem de cada paciente no campo do lead
+   "Follow-up · mensagem" (feita sob medida por IA, já revisada por regras de segurança).
+   Os robôs SÓ enviam esse campo. Crie 3 robôs, nos dois funis, gatilho "ao entrar na etapa",
+   uma vez por lead. Se o lead tiver a tag opt_out, não enviar.
 
-   3a) "Maria · Follow-up 1" — etapa "3.2 Follow-up 1 · dia 1". Mensagem (texto exato):
+   Cada robô tem 2 passos:
+   a) Condição: o campo "Follow-up · mensagem" está preenchido?
+   b) SIM → Mensagem com a variável do campo "Follow-up · mensagem" (no editor: inserir variável →
+      Lead → Follow-up · mensagem; aparece como {{lead.cf.3839858}}).
+      NÃO → Mensagem fixa (texto exato abaixo).
+
+   3a) "Maria · Follow-up 1" — etapa "3.2 Follow-up 1 · dia 1". Texto fixo:
          Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.
          Posso te mandar?
 
-   3b) "Maria · Follow-up 2" — etapa "3.3 Follow-up 2 · dia 3". Mensagem (texto exato):
+   3b) "Maria · Follow-up 2" — etapa "3.3 Follow-up 2 · dia 3". Texto fixo:
          {{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.
          Quer que eu te explique como o Dr. Rafael avalia isso?
 
-   3c) "Maria · Follow-up 3" — etapa "3.4 Follow-up 3 · dia 7". Mensagem (texto exato):
+   3c) "Maria · Follow-up 3" — etapa "3.4 Follow-up 3 · dia 7". Texto fixo:
          {{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.
          Te mando?
 

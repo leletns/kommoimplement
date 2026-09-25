@@ -116,3 +116,23 @@ test('regra automática jogou em "Consulta agendada" sem pagamento → volta; mo
   assert.strictEqual(r.desfeitos48h, 1);
   assert.deepStrictEqual(k.gravado.leads.filter((p) => p.status_id).map((p) => [p.id, p.status_id]), [[1, ST.qual]]);
 });
+
+test('follow-up: grava a mensagem da paciente no campo que o robô envia (IA com trava; sem IA, a aprovada)', async () => {
+  const { mensagemSegura } = require('../src/services/automacaoMaria');
+  const base = { leads: [lead(1, ST.int, { _embedded: { tags: [], contacts: [{ name: 'JULIANA souza' }] } })], chat: [msg(1, false, NOW - 26 * H)] };
+  const campo = (k) => k.gravado.leads[0].custom_fields_values.find((c) => c.field_id === 3839858).values[0].value;
+
+  let k = fakeKommo(base);
+  await rodar(k);
+  assert.match(campo(k), /^Oi, Juliana! Retomando nossa conversa/);
+
+  k = fakeKommo(base);
+  await executarAutomacao(k, { apply: true, now: NOW, log: () => {}, ia: async () => 'Juliana, separei uma novidade sobre a avaliação com o Dr. Rafael. Posso te contar?' });
+  assert.match(campo(k), /separei uma novidade/);
+
+  k = fakeKommo(base);
+  await executarAutomacao(k, { apply: true, now: NOW, log: () => {}, ia: async () => 'Resultado garantido! Consulta por R$ 500 só hoje.' });
+  assert.match(campo(k), /^Oi, Juliana! Retomando/); // IA barrada → mensagem aprovada
+
+  assert.ok(!mensagemSegura('Você tem lipedema, precisa operar.'));
+});

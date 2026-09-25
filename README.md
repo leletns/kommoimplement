@@ -119,6 +119,7 @@ node src/scripts/automacaoMaria.js --aplicar  # grava no Kommo
 | Resposta pendente **de verdade** | Última mensagem do WhatsApp é da paciente (há 3+ min) → tag `aguardando_resposta` + tarefa "Responder paciente" (30 min). A equipe respondeu → tira a tag e conclui a tarefa. Não depende do "não lida" do Kommo. |
 | Respondeu na régua / no Retomar depois | Volta para **3. Interesse em agendar · Maria**, com a resposta pronta numa nota. |
 | Régua de follow-up | 2 ou 3 com conversa parada há 1 dia (última mensagem nossa, conversa dos últimos 7 dias) → 3.2 Follow-up 1 → (2 dias) 3.3 → (4 dias) 3.4 → (5 dias) 3.1 Retomar depois. No máximo 40 por rodada. Tag `opt_out` fica fora. |
+| Follow-up com IA | A cada passo da régua, a IA (Claude) escreve a mensagem daquela paciente no campo "Follow-up · mensagem", com trava de segurança; o robô da etapa envia. Sem chave ou se a IA errar, vai a mensagem aprovada. |
 | Retomar depois | Sem "Data Próxima Ação" → daqui a 30 dias. Chegou a data → volta para a 3 com tarefa "Retomar contato hoje" e mensagem sugerida: IA (Claude, com `ANTHROPIC_API_KEY`) ou o roteiro da objeção registrada. |
 
 No Netlify, o `KOMMO_TOKEN` precisa estar liberado para **Functions** (além de Builds). `AUTOMACAO_KOMMO=0` pausa.

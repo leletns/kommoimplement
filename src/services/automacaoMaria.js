@@ -50,6 +50,19 @@ const REGRA = {
   maxMovimentosRegua: Number(process.env.AUTOMACAO_MAX_REGUA || 40),
 };
 
+// Mensagens aprovadas de cada follow-up (docs/bots.md). São a base da IA e o texto usado sem IA.
+const MODELO_FOLLOWUP = {
+  fu1: "Oi, {{contact.first_name}}! Retomando nossa conversa: separei uma informação sobre a avaliação que pode te ajudar a decidir o próximo passo.\nPosso te mandar?",
+  fu2: "{{contact.first_name}}, uma dúvida que quase toda paciente tem nessa fase é se realmente vai precisar de cirurgia ou se existe outro caminho. A resposta costuma surpreender.\nQuer que eu te explique como o Dr. Rafael avalia isso?",
+  fu3: "{{contact.first_name}}, antes de encerrar seu atendimento, tenho uma última informação que pode facilitar a sua decisão.\nTe mando?",
+};
+const OBJETIVO_FOLLOWUP = {
+  fu1: 'Retomar a conversa (ela já falou com a Maria e parou de responder) abrindo uma curiosidade sobre a avaliação e pedindo um "sim" fácil.',
+  fu2: 'Tocar na dúvida mais comum dessa fase (se vai precisar de cirurgia ou se há outro caminho) e oferecer explicar como o Dr. Rafael avalia.',
+  fu3: 'Última mensagem antes de encerrar o atendimento: honesta, sem pressão, oferecendo uma última informação que facilita a decisão.',
+};
+const FIELD_FOLLOWUP_MSG = Number(process.env.KOMMO_FOLLOWUP_MSG_FIELD_ID) || null;
+
 // Continuação aprovada para cada follow-up (docs/bots.md).
 const CONTINUACAO = {
   fu1:
@@ -65,7 +78,13 @@ const fieldValue = (lead, id) => {
   return f && f.values && f.values[0] ? f.values[0].value : null;
 };
 const tagsOf = (lead) => (lead._embedded?.tags || []).map((t) => t.name);
-const nomeDe = (lead) => (lead._embedded?.contacts?.[0]?.name || lead.name || '').split(' ')[0];
+/** Primeiro nome apresentável ("MARIA" → "Maria"); vazio quando o nome é de sistema ("Lead #123", "Consulta · …"). */
+const nomeDe = (lead) => {
+  const bruto = (lead._embedded?.contacts?.[0]?.name || lead.name || '').trim();
+  const primeiro = bruto.split(/\s+/)[0] || '';
+  if (!primeiro || /^(lead|consulta|paciente|pacienta|sem)$/i.test(primeiro) || /[#\d@·]/.test(primeiro)) return '';
+  return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
+};
 
 /** Etapas de cada funil comercial, achadas pelo nome (não depende de id). */
 async function etapasDosFunis(kommo, pipelineIds) {
@@ -136,8 +155,16 @@ async function sugestaoRetomada(lead, { ia } = {}) {
   const nome = nomeDe(lead) || 'tudo bem';
   if (ia) {
     try {
-      const texto = await ia({ nome, resumo, objecao: objecaoEnum, classificacao, tags: tagsOf(lead) });
-      if (texto) return { fonte: 'IA', texto };
+      const texto = await ia({
+        tarefa: 'retomar contato',
+        objetivo: 'A paciente pediu para falar depois e chegou a data combinada. Retome com leveza e ofereça o próximo passo (avaliação com o Dr. Rafael).',
+        nome,
+        resumo,
+        objecao: objecaoEnum,
+        classificacao,
+        tags: tagsOf(lead),
+      });
+      if (mensagemSegura(texto)) return { fonte: 'IA', texto };
     } catch (err) {
       console.warn(`[automacao] IA indisponível (${err.message}); usando roteiro.`);
     }
@@ -156,6 +183,37 @@ async function sugestaoRetomada(lead, { ia } = {}) {
   };
 }
 
+/** Barra o que não pode ir para a paciente sem revisão (promessa, diagnóstico, preço, pressão). */
+function mensagemSegura(texto) {
+  if (!texto || texto.length > 420 || texto.split('\n').length > 5) return false;
+  const proibido = /garant|\bcura\b|curar|milagre|promo|desconto|r\$|\breais\b|\d{3,}|precisa operar|vai precisar operar|com certeza|voc[eê] tem lipedema|seu lipedema|diagn[oó]stic|resultado|ultim[ao]s? vagas?|s[oó] hoje|corre|urgente|http|www\./i;
+  return !proibido.test(texto);
+}
+
+/** Mensagem do follow-up para esta paciente: IA personalizada (com trava de segurança) ou a mensagem aprovada. */
+async function mensagemFollowUp(lead, etapa, { ia } = {}) {
+  const nome = nomeDe(lead);
+  const modelo = MODELO_FOLLOWUP[etapa].replace(/\{\{contact\.first_name\}\}/g, nome || '').replace(/^, /, '').replace(/Oi, !/, 'Oi!').replace(/^./, (c) => c.toUpperCase());
+  if (ia) {
+    try {
+      const texto = await ia({
+        tarefa: 'follow-up',
+        objetivo: OBJETIVO_FOLLOWUP[etapa],
+        mensagem_modelo_aprovada: modelo,
+        nome,
+        resumo: FIELD_RESUMO ? fieldValue(lead, FIELD_RESUMO) : null,
+        objecao: FIELD_OBJECAO ? fieldValue(lead, FIELD_OBJECAO) : null,
+        classificacao: FIELD_CLASSIFICACAO ? fieldValue(lead, FIELD_CLASSIFICACAO) : null,
+        tags: tagsOf(lead),
+      });
+      if (mensagemSegura(texto)) return { fonte: 'IA', texto };
+    } catch (err) {
+      console.warn(`[automacao] IA indisponível (${err.message}); usando a mensagem aprovada.`);
+    }
+  }
+  return { fonte: 'aprovada', texto: modelo };
+}
+
 /** Cliente de IA opcional (só com ANTHROPIC_API_KEY). Devolve uma função (contexto) => texto. */
 function criarIA() {
   if (!process.env.ANTHROPIC_API_KEY) return null;
@@ -163,11 +221,12 @@ function criarIA() {
   const Anthropic = mod.default || mod;
   const client = new Anthropic();
   const system =
-    'Você é a Maria, consultora da Clínica Blue (Dr. Rafael Erthal, cirurgião plástico com foco em lipedema). ' +
-    'Escreva UMA mensagem curta de WhatsApp (no máximo 3 linhas, português do Brasil) para retomar o contato com uma paciente ' +
-    'que já conversou e pediu para falar depois. Tom profissional, humano e acolhedor, sem se apresentar, sem pressão, ' +
-    'com uma curiosidade ou próximo passo claro e terminando com uma pergunta fácil de responder. ' +
-    'Nunca diagnostique, nunca prometa resultado, nunca diga que ela precisa operar, não invente preços, datas ou promoções. ' +
+    'Você é a Maria, consultora comercial (SDR) da Clínica Blue, do Dr. Rafael Erthal, cirurgião plástico com foco em lipedema. ' +
+    'Escreva UMA mensagem de WhatsApp em português do Brasil para uma paciente que já conversou com você e parou de responder. ' +
+    'Fale em primeira pessoa como a Maria, sem se apresentar e sem falar "a Maria". No máximo 3 linhas curtas. ' +
+    'Tom profissional, humano, acolhedor e prospectivo: desperte curiosidade ou dê um próximo passo claro e termine com uma pergunta fácil de responder (um "sim"). ' +
+    'Use o objetivo e a mensagem modelo aprovada como base; personalize com os dados do lead só quando fizer sentido, sem citar dados sensíveis de saúde. ' +
+    'Proibido: diagnosticar, prometer resultado, dizer que ela precisa operar, falar de preço, valores, datas, promoções, urgência ou links. ' +
     'Responda só com o texto da mensagem.';
   return async (ctx) => {
     const res = await client.beta.messages.create({
@@ -177,7 +236,7 @@ function criarIA() {
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system,
-      messages: [{ role: 'user', content: `Dados do lead (podem estar vazios):\n${JSON.stringify(ctx, null, 2)}` }],
+      messages: [{ role: 'user', content: `Contexto (campos podem estar vazios):\n${JSON.stringify(ctx, null, 2)}` }],
     });
     if (res.stop_reason === 'refusal') return null;
     return res.content
@@ -241,7 +300,16 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   const novasTarefas = [];
   const concluir = [];
   const notas = [];
-  const resumo = { pendentes: 0, respondidas: 0, movidos: [], tarefasCriadas: 0, tarefasConcluidas: 0, retomadas: 0, desfeitos48h: 0 };
+  const resumo = { pendentes: 0, respondidas: 0, movidos: [], tarefasCriadas: 0, tarefasConcluidas: 0, retomadas: 0, desfeitos48h: 0, mensagens: [] };
+
+  // O robô da etapa envia o campo "Follow-up · mensagem": grava junto com a mudança de etapa (mesmo PATCH).
+  const gravarMensagem = async (l, etapa) => {
+    const m = await mensagemFollowUp(l, etapa, { ia });
+    resumo.mensagens.push({ id: l.id, etapa, fonte: m.fonte });
+    if (!FIELD_FOLLOWUP_MSG) return;
+    const p = patchDe(l);
+    p.custom_fields_values = [...(p.custom_fields_values || []), { field_id: FIELD_FOLLOWUP_MSG, values: [{ value: m.texto }] }];
+  };
 
   let movRegua = 0;
   for (const l of leads) {
@@ -319,13 +387,16 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
       const parado = now - msg.at;
       if (parado >= REGRA.paradoParaFollowUp && parado <= REGRA.janelaConversaRecente && podeMover()) {
         mover(l, e.fu1, 'conversa parada há 1 dia (última mensagem foi nossa)');
+        await gravarMensagem(l, 'fu1');
         movRegua += 1;
       }
     } else if (e.fu1 && l.status_id === e.fu1.id && now - naEtapaDesde >= REGRA.fu1 && calado(naEtapaDesde) && e.fu2 && podeMover()) {
       mover(l, e.fu2, '2 dias sem resposta ao follow-up 1');
+      await gravarMensagem(l, 'fu2');
       movRegua += 1;
     } else if (e.fu2 && l.status_id === e.fu2.id && now - naEtapaDesde >= REGRA.fu2 && calado(naEtapaDesde) && e.fu3 && podeMover()) {
       mover(l, e.fu3, '4 dias sem resposta ao follow-up 2');
+      await gravarMensagem(l, 'fu3');
       movRegua += 1;
     } else if (e.fu3 && l.status_id === e.fu3.id && now - naEtapaDesde >= REGRA.fu3 && calado(naEtapaDesde) && e.retomar) {
       mover(l, e.retomar, '5 dias sem resposta ao follow-up 3');
@@ -375,4 +446,4 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
   return resumo;
 }
 
-module.exports = { executarAutomacao, ultimaMensagemPorLead, entradaNaEtapa, sugestaoRetomada, REGRA, TAG_PENDENTE, TAREFA_RESPONDER };
+module.exports = { executarAutomacao, ultimaMensagemPorLead, entradaNaEtapa, sugestaoRetomada, mensagemFollowUp, mensagemSegura, MODELO_FOLLOWUP, REGRA, TAG_PENDENTE, TAREFA_RESPONDER };
