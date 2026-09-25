@@ -1,0 +1,42 @@
+# Painel Comercial Blue no Netlify.
+# Variáveis do site (Site configuration → Environment variables):
+#   KOMMO_TOKEN        (obrigatório) token de longa duração do Kommo — só no build, nunca no HTML
+#   PAINEL_SENHA       (recomendado) senha para abrir o painel
+#   NETLIFY_BUILD_HOOK (opcional)    URL do build hook, para atualizar os dados a cada hora
+#   ADS_INVESTIMENTO_JSON (opcional) ex.: {"2026-09":15034.66}
+#   GROQ_API_KEY       (opcional)    IA GRATUITA com modelo aberto (Llama) — console.groq.com
+#   OPENROUTER_API_KEY (opcional)    IA GRATUITA com modelos abertos — openrouter.ai
+#   GEMINI_API_KEY     (opcional)    IA GRATUITA do Google (aistudio.google.com)
+#   ANTHROPIC_API_KEY  (opcional)    IA paga (Claude). Vale a primeira chave nesta ordem: Groq, OpenRouter, Gemini, Claude
+#   AUTOMACAO_KOMMO=0  (opcional)    pausa a automação da Maria (roda a cada 15 min)
+# O KOMMO_TOKEN precisa estar disponível para "Builds" E "Functions".
+
+[build]
+  command = "npm ci --omit=dev && node src/scripts/snapshot.js"
+  publish = "site"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # IDs da conta usados pela automação (src/config.js lê este arquivo).
+  included_files = ["config/conta.env"]
+
+# O painel busca /api/metrics (igual ao servidor local); aqui é o arquivo gerado no build.
+[[redirects]]
+  from = "/api/metrics"
+  to = "/api/metrics.json"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
