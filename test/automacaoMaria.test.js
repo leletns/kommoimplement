@@ -160,3 +160,28 @@ test('Gemini (gratuito): chama a API certa e NÃO envia resumo nem tags', async 
     global.fetch = antes.fetch;
   }
 });
+
+test('Groq (modelo aberto, grátis): formato OpenAI, sem dados de saúde, tem prioridade', async () => {
+  const { criarIA } = require('../src/services/automacaoMaria');
+  const antes = { groq: process.env.GROQ_API_KEY, gem: process.env.GEMINI_API_KEY, fetch: global.fetch };
+  let enviado;
+  process.env.GROQ_API_KEY = 'gsk_teste';
+  process.env.GEMINI_API_KEY = 'outra';
+  global.fetch = async (url, opts) => {
+    enviado = { url, headers: opts.headers, body: JSON.parse(opts.body) };
+    return { ok: true, json: async () => ({ choices: [{ message: { content: ' Oi, Bia! Posso te contar uma novidade? ' } }] }) };
+  };
+  try {
+    const texto = await criarIA()({ nome: 'Bia', resumo: 'hematomas', tags: ['lead_quente'] });
+    assert.strictEqual(texto, 'Oi, Bia! Posso te contar uma novidade?');
+    assert.strictEqual(enviado.url, 'https://api.groq.com/openai/v1/chat/completions');
+    assert.strictEqual(enviado.headers.authorization, 'Bearer gsk_teste');
+    assert.ok(!JSON.stringify(enviado.body).includes('hematomas'));
+  } finally {
+    for (const [k, v] of [['GROQ_API_KEY', antes.groq], ['GEMINI_API_KEY', antes.gem]]) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    global.fetch = antes.fetch;
+  }
+});

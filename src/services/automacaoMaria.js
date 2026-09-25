@@ -216,10 +216,13 @@ async function mensagemFollowUp(lead, etapa, { ia } = {}) {
 
 /**
  * IA opcional para escrever as mensagens. Devolve uma função (contexto) => texto, ou null.
- *   GEMINI_API_KEY    → Google Gemini (tem plano gratuito, aistudio.google.com)
- *   ANTHROPIC_API_KEY → Claude (pago por uso)
- * No plano gratuito do Gemini o Google pode usar o conteúdo para melhorar os produtos dele, então
- * NÃO mandamos dados de saúde (resumo da conversa, tags): só o primeiro nome, objeção e classificação.
+ * A primeira chave encontrada vale:
+ *   GROQ_API_KEY       → Groq, modelos abertos (Llama), grátis (console.groq.com)
+ *   OPENROUTER_API_KEY → OpenRouter, modelos abertos gratuitos (openrouter.ai)
+ *   GEMINI_API_KEY     → Google Gemini, plano gratuito (aistudio.google.com)
+ *   ANTHROPIC_API_KEY  → Claude (pago por uso)
+ * Nos serviços gratuitos NÃO mandamos dados de saúde (resumo da conversa, tags): só o primeiro nome,
+ * a objeção e a classificação.
  */
 function criarIA() {
   const system =
@@ -230,15 +233,54 @@ function criarIA() {
     'Use o objetivo e a mensagem modelo aprovada como base; personalize com os dados do lead só quando fizer sentido, sem citar dados sensíveis de saúde. ' +
     'Proibido: diagnosticar, prometer resultado, dizer que ela precisa operar, falar de preço, valores, datas, promoções, urgência ou links. ' +
     'Responda só com o texto da mensagem.';
+  if (process.env.GROQ_API_KEY) {
+    return criarOpenAICompativel(system, {
+      url: 'https://api.groq.com/openai/v1/chat/completions',
+      chave: process.env.GROQ_API_KEY,
+      modelo: process.env.IA_MODELO || 'llama-3.3-70b-versatile',
+    });
+  }
+  if (process.env.OPENROUTER_API_KEY) {
+    return criarOpenAICompativel(system, {
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      chave: process.env.OPENROUTER_API_KEY,
+      modelo: process.env.IA_MODELO || 'meta-llama/llama-3.3-70b-instruct:free',
+    });
+  }
   if (process.env.GEMINI_API_KEY) return criarGemini(system);
   if (process.env.ANTHROPIC_API_KEY) return criarClaude(system);
   return null;
 }
 
+/** Sem dados de saúde para serviços gratuitos de terceiros. */
+const semSaude = (ctx) => ({ ...ctx, resumo: undefined, tags: undefined });
+
+/** Qualquer API no formato OpenAI (Groq, OpenRouter e outras com modelos abertos). */
+function criarOpenAICompativel(system, { url, chave, modelo }) {
+  return async (ctx) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${chave}` },
+      body: JSON.stringify({
+        model: modelo,
+        temperature: 0.7,
+        max_tokens: 400,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: `Contexto (campos podem estar vazios):\n${JSON.stringify(semSaude(ctx), null, 2)}` },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`IA HTTP ${res.status}`);
+    const data = await res.json();
+    return (data?.choices?.[0]?.message?.content || '').trim() || null;
+  };
+}
+
 function criarGemini(system) {
   const modelo = process.env.GEMINI_MODELO || 'gemini-2.5-flash';
   return async (ctx) => {
-    const seguro = { ...ctx, resumo: undefined, tags: undefined };
+    const seguro = semSaude(ctx);
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },

@@ -25,8 +25,8 @@ A automação (⚙️) é o `src/services/automacaoMaria.js`, que roda sozinho n
 para aquela paciente, uma mensagem nova a partir da mensagem aprovada + o que o CRM sabe dela
 (resumo, objeção, classificação) e grava no campo **"Follow-up · mensagem"**; o robô da etapa envia.
 Trava de segurança: se a IA escrever algo proibido (promessa, diagnóstico, preço, urgência, link,
-texto longo) ou estiver fora do ar, vai a mensagem aprovada. IA grátis: `GEMINI_API_KEY` (Google AI Studio);
-paga: `ANTHROPIC_API_KEY`. Sem nenhuma chave, vai sempre a aprovada. No Gemini grátis não enviamos dados de saúde.
+texto longo) ou estiver fora do ar, vai a mensagem aprovada. IA grátis: `GROQ_API_KEY` (modelo aberto Llama), `OPENROUTER_API_KEY` ou `GEMINI_API_KEY`;
+paga: `ANTHROPIC_API_KEY`. Sem nenhuma chave, vai sempre a aprovada. Nos serviços grátis não enviamos dados de saúde.
 
 ## Robô 1 — Boas-vindas
 
