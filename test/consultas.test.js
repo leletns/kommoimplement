@@ -78,3 +78,17 @@ test('movimento do sistema para "Consulta agendada" (regra 48h) não conta como 
   });
   assert.strictEqual(Number(p.num.consultas), 0);
 });
+
+test('cópia "Autolead: Lead #N" (regra do Kommo que copia para o Comercial 2) não conta a consulta de novo', () => {
+  const unix = (iso) => Math.floor(new Date(`${iso}T12:00:00-03:00`).getTime() / 1000);
+  const win = { key: 'set', ym: '2026-09', label: 'Setembro 2026', from: unix('2026-09-01') - 43200, to: unix('2026-09-30') + 43199 };
+  const ctx = { sortById: new Map([[40, 40]]), qualificados: null, apn: { sort: 40, ids: new Set([40]) }, cirurgia: null };
+  const campo = [{ field_id: 900, values: [{ value: unix('2026-09-10') }] }];
+  const original = { id: 11, pipeline_id: 1, status_id: 142, price: 900, created_at: unix('2026-08-01'), custom_fields_values: campo };
+  const copia = { id: 12, name: 'Autolead: Lead #11', pipeline_id: 1, status_id: 40, price: 900, created_at: unix('2026-09-30'), custom_fields_values: campo };
+  const p = buildPeriod(win, {
+    created: [copia], won: [], todos: [original, copia], ctxByPipeline: new Map([[1, ctx]]),
+    entered: new Map(), users: new Map(), cirurgiaLeads: [], teamPipelines: null,
+  });
+  assert.strictEqual(Number(p.num.consultas), 1);
+});

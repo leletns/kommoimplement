@@ -153,18 +153,25 @@ function buildPeriod(win, { created, won, todos = [], ctxByPipeline, entered, us
   //   2. ganho no mês sem esse campo (regra antiga);
   //   3. a partir de KOMMO_CONSULTA_EVENTOS_DESDE, entrou em "4. Consulta agendada" no mês sem o campo.
   const vendas = new Map();
+  // Regra do Kommo que copia a paciente para o Comercial 2 ("Autolead: Lead #123"): a venda é do original.
+  const idsTodos = new Set(todos.map((l) => l.id));
+  const copia = (l) => {
+    const m = /^Autolead: Lead #(\d+)/.exec(l.name || '');
+    return Boolean(m && idsTodos.has(Number(m[1])));
+  };
   for (const l of todos) {
+    if (copia(l)) continue;
     const at = inScope(l) && fieldDate(l, PAGAMENTO_FIELD_ID);
     if (at && inWin(at)) vendas.set(l.id, { lead: l, at });
   }
   for (const l of ganhos) {
-    if (vendas.has(l.id) || fieldDate(l, PAGAMENTO_FIELD_ID) || isCirurgia(l) || ids.has(l.id)) continue;
+    if (vendas.has(l.id) || copia(l) || fieldDate(l, PAGAMENTO_FIELD_ID) || isCirurgia(l) || ids.has(l.id)) continue;
     vendas.set(l.id, { lead: l, at: l.closed_at });
   }
   const eventosDesde = consultaEventosDesde();
   if (eventosDesde) {
     for (const l of todos) {
-      if (!inScope(l) || vendas.has(l.id) || fieldDate(l, PAGAMENTO_FIELD_ID)) continue;
+      if (!inScope(l) || vendas.has(l.id) || copia(l) || fieldDate(l, PAGAMENTO_FIELD_ID)) continue;
       // Só quem a equipe moveu (created_by = usuário). Movimento do sistema (by 0, ex.: regra das 48h) não é venda.
       const e = (entered.get(l.id) || []).find((x) => x.by && ctxFor(l)?.apn?.ids.has(x.id) && x.at >= eventosDesde && inWin(x.at));
       if (e) vendas.set(l.id, { lead: l, at: e.at });
