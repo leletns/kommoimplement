@@ -185,3 +185,17 @@ test('Groq (modelo aberto, grátis): formato OpenAI, sem dados de saúde, tem pr
     global.fetch = antes.fetch;
   }
 });
+
+test('etapa renomeada para "Consulta REALIZADA" nunca é tratada como agendada pela guarda das 48h', async () => {
+  const antigo = statuses.find((s) => s.id === ST.ag).name;
+  statuses.find((s) => s.id === ST.ag).name = '4. Consulta REALIZADA';
+  try {
+    const mud = { entity_id: 1, created_at: NOW - H, created_by: 0, value_after: [{ lead_status: { id: ST.ag } }], value_before: [{ lead_status: { id: ST.qual } }] };
+    const k = fakeKommo({ leads: [lead(1, ST.ag)], mudancas: [mud] });
+    const r = await rodar(k);
+    assert.strictEqual(r.desfeitos48h, 0);
+    assert.strictEqual(k.gravado.leads.length, 0);
+  } finally {
+    statuses.find((s) => s.id === ST.ag).name = antigo;
+  }
+});

@@ -101,7 +101,9 @@ async function etapasDosFunis(kommo, pipelineIds) {
       fu1: achar(/follow-up 1|follow up 1/),
       fu2: achar(/follow-up 2|follow up 2/),
       fu3: achar(/follow-up 3|follow up 3/),
-      agendada: ctx.apnStatuses[0] || null,
+      // Só uma etapa ABERTA chamada "consulta agendada" (o time pode renomear a 4 para "Consulta REALIZADA":
+      // essa nunca é guardada, senão a automação tiraria de lá consultas que aconteceram).
+      agendada: ctx.statuses.find((s) => s.id !== WON && s.id !== LOST && /consulta agendada/.test(normalize(s.name)) && !/realiz/.test(normalize(s.name))) || null,
       abertas: new Set(ctx.statuses.filter((s) => s.id !== WON && s.id !== LOST).map((s) => s.id)),
       nomes: new Map(ctx.statuses.map((s) => [s.id, s.name])),
     });
