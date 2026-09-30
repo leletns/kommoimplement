@@ -453,6 +453,8 @@ async function executarAutomacao(kommo, { apply = false, now = Math.floor(Date.n
       for (const t of tarefaResponder) concluir.push({ id: t.id, is_completed: true, result: { text: 'Respondida pela equipe (automático).' } });
     }
     if (tags.includes(TAG_OPT_OUT)) continue;
+    // Quem já pagou a consulta não entra na régua de follow-up nem em "retomar depois".
+    if (tags.includes(TAG_CONSULTA_PAGA) || (FIELD_PAGAMENTO && fieldValue(l, FIELD_PAGAMENTO))) continue;
 
     // 3. Régua de follow-up.
     const naEtapaDesde = entrada.get(`${l.id}:${l.status_id}`) || l.updated_at;

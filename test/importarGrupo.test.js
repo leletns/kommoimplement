@@ -48,3 +48,8 @@ test('dia muito longo é quebrado em partes', () => {
   assert.match(notes[1].key, /parte 2$/);
   for (const n of notes) assert.ok(n.text.length < 8300);
 });
+
+test('iPhone em inglês: mês/dia e horário AM/PM', () => {
+  const msgs = parseExport('[9/3/26, 2:41:03 PM] Você: Pagamento R$900\n[9/21/26, 9:11:40 AM] Helen: oi\n[9/30/26, 12:16:51 PM] Ana: x');
+  assert.deepStrictEqual(msgs.map((m) => [m.date, m.time]), [['03/09/2026', '14:41'], ['21/09/2026', '09:11'], ['30/09/2026', '12:16']]);
+});

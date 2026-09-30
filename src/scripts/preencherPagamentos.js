@@ -13,7 +13,8 @@
  *
  * Sempre simula primeiro. Relatório e backup (dados de pacientes) vão para backups/.
  *
- *   node src/scripts/preencherPagamentos.js --whatsapp grupo.txt --amigoclinic a.csv [--amigoclinic b.csv]
+ *   node src/scripts/preencherPagamentos.js --whatsapp grupo.txt [--whatsapp grupo-recente.txt] --amigoclinic a.csv [--amigoclinic b.csv]
+ *   node src/scripts/preencherPagamentos.js ... --conversas conversas-kommo.json   # acha leads sem contato
  *   node src/scripts/preencherPagamentos.js ... --aplicar
  */
 
@@ -27,17 +28,18 @@ const org = require('./organizarConsultas');
 
 const PAGAMENTO_FIELD = config.kommo.pagamentoFieldId;
 const CONSULTA_FIELD = config.kommo.consultaFieldId;
-const COM_LEAD = new Set(['ja_ganho', 'ja_ganho_completar_valor', 'ajustar_data', 'marcar_ganho']);
+const COM_LEAD = new Set(['ja_ganho', 'ja_ganho_completar_valor', 'ajustar_data', 'marcar_ganho', 'pela_conversa']);
 
 function parseArgs(argv) {
-  const a = { apply: false, amigo: [] };
+  const a = { apply: false, amigo: [], whatsapp: [] };
   for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--whatsapp') a.whatsapp = argv[++i];
+    if (argv[i] === '--whatsapp') a.whatsapp.push(argv[++i]);
     else if (argv[i] === '--amigoclinic') a.amigo.push(argv[++i]);
+    else if (argv[i] === '--conversas') a.conversas = argv[++i];
     else if (argv[i] === '--aplicar') a.apply = true;
     else throw new Error(`Opção desconhecida: ${argv[i]}`);
   }
-  if (!a.whatsapp) throw new Error('Informe --whatsapp (exportação do grupo de comprovantes).');
+  if (!a.whatsapp.length) throw new Error('Informe --whatsapp (exportação do grupo de comprovantes).');
   return a;
 }
 
@@ -130,17 +132,61 @@ function notaDe(c) {
   return `${t}.`;
 }
 
+/**
+ * Paciente sem contato no Kommo (lead só de chat): acha o lead pela conversa em que ela mesma mandou
+ * telefone, CPF ou e-mail. Conversa que cita várias pacientes (equipe, listas) não serve de prova.
+ */
+function leadsPorConversa(pacientes, conversas) {
+  const textos = Object.entries(conversas.leads || {}).map(([id, msgs]) => {
+    const t = msgs.map((m) => m.texto || '').join('\n');
+    return { id: Number(id), digitos: t.replace(/\D/g, ''), minusculo: t.toLowerCase() };
+  });
+  const achados = new Map();
+  for (const p of pacientes) {
+    const chaves = [
+      ...p.telefones.map((t) => ({ d: P.phoneKey(t) })),
+      p.cpf && { d: p.cpf },
+      p.email && { m: p.email.toLowerCase() },
+    ].filter(Boolean);
+    const ids = new Set(textos.filter((x) => chaves.some((k) => (k.d ? x.digitos.includes(k.d) : x.minusculo.includes(k.m)))).map((x) => x.id));
+    if (ids.size === 1) achados.set(p, [...ids][0]);
+  }
+  const porLead = new Map();
+  for (const id of achados.values()) porLead.set(id, (porLead.get(id) || 0) + 1);
+  return new Map([...achados].filter(([, id]) => porLead.get(id) === 1));
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const kommo = getKommoClient();
 
-  const registros = P.parseComprovantes(fs.readFileSync(args.whatsapp, 'utf8')).map((r) => ({ ...r, fonte: 'whatsapp' }));
+  // Várias exportações do grupo (ex.: uma antiga e uma recente) se sobrepõem: a mesma ficha entra uma vez só.
+  const vistasFichas = new Set();
+  const registros = args.whatsapp
+    .flatMap((f) => P.parseComprovantes(fs.readFileSync(f, 'utf8')))
+    .filter((r) => {
+      const k = `${r.data}|${r.texto.replace(/\s+/g, ' ').trim().slice(0, 200)}`;
+      if (vistasFichas.has(k)) return false;
+      vistasFichas.add(k);
+      return true;
+    })
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .map((r) => ({ ...r, fonte: 'whatsapp' }));
   const amigo = args.amigo.flatMap((f) => P.parseAmigoClinic(fs.readFileSync(f, 'utf8'))).map((r) => ({ ...r, fonte: 'amigoclinic' }));
   registros.push(...amigo);
   const idxAmigo = org.indexarAmigo(amigo);
 
   const idx = await imp.carregarKommo(kommo);
   const plano = imp.planejar(P.consolidarPacientes(registros), idx, false, null);
+  if (args.conversas) {
+    const semContato = plano.filter((it) => it.acao === 'sem_contato' && it.p?.noGrupo).map((it) => it.p);
+    const achados = leadsPorConversa(semContato, JSON.parse(fs.readFileSync(args.conversas, 'utf8')));
+    for (const [p, id] of achados) {
+      const lead = idx.leads.get(id) || (await kommo.get(`/leads/${id}`));
+      if (lead) plano.push({ acao: 'pela_conversa', leadId: id, lead, p });
+    }
+    console.log(`Achados pela conversa do Kommo: ${achados.size} de ${semContato.length} sem contato.`);
+  }
 
   const itens = [];
   const vistos = new Set();
@@ -187,4 +233,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { cicloDe, planejarLead, notaDe };
+module.exports = { cicloDe, planejarLead, notaDe, leadsPorConversa };

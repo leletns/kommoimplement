@@ -106,6 +106,16 @@ test('opt_out não entra na régua', async () => {
   assert.strictEqual(k.gravado.leads.length, 0);
 });
 
+test('quem já pagou a consulta não recebe follow-up nem sai do lugar', async () => {
+  const k = fakeKommo({
+    leads: [lead(1, ST.int, { _embedded: { tags: [{ name: 'consulta_paga' }] } }), lead(2, ST.fu1, { _embedded: { tags: [{ name: 'consulta_paga' }] } })],
+    chat: [msg(1, false, NOW - 26 * H), msg(2, false, NOW - 5 * D)],
+    mudancas: [entrou(2, ST.fu1, NOW - 3 * D)],
+  });
+  await rodar(k);
+  assert.strictEqual(k.gravado.leads.length, 0);
+});
+
 test('regra automática jogou em "Consulta agendada" sem pagamento → volta; movido pela Maria ou pago → fica', async () => {
   const mud = (id, by) => ({ entity_id: id, created_at: NOW - H, created_by: by, value_after: [{ lead_status: { id: ST.ag } }], value_before: [{ lead_status: { id: ST.qual } }] });
   const k = fakeKommo({

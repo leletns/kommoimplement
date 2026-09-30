@@ -132,10 +132,15 @@ const isoFromBr = (br) => {
 function parseComprovantes(txt) {
   const out = [];
   for (const msg of parseExport(txt)) {
-    const text = msg.text.replace(/<Mensagem editada>/gi, '').trim();
+    // "<imagem ocultada> Fulana" (legenda da foto do comprovante): o nome começa depois da mídia.
+    const text = msg.text
+      .replace(/<Mensagem editada>/gi, '')
+      .replace(/^(?:\[Encaminhada\]\s*)?<(?:imagem|documento|m[íi]dia)[^>]*>\s*/i, '')
+      .trim();
     if (text === '[mídia]' || /seja bem[- ]vind[ao] (a|à) cl[ií]nica/i.test(text)) continue;
     const lines = text.split('\n').map((l) => l.replace(/^[-•·]\s*/, '').trim()).filter(Boolean);
-    const pagLine = lines.find((l) => RE.pagamento.test(l) && money(l) != null);
+    const pagLine =
+      lines.find((l) => RE.pagamento.test(l) && money(l) != null) || lines.find((l) => /^R\$\s*[\d.,]+\s+de\s+R\$/i.test(l));
     // Segunda parte / restante de uma consulta já vendida: "Pagamento 2/2", "2/2 Joanna", "Restante…"
     const parcela = /\b(?:pagamento\s*)?2\s*\/\s*2\b|\bpagamento\s+restante\b/i.test(text);
     const restLine = lines.find((l) => RE.restante.test(l)) || (parcela ? lines.find((l) => /2\s*\/\s*2|restante/i.test(l)) : null);
@@ -197,7 +202,7 @@ function parseComprovantes(txt) {
     if (!cpf && restLine) cpf = normCpf((restLine.match(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/) || [])[0]);
     const email = (text.match(RE.email) || [])[0]?.toLowerCase() || null;
 
-    const valores = pagLine ? parsePagamento(pagLine.match(RE.pagamento)[1] || pagLine) : null;
+    const valores = pagLine ? parsePagamento((pagLine.match(RE.pagamento) || [])[1] || pagLine) : null;
     const tipo = cirurgiaParte || (/cirurgia/i.test(text) && !/consulta|teleconsulta/i.test(text)) ? 'cirurgia' : 'consulta';
 
     if (!nome && !telefone && !cpf && !email) continue;
