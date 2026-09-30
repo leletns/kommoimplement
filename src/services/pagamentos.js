@@ -92,13 +92,18 @@ const looksLikeName = (raw) => {
 };
 
 /** Data da consulta citada ("dia 26/02", "amanhã") → AAAA-MM-DD (ano pela data da mensagem). */
+const MESES = { janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12 };
+
 function consultaData(text, msgDate) {
   const [d, m, y] = msgDate.split('/').map(Number);
   if (/amanh[aã]/i.test(text)) {
     const t = new Date(Date.UTC(y, m - 1, d + 1));
     return t.toISOString().slice(0, 10);
   }
-  const mm = text.match(/\bdia\s*(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{2,4}))?/i);
+  let mm = text.match(/\bdia\s*(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{2,4}))?/i);
+  // "Dia 02 de outubro às 09h00"
+  const ext = !mm && text.match(/\bdia\s*(\d{1,2})\s*de\s*(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i);
+  if (ext) mm = [ext[0], ext[1], String(MESES[ext[2].toLowerCase().replace('ç', 'c')]), undefined];
   if (!mm) return null;
   const dd = Number(mm[1]);
   const mo = Number(mm[2]);
@@ -106,6 +111,13 @@ function consultaData(text, msgDate) {
   if (!mm[3] && mo < m - 1) yy += 1; // consulta em janeiro marcada em dezembro
   if (mo < 1 || mo > 12 || dd < 1 || dd > 31) return null;
   return `${yy}-${String(mo).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+}
+
+/** Horário da consulta citado na ficha ("às 09h00", "as 14:30", "12h") → "HH:MM". */
+function consultaHora(text) {
+  const m = String(text || '').match(/\bdia\b[^\n]*?\b(\d{1,2})(?::(\d{2})|\s*h(?:rs?|oras?)?\s*(\d{2})?)(?!\d)/i);
+  if (!m || Number(m[1]) > 23) return null;
+  return `${m[1].padStart(2, '0')}:${m[2] || m[3] || '00'}`;
 }
 
 const isoFromBr = (br) => {
@@ -202,6 +214,7 @@ function parseComprovantes(txt) {
       restante: Boolean(restLine) || parcela,
       retorno: /retorno/i.test(text),
       consultaEm: consultaData(text, msg.date),
+      consultaHora: consultaHora(text),
       texto: text.slice(0, 400),
     });
   }
@@ -304,10 +317,12 @@ function consolidarPacientes(registros) {
         (consultas.find((r) => r.fonte === 'amigoclinic') || {}).data || null,
       pendente: regs.some((r) => r.fonte === 'amigoclinic' && /pendente/i.test(r.formaPagamento || '')),
       valorConsulta: totalConsulta || null,
+      // Fichas de consulta do grupo de comprovantes, em ordem (valores e data da consulta de cada venda).
+      fichas: consultas.filter((r) => r.fonte === 'whatsapp'),
       valorCirurgia: cirurgias.reduce((a, r) => a + (r.valor || 0), 0) || null,
       registros: regs.length,
     };
   });
 }
 
-module.exports = { parseComprovantes, parseAmigoClinic, consolidarPacientes, normPhone, phoneKey, normName, parsePagamento, consultaData };
+module.exports = { parseComprovantes, parseAmigoClinic, consolidarPacientes, normPhone, phoneKey, normName, parsePagamento, consultaData, consultaHora };
