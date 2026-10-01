@@ -1,5 +1,6 @@
 // Botão "Preencher cadastro" — use na tela de novo paciente do AmigoClinic ou de novo cliente do DocSignature.
-// Pega a ficha copiada pelo botão "Copiar ficha" e preenche os campos pelo nome que aparece na tela. Não salva sozinho.
+// Pega a ficha copiada (botão "Copiar ficha" no Kommo) ou busca a Ficha Blue pelo nome/celular, para quem não usa o Kommo.
+// Preenche os campos pelo nome que aparece na tela. Não salva sozinho.
 (async () => {
   const caixa = (html) => {
     let c = document.getElementById('blue-preencher-box');
@@ -11,9 +12,45 @@
   let d = null;
   try { d = JSON.parse(await navigator.clipboard.readText()); } catch (e) { /* pede para colar */ }
   if (!d || !d.nome) {
-    const c = caixa('<b>Cole aqui a ficha copiada no Kommo</b> (Ctrl+V):<textarea id="bp-in" style="width:100%;height:90px;margin-top:8px"></textarea><button id="bp-ok" style="margin-top:8px;border:0;background:#13294a;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer">Preencher</button>');
-    await new Promise((res) => { c.querySelector('#bp-ok').onclick = res; c.querySelector('#bp-in').focus(); });
-    try { d = JSON.parse(c.querySelector('#bp-in').value); } catch (e) { caixa('Não entendi o texto colado. Copie de novo pelo botão <b>Copiar ficha</b> no Kommo.'); return; }
+    // Sem ficha copiada: busca pelo nome/celular/e-mail no servidor da Ficha Blue (quem não usa o Kommo) ou cola o texto.
+    let cfg = {};
+    try { cfg = JSON.parse(localStorage.getItem('blueFichaCfg') || '{}'); } catch (e) { cfg = {}; }
+    const inp = 'style="width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid #dbe4f0;border-radius:8px;font:13px Arial;margin-top:4px"';
+    const btn = (id, t, cor) => '<button id="' + id + '" style="margin-top:8px;border:0;background:' + (cor || '#13294a') + ';color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold">' + t + '</button>';
+    const c = caixa('<b>De qual paciente é o cadastro?</b>' +
+      '<input id="bp-q" ' + inp + ' placeholder="Nome, celular ou e-mail">' +
+      (cfg.site && cfg.senha ? '' : '<div style="font-size:12px;color:#5b6b82;margin-top:8px">Só na primeira vez (fica salvo neste navegador):</div><input id="bp-site" ' + inp + ' placeholder="Endereço da Ficha Blue (https://…)" value="' + (cfg.site || '') + '"><input id="bp-senha" type="password" ' + inp + ' placeholder="Senha da equipe">') +
+      btn('bp-buscar', '🔎 Buscar ficha') + '<div id="bp-res" style="margin-top:8px;font-size:13px"></div>' +
+      '<details style="margin-top:8px;font-size:12px;color:#5b6b82"><summary style="cursor:pointer">Ou colar a ficha copiada</summary><textarea id="bp-in" style="width:100%;height:70px;margin-top:6px"></textarea>' + btn('bp-ok', 'Preencher com o texto colado', '#2e9e5f') + '</details>');
+    const $c = (s) => c.querySelector(s);
+    $c('#bp-q').focus();
+    d = await new Promise((res) => {
+      $c('#bp-ok').onclick = () => { try { res(JSON.parse($c('#bp-in').value)); } catch (e) { $c('#bp-res').textContent = 'Não entendi o texto colado.'; } };
+      const buscar = async () => {
+        if ($c('#bp-site')) {
+          cfg = { site: $c('#bp-site').value.trim().replace(/\/+$/, ''), senha: $c('#bp-senha').value };
+          try { localStorage.setItem('blueFichaCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ }
+        }
+        const res2 = $c('#bp-res');
+        res2.textContent = 'Buscando…';
+        try {
+          const r = await fetch(cfg.site + '/api/ficha-busca?q=' + encodeURIComponent($c('#bp-q').value.trim()), { headers: { 'x-painel-senha': cfg.senha } });
+          if (r.status === 401) { try { localStorage.removeItem('blueFichaCfg'); } catch (e) { /* ok */ } res2.textContent = 'Senha incorreta. Feche e clique de novo no botão.'; return; }
+          const j = await r.json();
+          if (!j.ok) { res2.textContent = j.erro || 'Não consegui buscar.'; return; }
+          if (!j.fichas.length) { res2.innerHTML = 'Nenhuma Ficha Blue encontrada' + (j.semFicha ? ' (achei a paciente, mas ela ainda não enviou a ficha)' : '') + '.'; return; }
+          res2.innerHTML = j.fichas.map((f, i) => '<button data-i="' + i + '" style="display:block;width:100%;text-align:left;margin-top:6px;border:1px solid #dbe4f0;background:#f4f8fd;border-radius:8px;padding:8px;cursor:pointer"><b>' +
+            String(f.nome).replace(/</g, '&lt;') + '</b><br><span style="font-size:12px;color:#5b6b82">' + [f.dados.cpf, f.dados.telefone, f.recebidaEm ? 'enviada em ' + new Date(f.recebidaEm * 1000).toLocaleDateString('pt-BR') : ''].filter(Boolean).join(' · ').replace(/</g, '&lt;') + '</span></button>').join('');
+          res2.querySelectorAll('button').forEach((bt) => { bt.onclick = () => res(j.fichas[Number(bt.dataset.i)].dados); });
+        } catch (e) {
+          // O site pode bloquear chamadas para fora: abre a busca da equipe em outra aba (copiar → clicar de novo aqui).
+          res2.innerHTML = 'Este site não deixou buscar daqui. <a href="' + cfg.site + '/equipe?q=' + encodeURIComponent($c('#bp-q').value.trim()) + '" target="_blank" style="color:#2f6fb5;font-weight:bold">Abrir a busca de fichas</a>, clique em <b>Copiar ficha</b> e depois clique de novo em ✍️ Preencher cadastro.';
+        }
+      };
+      $c('#bp-buscar').onclick = buscar;
+      $c('#bp-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar(); });
+    });
+    if (!d || !d.nome) { caixa('Ficha sem nome. Confira e tente de novo.'); return; }
   }
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const visivel = (el) => el.offsetParent !== null && !el.disabled && !el.readOnly && el.type !== 'hidden';

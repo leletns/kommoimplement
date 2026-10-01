@@ -27,3 +27,25 @@ export function kommoFetch(env) {
     },
   };
 }
+
+/** Compara a senha sem vazar tempo. */
+export const igual = (a, b) => {
+  const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
+  if (x.length !== y.length) return false;
+  let d = 0;
+  for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
+  return d === 0;
+};
+
+/** CORS só para as telas onde os botões rodam: Kommo da clínica, AmigoClinic e DocSignature. */
+export function corsDe(request, env) {
+  const origem = request.headers.get('origin') || '';
+  const kommo = `https://${env.KOMMO_SUBDOMAIN || 'comercialblueclinica'}.kommo.com`;
+  const ok = origem === kommo || /^https:\/\/([a-z0-9-]+\.)*(amigoapp\.com\.br|amigotech\.com\.br|docsignature\.com\.br)$/.test(origem);
+  return ok ? { 'access-control-allow-origin': origem, 'access-control-allow-headers': 'x-painel-senha, content-type', 'access-control-allow-methods': 'GET, OPTIONS', vary: 'origin' } : {};
+}
+
+export const senhaOk = (request, env) => {
+  const senha = env.FICHA_SENHA || env.PAINEL_SENHA;
+  return !!senha && igual(request.headers.get('x-painel-senha') || '', senha);
+};

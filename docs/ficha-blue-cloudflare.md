@@ -12,6 +12,8 @@ O que roda lá:
 - `ficha/index.html`: a página que a paciente preenche; `functions/f/[[codigo]].js` abre a ficha em `/f/...` com a prévia (logo `ficha/og.png`) para o WhatsApp.
 - `functions/api/ficha.js`: recebe a ficha → AmigoClinic (só se não existir) + nota, etiqueta e tarefa no Kommo.
 - `functions/api/ficha-link.js`: gera o link assinado para o botão 📝 Link da ficha.
+- `functions/api/ficha-busca.js` + `ficha/equipe.html` (página `/equipe`): a concierge, sem Kommo, busca a ficha pelo
+  nome/celular/e-mail direto no botão ✍️ Preencher cadastro (Amigo/DocSignature). Usa a mesma senha `FICHA_SENHA`.
 - A lógica é a mesma da versão Netlify (`src/services/fichaBlue.js` e `amigoClient.js`).
 
 ## Passo a passo (uma vez só, ~10 minutos)
@@ -24,7 +26,7 @@ O que roda lá:
    | `KOMMO_TOKEN` | token de longa duração do Kommo |
    | `AMIGO_TOKEN` | token da API do AmigoClinic |
    | `FICHA_SEGREDO` | um texto longo e aleatório (assina os links; não mude depois, senão os links antigos param) |
-   | `FICHA_SENHA` | a senha que a comercial digita no botão 📝 na primeira vez |
+   | `FICHA_SENHA` | a senha da equipe (comercial no 📝 e concierge no ✍️/`/equipe`). Use uma senha forte: ela dá acesso às fichas |
    | `FICHA_URL_BASE` | `https://ficha.clinicablue.com.br` |
    Depois, **Deployments → Retry deployment** para valer.
 5. **Custom domains → Set up a custom domain** → `ficha.clinicablue.com.br`. O Cloudflare mostra um **CNAME** (`ficha` → `clinicablue.pages.dev`): crie esse registro onde fica o DNS do domínio (Registro.br, Hostinger…). O cadeado (HTTPS) sai sozinho.

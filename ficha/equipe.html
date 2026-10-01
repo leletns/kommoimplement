@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fichas da equipe · Blue</title>
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--bad:#b04848}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--bad:#ec8f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--bad:#ec8f8f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:640px;margin:0 auto;padding:28px 16px 48px}
+h1{color:var(--ink);font-size:22px;margin:0 0 4px}
+p{margin:0 0 16px;color:var(--muted)}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1 1 220px;font:16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+button{border:0;border-radius:10px;padding:10px 14px;font:600 14px system-ui;cursor:pointer;background:var(--navy);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button{background:var(--accent);color:#0d1626}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px}
+.card h2{font-size:16px;color:var(--ink);margin:0 0 2px}
+.card small{color:var(--muted)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:10px 0;font-size:13.5px}
+dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+#msg{margin-top:12px;font-weight:600}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Fichas da equipe</h1>
+  <p>Busque a paciente, clique em <b>Copiar ficha</b> e, no AmigoClinic ou no DocSignature, clique em <b>✍️ Preencher cadastro</b>.</p>
+  <form id="f">
+    <input id="q" placeholder="Nome, celular ou e-mail" autocomplete="off" required>
+    <input id="senha" type="password" placeholder="Senha da equipe" hidden>
+    <button>Buscar</button>
+  </form>
+  <div id="msg" role="status"></div>
+  <div id="res"></div>
+</main>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let senha="";try{senha=localStorage.getItem("blueEquipeSenha")||"";}catch(e){}
+  if(!senha)$("senha").hidden=false;
+  const ROT={nome:"Nome",cpf:"CPF",rg:"RG",nascimento:"Nascimento",telefone:"Celular",email:"E-mail",instagram:"Instagram",estadoCivil:"Estado civil",profissao:"Profissão",rua:"Endereço",numero:"Número",complemento:"Complemento",bairro:"Bairro",cidade:"Cidade",estado:"UF",cep:"CEP",plano:"Plano",comoConheceu:"Como conheceu",objetivo:"Objetivo"};
+  const msg=(t,c)=>{$("msg").className=c||"";$("msg").textContent=t;};
+  async function buscar(q){
+    if(!$("senha").hidden)senha=$("senha").value;
+    msg("Buscando…");$("res").innerHTML="";
+    try{
+      const r=await fetch("/api/ficha-busca?q="+encodeURIComponent(q),{headers:{"x-painel-senha":senha}});
+      if(r.status===401){try{localStorage.removeItem("blueEquipeSenha");}catch(e){}$("senha").hidden=false;msg("Senha incorreta.","bad");return;}
+      const j=await r.json();
+      if(!j.ok){msg(j.erro||"Não consegui buscar.","bad");return;}
+      try{localStorage.setItem("blueEquipeSenha",senha);}catch(e){}$("senha").hidden=true;
+      if(!j.fichas.length){msg("Nenhuma Ficha Blue encontrada"+(j.semFicha?" (a paciente existe, mas ainda não enviou a ficha)":"")+".");return;}
+      msg(j.fichas.length+" ficha(s) encontrada(s).","ok");
+      $("res").innerHTML=j.fichas.map((f,i)=>`<div class="card"><h2>${esc(f.nome)}</h2><small>${f.recebidaEm?"Enviada em "+new Date(f.recebidaEm*1000).toLocaleString("pt-BR"):""}</small>
+        <dl>${Object.keys(ROT).filter(k=>f.dados[k]).map(k=>`<dt>${ROT[k]}</dt><dd>${esc(f.dados[k])}</dd>`).join("")}</dl>
+        <button data-i="${i}">Copiar ficha</button> <span id="c${i}"></span></div>`).join("");
+      $("res").querySelectorAll("button").forEach(b=>b.onclick=async()=>{
+        const t=JSON.stringify(j.fichas[+b.dataset.i].dados),s=$("c"+b.dataset.i);
+        try{await navigator.clipboard.writeText(t);s.className="ok";s.textContent="✅ Copiada. Agora clique em ✍️ Preencher cadastro.";}
+        catch(e){const ta=document.createElement("textarea");ta.value=t;b.after(ta);ta.select();s.textContent="Aperte ⌘C (Mac) ou Ctrl+C.";}
+      });
+    }catch(e){msg("Sem conexão. Tente de novo.","bad");}
+  }
+  $("f").addEventListener("submit",e=>{e.preventDefault();buscar($("q").value.trim());});
+  const q0=new URLSearchParams(location.search).get("q");if(q0){$("q").value=q0;if(senha)buscar(q0);}
+})();
+</script>
+</body>
+</html>
