@@ -2,9 +2,11 @@
 // Monta a mensagem de confirmação (nome, dia da semana, hora, endereço certo) e as mensagens de apoio para copiar:
 // presencial → orientações da bioimpedância; teleconsulta → pedido das fotos (e lembrete de anexar o PDF); termo → texto + link do DocSignature.
 (async () => {
+  /*PAGAMENTO*/
+  const CAMPO_PAGAMENTO = 3728960;
   const CAMPO_CONSULTA = 3728948, CAMPO_MODALIDADE = 3837322, CAMPO_PRIMEIRO_NOME = 3837314;
   const id = (location.pathname.match(/leads\/detail\/(\d+)/) || [])[1];
-  let nome = '', quando = null, modalidade = '', lang = 'pt';
+  let nome = '', quando = null, modalidade = '', lang = 'pt', price = 0, pagoEm = null;
   if (id) {
     try {
       const j = await (await fetch('/api/v4/leads/' + id + '?with=contacts', { credentials: 'include' })).json();
@@ -12,6 +14,7 @@
       const v = cf(CAMPO_CONSULTA).value; if (v) quando = new Date(Number(v) * 1000);
       modalidade = String(cf(CAMPO_MODALIDADE).value || '');
       nome = String(cf(CAMPO_PRIMEIRO_NOME).value || '');
+      price = Number(j.price) || 0; pagoEm = Number(cf(CAMPO_PAGAMENTO).value) || null;
       const ct = j._embedded && j._embedded.contacts && j._embedded.contacts[0];
       if (ct) {
         const c = await (await fetch('/api/v4/contacts/' + ct.id, { credentials: 'include' })).json();
@@ -22,6 +25,31 @@
       }
     } catch (e) { /* preenche à mão */ }
   }
+  // Pagamento: nota dos comprovantes + conversa (só leitura, com a sua sessão)
+  const notas = [], msgs = [];
+  if (id) {
+    try {
+      const n = await (await fetch('/api/v4/leads/' + id + '/notes?limit=100&order[id]=desc', { credentials: 'include' })).json();
+      for (const x of (n && n._embedded && n._embedded.notes) || []) notas.push({ ts: x.created_at, text: (x.params && x.params.text) || '' });
+    } catch (e) { /* sem notas */ }
+    try {
+      let url = location.origin + '/ajax/v3/leads/' + id + '/events_timeline?limit=100', pag = 0;
+      while (url && pag < 15) {
+        const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' }, credentials: 'include' });
+        if (!r.ok) break;
+        const j = await r.json();
+        const items = (j._embedded && j._embedded.items) || [];
+        for (const it of items) {
+          const m = it.data && typeof it.data.message === 'object' && it.data.message;
+          if ((it.type === 89 || it.type === 90) && m) msgs.push({ t: it.type, ts: it.date_create, tipo: m.type || 'text', texto: m.text || '' });
+        }
+        let prev = j._links && j._links.prev; prev = prev && typeof prev === 'object' ? prev.href : prev;
+        url = prev && items.length ? new URL(prev, location.origin).href : null;
+        pag++;
+      }
+    } catch (e) { /* sem conversa */ }
+  }
+  const pg = avaliarPagamento({ price, pagoEm, notas, msgs });
   nome = nome ? nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase() : '';
   const pad = (n) => String(n).padStart(2, '0');
   const iso = quando ? quando.getFullYear() + '-' + pad(quando.getMonth() + 1) + '-' + pad(quando.getDate()) : '';
@@ -71,7 +99,13 @@
     return { pt: 'até ', es: 'hasta el ', en: 'by ' }[l] + dm;
   };
 
-  const montar = (l, n, d, h, loc, exames) => {
+  const brl = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const SEGUNDA = {
+    pt: (v) => '\nPodemos aproveitar e já concluir a segunda parte do seu pagamento' + (v ? ' (' + brl(v) + ')' : '') + '? Te envio a chave Pix ou o link do cartão, como preferir. 💙\n',
+    es: (v) => '\n¿Aprovechamos para completar la segunda parte de tu pago' + (v ? ' (' + brl(v) + ')' : '') + '? Te envío los datos de Pix o el enlace para tarjeta, como prefieras. 💙\n',
+    en: (v) => '\nCould we also complete the second part of your payment' + (v ? ' (' + brl(v) + ')' : '') + '? I can send you the Pix details or a card payment link, whichever you prefer. 💙\n',
+  };
+  const montar = (l, n, d, h, loc, exames, falta) => {
     let quandoTxt = '', horaTxt = '';
     if (d) {
       const [y, m, dd] = d.split('-').map(Number);
@@ -87,6 +121,7 @@
         (loc === 'tele' ? 'A consulta é online, pelo Google Meet. Perto do horário, a nossa concierge Helen te envia o link. 💻\n'
           : '📍 Endereço: ' + END[loc] + '\n') +
         (exames ? '\nAproveitando, consegue me enviar o resultado dos seus exames por aqui? Assim já deixamos tudo no seu prontuário. 💙\n' : '') +
+        (falta !== null ? SEGUNDA.pt(falta) : '') +
         (loc !== 'tele' ? '\nEm seguida, enviarei as orientações para a realização do seu exame de bioimpedância. Peço, por gentileza, que leia as instruções com atenção para garantir um resultado mais preciso.'
           : '\nEm seguida, enviarei o guia em PDF para as fotos da sua avaliação. 📸');
     }
@@ -95,19 +130,29 @@
         '¿Podemos confirmar tu ' + (loc === 'tele' ? 'teleconsulta' : 'consulta') + ' con el Dr. Rafael Erthal, ' + (quandoTxt || '[día]') + ', a las *' + (horaTxt || '[hora]') + '*?\n' +
         (loc === 'tele' ? 'La consulta es online, por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace. 💻\n' : '📍 Dirección: ' + END[loc] + '\n') +
         (exames ? '\n¿Podrías enviarnos por aquí los resultados de tus exámenes? Así los guardamos en tu historia clínica. 💙\n' : '') +
+        (falta !== null ? SEGUNDA.es(falta) : '') +
         (loc === 'tele' ? '\nEn seguida te envío la guía en PDF para las fotos de tu evaluación. 📸' : '');
     }
     return 'Hi, ' + (n || '[name]') + '! How are you? 😊\n\n' +
       'Could you please confirm your ' + (loc === 'tele' ? 'online consultation' : 'consultation') + ' with Dr. Rafael Erthal ' + (quandoTxt || '[day]') + ' at *' + (horaTxt || '[time]') + '*?\n' +
       (loc === 'tele' ? 'It will take place on Google Meet. Our concierge Helen will send you the link close to the time. 💻\n' : '📍 Address: ' + END[loc] + '\n') +
       (exames ? '\nCould you also send us your test results here, so we can add them to your medical record? 💙\n' : '') +
+      (falta !== null ? SEGUNDA.en(falta) : '') +
       (loc === 'tele' ? '\nNext, I will send you the PDF guide for the photos for your assessment. 📸' : '');
   };
 
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;width:400px;max-height:90vh;overflow:auto;background:#fff;color:#13294a;border:2px solid #2e9e5f;border-radius:14px;padding:16px;font:14px/1.45 Arial,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)';
   const inp = 'style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #dbe4f0;border-radius:8px;font:13px Arial"';
+  const COR = { integral: ['#e9f6ef', '#1f7d52', '✅'], falta: ['#faf1e2', '#a46d1c', '🟠'], conferir: ['#fff7d6', '#8a6d00', '⚠️'], sem_pagamento: ['#fbeceb', '#b04848', '⛔'] }[pg.status];
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   box.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">✅ Confirmar consulta</div>' +
+    '<div style="background:' + COR[0] + ';color:' + COR[1] + ';border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px">' +
+    '<b>' + COR[2] + ' Pagamento:</b> ' + esc(pg.texto) +
+    (pg.provas.length ? '<details style="margin-top:6px;color:#3a4760"><summary style="cursor:pointer">Ver de onde tirei isso</summary><ul style="margin:6px 0 0;padding-left:18px">' + pg.provas.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></details>' : '') +
+    '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-top:8px;color:#5b6b82;font-size:12px">' +
+    '<label>Na mensagem<select id="cf-pag" ' + inp + '><option value="integral">Pago integral (não falar de pagamento)</option><option value="falta">Pedir a segunda parte</option><option value="nao">Não confirmei ainda</option></select></label>' +
+    '<label>Valor que falta<input id="cf-falta" inputmode="decimal" ' + inp + ' value="' + (pg.falta ? String(pg.falta).replace('.', ',') : '') + '"></label></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#5b6b82">' +
     '<label>Primeiro nome<input id="cf-nome" ' + inp + ' value="' + nome.replace(/"/g, '') + '"></label>' +
     '<label>Idioma<select id="cf-lang" ' + inp + '><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></label>' +
@@ -126,9 +171,13 @@
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   $('#cf-lang').value = lang; $('#cf-local').value = local;
+  $('#cf-pag').value = pg.status === 'integral' ? 'integral' : pg.status === 'falta' ? 'falta' : 'nao';
   const gerar = () => {
     const l = $('#cf-lang').value, loc = $('#cf-local').value;
-    $('#cf-msg').value = montar(l, $('#cf-nome').value.trim(), $('#cf-data').value, $('#cf-hora').value, loc, $('#cf-exames').checked);
+    const pede = $('#cf-pag').value === 'falta';
+    $('#cf-falta').parentElement.style.visibility = pede ? '' : 'hidden';
+    const falta = pede ? Number(String($('#cf-falta').value).replace(/\./g, '').replace(',', '.')) || 0 : null;
+    $('#cf-msg').value = montar(l, $('#cf-nome').value.trim(), $('#cf-data').value, $('#cf-hora').value, loc, $('#cf-exames').checked, falta);
     // presencial: bioimpedância (só em português); teleconsulta: pedido das fotos
     $('#cf-c2').textContent = loc === 'tele' ? '2. Copiar pedido das fotos (depois anexe o PDF)' : '2. Copiar orientações da bioimpedância';
     $('#cf-c2').style.display = loc !== 'tele' && l !== 'pt' ? 'none' : '';
@@ -137,9 +186,19 @@
     try { await navigator.clipboard.writeText(t); $('#cf-ok').textContent = '✅ ' + qual + ' copiada. Cole no chat (Ctrl+V).' + (extra ? ' ' + extra : ''); }
     catch (e) { const ta = $('#cf-msg'); ta.value = t; ta.focus(); ta.select(); $('#cf-ok').textContent = 'Selecionei o texto: aperte Ctrl+C.'; }
   };
-  ['#cf-nome', '#cf-data', '#cf-hora'].forEach((s) => $(s).addEventListener('input', gerar));
-  ['#cf-lang', '#cf-local', '#cf-exames'].forEach((s) => $(s).addEventListener('change', gerar));
-  $('#cf-c1').onclick = () => copiar($('#cf-msg').value, 'Confirmação');
+  ['#cf-nome', '#cf-data', '#cf-hora', '#cf-falta'].forEach((s) => $(s).addEventListener('input', gerar));
+  ['#cf-lang', '#cf-local', '#cf-exames', '#cf-pag'].forEach((s) => $(s).addEventListener('change', gerar));
+  // Trava contra erro: sem pagamento conferido, o primeiro clique só avisa.
+  let avisou = false;
+  $('#cf-c1').onclick = () => {
+    if ($('#cf-pag').value === 'nao' && !avisou) {
+      avisou = true; $('#cf-ok').style.color = '#b04848';
+      $('#cf-ok').textContent = 'O pagamento não está conferido. Escolha "Pago integral" ou "Pedir a segunda parte" acima, ou clique de novo para copiar assim mesmo.';
+      return;
+    }
+    $('#cf-ok').style.color = '#1f7d52';
+    copiar($('#cf-msg').value, 'Confirmação');
+  };
   $('#cf-c2').onclick = () => {
     const l = $('#cf-lang').value;
     if ($('#cf-local').value === 'tele') copiar(FOTOS[l](prazoFotos(l, $('#cf-data').value)), 'Mensagem das fotos', '📎 Agora anexe o PDF das fotos no chat.');

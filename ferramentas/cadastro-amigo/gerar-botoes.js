@@ -7,7 +7,8 @@ const path = require('path');
 const DIR = __dirname;
 const ler = (f) => fs.readFileSync(path.join(DIR, f), 'utf8');
 const parser = ler('parse-ficha.js').replace(/^if \(typeof module.*$/m, '');
-const compactar = (codigo) => codigo.replace('/*PARSER*/', parser).split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).join('\n');
+const pagamento = ler('pagamento-consulta.js').replace(/^if \(typeof module.*$/m, '');
+const compactar = (codigo) => codigo.replace('/*PARSER*/', parser).replace('/*PAGAMENTO*/', pagamento).split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).join('\n');
 const bookmarklet = (arquivo) => 'javascript:' + encodeURIComponent(compactar(ler(arquivo)));
 
 const BOTOES = [
@@ -28,7 +29,7 @@ for (const b of [...BOTOES, DIAG]) {
 const a = (b, pad = '12px 18px') => `<a href="${links[b.rotulo]}" style="background:${b.cor};color:#fff;padding:${pad};border-radius:12px;text-decoration:none;font-weight:bold">${b.rotulo}</a>`;
 
 const html = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Botões Blue</title><body style="font:16px/1.5 Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;color:#13294a;background:#f4f8fd">
-<h1 style="font-size:24px">Botões da Comercial · Blue Clínica <small style="font-size:13px;color:#8a97a8">versão 6</small></h1>
+<h1 style="font-size:24px">Botões da Comercial · Blue Clínica <small style="font-size:13px;color:#8a97a8">versão 7</small></h1>
 <p><b>1. Mostre a barra de favoritos</b><br>Chrome: <b>Ctrl+Shift+B</b> (Mac: <b>⌘+Shift+B</b>). Safari no Mac: menu <b>Visualizar → Mostrar Barra de Favoritos</b> (<b>⌘+Shift+B</b>).</p>
 <p><b>2. Arraste</b> cada botão abaixo até a barra de favoritos (se já tinha a versão antiga, apague a antiga antes):</p>
 <p style="display:flex;gap:12px;flex-wrap:wrap">${BOTOES.map((b) => a(b)).join('\n')}</p>
@@ -37,7 +38,7 @@ const html = `<!doctype html><meta charset=utf-8><meta name=viewport content="wi
 <li>Paciente agendou: no <b>Kommo</b>, card da paciente → <b>📝 Link da ficha</b> → <b>Copiar mensagem com o link</b> e cole no chat. Na primeira vez ele pede o endereço do painel e a senha do painel. Quando ela enviar, aparece no card uma <b>nota com a ficha</b>, a etiqueta <b>ficha_recebida</b> e uma tarefa, e ela já fica <b>cadastrada no AmigoClinic</b>.</li>
 <li>Para completar no Amigo o que a API não aceita (nascimento, RG, complemento, "Como nos conheceu") ou cadastrar no DocSignature: no Kommo clique em <b>📋 Copiar ficha</b> (ele usa a Ficha Blue; se não tiver, lê a conversa) e, na tela do Amigo ou do DocSignature, clique em <b>✍️ Preencher cadastro</b>. Confira e clique em Salvar.</li>
 <li>Depois de gerar o pedido de exame: no Kommo clique em <b>💌 Mensagem do exame</b> e copie a mensagem.</li>
-<li>1 ou 2 dias antes da consulta: <b>✅ Confirmar consulta</b> → cole o <b>link do termo do DocSignature</b> e copie: 1) a confirmação; 2) presencial: orientações da bioimpedância, teleconsulta: pedido das fotos e <b>anexe o PDF das fotos</b>; 3) o termo com o link.</li></ol>
+<li>1 ou 2 dias antes da consulta: <b>✅ Confirmar consulta</b>. No topo ele mostra se a consulta está <b>paga integral, se falta a segunda parte ou se não achou pagamento</b> (clique em "Ver de onde tirei isso" para ver as provas). Se faltar, a mensagem já pede a segunda parte com o valor. Depois → cole o <b>link do termo do DocSignature</b> e copie: 1) a confirmação; 2) presencial: orientações da bioimpedância, teleconsulta: pedido das fotos e <b>anexe o PDF das fotos</b>; 3) o termo com o link.</li></ol>
 <p style="color:#5b6b82;font-size:14px"><b>Safari:</b> funciona igual. Se aparecer um botão <b>Copiar</b> ou a bolinha <b>Colar</b>, clique nele, porque o Safari só copia e cola com um clique seu. Atalhos no Mac: <b>⌘C</b> e <b>⌘V</b>.</p>
 <p style="color:#5b6b82;font-size:14px">Os botões usam a sua sessão do Kommo e preenchem a tela aberta; nada é salvo sozinho. Só o 📝 Link da ficha fala com o nosso painel no Netlify, para assinar o link da paciente.</p></body>
 `;
