@@ -17,7 +17,7 @@
   }
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const visivel = (el) => el.offsetParent !== null && !el.disabled && !el.readOnly && el.type !== 'hidden';
-  const campos = [...document.querySelectorAll('input, textarea, select')].filter(visivel);
+  const campos = [...document.querySelectorAll('input, textarea, select')].filter((c) => visivel(c) && !['radio', 'checkbox', 'button', 'submit'].includes(c.type) && !c.closest('#blue-preencher-box'));
   const rotuloDe = (el) => {
     const t = [el.getAttribute('aria-label'), el.placeholder, el.name];
     if (el.id) { const l = document.querySelector('label[for="' + CSS.escape(el.id) + '"]'); if (l) t.push(l.textContent); }
@@ -26,7 +26,7 @@
     let p = el.parentElement;
     for (let i = 0; i < 4 && p && t.length < 5; i++, p = p.parentElement) {
       const antes = [...p.querySelectorAll('label, span, p, div')].filter((n) => !n.contains(el) && !n.querySelector('input, select, textarea') &&
-        n.textContent.replace(/[*:]/g, '').trim().length > 1 && n.textContent.length < 60 && (n.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
+        (/[a-zA-ZÀ-ú]{3,}/.test(n.textContent) || /^\s*(rg|uf)\s*\*?\s*$/i.test(n.textContent)) && n.textContent.length < 60 && (n.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
       if (antes.length) { t.push(antes[antes.length - 1].textContent); break; }
     }
     return norm(t.filter(Boolean).join(' | '));
@@ -48,58 +48,97 @@
       el.value = op.value;
     } else {
       if (el.type === 'date' && /^\d{2}\/\d{2}\/\d{4}$/.test(v)) v = v.split('/').reverse().join('-');
-      const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v);
+      const digitos = (x) => String(x).replace(/\D/g, '');
+      el.focus();
+      const confere = () => (el.type === 'date' ? false : (digitos(v).length >= 6 ? digitos(el.value).endsWith(digitos(v).slice(-6)) : el.value.trim() === String(v).trim()));
+      if (el.type !== 'date') { el.select && el.select(); document.execCommand('insertText', false, v); }
+      // Campo com máscara (CPF, celular, CEP) que recusa o valor de uma vez: digita caractere por caractere.
+      if (el.type !== 'date' && !confere()) {
+        el.select && el.select(); document.execCommand('delete');
+        for (const ch of (digitos(v).length >= 6 ? digitos(v) : String(v))) document.execCommand('insertText', false, ch);
+      }
+      const certo = confere();
+      if (!certo) {
+        const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v);
+      }
     }
     ['input', 'change', 'blur'].forEach((ev) => el.dispatchEvent(new Event(ev, { bubbles: true })));
     el.style.outline = '2px solid #2e9e5f';
     usados.add(el);
     return true;
   };
+  const escolherNaLista = async (palavras, valor) => {
+    const rot = [...document.querySelectorAll('label, span, div, p')].find((n) => n.children.length < 2 && palavras.some((p) => norm(n.textContent) === p));
+    if (!rot) return false;
+    let alvo = rot.nextElementSibling || rot.parentElement.querySelector('[class*="select"], [role="combobox"], button');
+    if (!alvo) return false;
+    alvo.click(); (alvo.querySelector('input') || alvo).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 350));
+    const op = [...document.querySelectorAll('[role="option"], li, [class*="option"]')].find((o) => o.children.length < 3 && raiz(o.textContent) === raiz(valor));
+    if (!op) { document.body.click(); return false; }
+    op.click(); return true;
+  };
   const soNumeros = (v) => String(v).replace(/\D/g, '');
   const celularBR = (v) => { let d = soNumeros(v); if (d.length >= 12 && d.startsWith('55')) d = d.slice(2); return d.length === 11 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : d.length === 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) : v; };
   if (d.telefone && /^\+?55|^\d{10,11}$/.test(String(d.telefone).replace(/\s/g, ''))) d.telefone = celularBR(d.telefone);
   d.conheceu = d.indicacao ? 'Indicação: ' + d.indicacao : d.comoConheceu;
   d.sexo = d.sexo || 'Feminino';
+  if (d.plano && d.plano === d.plano.toLowerCase()) d.plano = d.plano.replace(/(^|\s)\S/g, (x) => x.toUpperCase());
   const texto = (c) => c.tagName !== 'SELECT';
+  const poucos = campos.length <= 3;
+  const checagem = poucos && /duplicidade|celular com ddd|tipo de busca/i.test(document.body.innerText);
+  if (checagem) {
+    const tel = acha(['celular', 'telefone', 'whatsapp'], null, texto);
+    const mail = acha(['e mail', 'email']);
+    let ok = false;
+    if (tel) { const dig = soNumeros(d.telefone).replace(/^55(?=\d{10,11}$)/, ''); ok = setValor(tel, /^\+/.test(tel.value) ? tel.value.trim().split(' ')[0] + ' ' + dig : d.telefone); }
+    else if (mail) ok = setValor(mail, d.email);
+    caixa(ok ? '<div style="font-weight:bold;font-size:15px">✅ ' + (tel ? 'Celular' : 'E-mail') + ' preenchido</div><div style="font-size:13px;margin-top:6px">Clique em <b>Validar e continuar</b>. Na próxima tela, clique de novo em <b>Preencher cadastro</b>.</div>' : 'Não achei o campo de celular ou e-mail nesta tela.');
+    return;
+  }
+  d.nomeContrato = d.nome;
   const MAPA = [
     ['cep', ['cep', 'codigo postal', 'zip']],
     ['nome', ['nome completo', 'nome do paciente', 'nome do cliente', 'nome'], ['social', 'mae', 'pai', 'responsavel', 'usuario', 'fantasia']],
+    ['nomeContrato', ['nome a ser usado', 'nome para contrato', 'contrato']],
     ['cpf', ['cpf']],
     ['rg', [' rg ', 'identidade']],
     ['nascimento', ['nascimento', 'data de nasc']],
     ['sexo', ['sexo', 'genero']],
     ['profissao', ['profissao', 'ocupacao']],
     ['estadoCivil', ['estado civil']],
-    ['telefone', ['celular', 'whatsapp', 'telefone', 'fone'], null, texto],
+    ['telefone', ['celular', 'whatsapp', 'telefone', 'fone'], null, (c) => texto(c) && !/\d{8}/.test(c.value.replace(/\D/g, ''))],
     ['email', ['e mail', 'email']],
     ['instagram', ['instagram']],
     ['rua', ['logradouro', 'endereco', 'rua'], ['numero', 'complemento', 'cep', 'bairro']],
     ['numero', ['numero'], ['celular', 'telefone', 'cpf', 'documento']],
     ['complemento', ['complemento']],
-    ['plano', ['plano de saude', 'convenio', 'plano']],
+    ['plano', ['plano de saude', ' plano '], ['convenio', 'carteira', 'validade', 'matricula'], (c) => c.tagName !== 'SELECT'],
     ['conheceu', ['como nos conheceu', 'como conheceu', 'conheceu', 'origem', 'indicacao']],
   ];
   const feitos = [], faltou = [];
   for (const [k, pal, evitar, filtro] of MAPA) {
     if (!d[k]) continue;
+    if (k === 'telefone' && campos.some((c) => soNumeros(c.value).endsWith(soNumeros(d[k]).slice(-8)))) { feitos.push(k); continue; } // já veio da etapa anterior
     const el = acha(pal, evitar, filtro);
     // Não apaga o que o sistema já completou pelo CEP com algo mais curto (ex.: "Rua").
     if (el && k === 'rua' && el.value && el.value.length >= String(d[k]).length) { usados.add(el); feitos.push(k); continue; }
     let ok = el && setValor(el, d[k]);
+    if (!ok && k === 'estadoCivil') ok = await escolherNaLista(['estado civil'], d[k]);
     if (!ok && k === 'sexo') {
       // Sexo em botões/rádios: clica no que diz "Feminino".
       const b = [...document.querySelectorAll('label, button, [role="radio"], span')].find((n) => n.children.length < 3 && norm(n.textContent) === 'feminino');
       if (b) { b.click(); ok = true; }
     }
-    if (ok) feitos.push(k); else if (k !== 'sexo') faltou.push(k);
+    if (ok) feitos.push(k); else if (k !== 'sexo' && k !== 'nomeContrato') faltou.push(k);
     if (k === 'cep' && el) await new Promise((r) => setTimeout(r, 1800)); // deixa o sistema completar o endereço pelo CEP
   }
   // Instagram, indicação e plano vão também em Observações quando não houver campo próprio.
   const obs = acha(['observac', 'anotac']);
-  const extra = [!feitos.includes('instagram') && d.instagram ? 'Instagram: ' + d.instagram : '', !feitos.includes('conheceu') && d.indicacao ? 'Indicação: ' + d.indicacao : '', !feitos.includes('plano') && d.plano ? 'Plano: ' + d.plano : '', d.objetivo ? 'Objetivo: ' + d.objetivo : ''].filter(Boolean).join(' · ');
-  if (obs && extra && !obs.value) { setValor(obs, extra); feitos.push('observações'); const i = faltou.indexOf('instagram'); if (i >= 0) faltou.splice(i, 1); }
-  caixa('<div style="font-weight:bold;font-size:15px">✅ ' + feitos.length + ' campos preenchidos</div>' +
+  const extra = [!feitos.includes('instagram') && d.instagram ? 'Instagram: ' + d.instagram : '', !feitos.includes('conheceu') && d.conheceu ? 'Como conheceu: ' + d.conheceu : '', !feitos.includes('plano') && d.plano ? 'Plano: ' + d.plano : '', d.objetivo ? 'Objetivo: ' + d.objetivo : ''].filter(Boolean).join(' · ');
+  if (obs && extra && !obs.value) { setValor(obs, extra); feitos.push('observações'); ['instagram', 'conheceu', 'plano'].forEach((k) => { const i = faltou.indexOf(k); if (i >= 0) faltou.splice(i, 1); }); }
+  caixa('<div style="font-weight:bold;font-size:15px">✅ ' + feitos.length + ' campos preenchidos <span style="font-weight:normal;font-size:11px;color:#8a97a8">v3</span></div>' +
     '<div style="font-size:12px;color:#5b6b82;margin:6px 0">Os campos preenchidos estão com borda verde. <b>Confira e clique em Salvar.</b></div>' +
     (faltou.length ? '<div style="font-size:13px;color:#a46d1c">Preencha à mão: ' + faltou.map((k) => k + ': <b>' + String(d[k]).replace(/</g, '&lt;') + '</b>').join('<br>') + '</div>' : ''));
 })();
