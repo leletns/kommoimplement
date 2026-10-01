@@ -61,7 +61,7 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
   let senha="";try{senha=localStorage.getItem("blueEquipeSenha")||"";}catch(e){}
   if(!senha)$("senha").hidden=false;
   let vistas={};try{vistas=JSON.parse(localStorage.getItem("blueFichasVistas")||"{}");}catch(e){}
-  const marcarVista=l=>{vistas[l]=1;try{localStorage.setItem("blueFichasVistas",JSON.stringify(vistas));}catch(e){}};
+  const marcarVista=l=>{if(l==null)return;vistas[l]=1;try{localStorage.setItem("blueFichasVistas",JSON.stringify(vistas));}catch(e){}};
   const msg=(t,c)=>{$("msg").className=c||"";$("msg").textContent=t;};
 
   // Rótulos da ficha (sempre em português: é o que vai para o prontuário)
@@ -112,16 +112,16 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
       ${secs.map(([t,c])=>`<section><h2>${esc(t)}</h2><table>${c.map(([l,v])=>`<tr><td>${esc(l)}</td><td>${esc(v)}</td></tr>`).join("")}</table></section>`).join("")}
       <div class="rod">Informações preenchidas pela própria paciente na Ficha Blue, com autorização de uso para atendimento, cadastro e prontuário (LGPD). Documento para anexar ao prontuário · gerado em ${esc(new Date().toLocaleString("pt-BR"))}.</div>
       <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`);
-    w.document.close();marcarVista(f.lead);
+    w.document.close();marcarVista(f.id||f.lead);
   }
   async function copiar(f,b){
     const t=JSON.stringify(f.dados);
     try{await navigator.clipboard.writeText(t);b.textContent="✅ Copiada · agora ✍️ no Amigo";}
     catch(e){const ta=document.createElement("textarea");ta.value=t;b.after(ta);ta.select();b.textContent="Aperte ⌘C / Ctrl+C";}
-    marcarVista(f.lead);
+    marcarVista(f.id||f.lead);
   }
   function mostrar(fichas,alvo){
-    alvo.innerHTML=fichas.map((f,i)=>`<div class="card"><div class="t"><div><h3>${esc(f.nome)}</h3><div class="meta">${esc([tipo(f),quando(f),f.dados.telefone].filter(Boolean).join(" · "))}</div></div>${vistas[f.lead]?`<span class="pill">vista</span>`:`<span class="pill new">nova</span>`}</div>
+    alvo.innerHTML=fichas.map((f,i)=>`<div class="card"><div class="t"><div><h3>${esc(f.nome)}</h3><div class="meta">${esc([tipo(f),quando(f),f.dados.telefone].filter(Boolean).join(" · "))}</div></div>${f.status==="erro_kommo"?`<span class="pill" style="background:#fbeceb;color:#b04848">não chegou no Kommo · salva no banco</span>`:vistas[f.id||f.lead]?`<span class="pill">vista</span>`:`<span class="pill new">nova</span>`}</div>
       <div class="acts"><button data-a="pdf" data-i="${i}">📄 PDF para o prontuário</button><button class="sec" data-a="cp" data-i="${i}">✍️ Copiar para o cadastro</button></div>
       <details><summary>Ver respostas</summary>${respostas(f).map(([t,c])=>`<p style="margin:12px 0 0;font-weight:700;color:var(--accent);font-size:12px;letter-spacing:.06em;text-transform:uppercase">${esc(t)}</p><dl>${c.map(([l,v])=>`<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`).join("")}</details></div>`).join("")||`<p class="vazio">Nenhuma ficha.</p>`;
     alvo.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{const f=fichas[+b.dataset.i];if(b.dataset.a==="pdf")pdf(f);else copiar(f,b);mostrarPill(b);});

@@ -22,7 +22,8 @@
   const cf = (fid) => ((lead.custom_fields_values || []).find((f) => f.field_id === fid) || { values: [{}] }).values[0];
   const ct = lead._embedded && lead._embedded.contacts && lead._embedded.contacts[0];
   try { if (ct) contato = await get('/api/v4/contacts/' + ct.id); } catch (e) { /* segue */ }
-  try { const n = await get('/api/v4/leads/' + id + '/notes?limit=100&order[id]=desc'); notas = ((n && n._embedded && n._embedded.notes) || []).map((x) => ({ ts: x.created_at, text: (x.params && x.params.text) || '' })); } catch (e) { /* segue */ }
+  // O Kommo troca as aspas da nota por &quot;: desfaz para ler o JSON da Ficha Blue
+  try { const n = await get('/api/v4/leads/' + id + '/notes?limit=100&order[id]=desc'); notas = ((n && n._embedded && n._embedded.notes) || []).map((x) => ({ ts: x.created_at, text: String((x.params && x.params.text) || '').replace(/&quot;|&#0?34;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') })); } catch (e) { /* segue */ }
   try {
     let url = location.origin + '/ajax/v3/leads/' + id + '/events_timeline?limit=100', pag = 0;
     while (url && pag < 15) {

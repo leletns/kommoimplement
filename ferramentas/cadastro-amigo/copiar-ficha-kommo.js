@@ -22,7 +22,8 @@
   try {
     const n = await (await fetch('/api/v4/leads/' + id + '/notes?limit=50&order[id]=desc', { credentials: 'include' })).json();
     const nota = ((n && n._embedded && n._embedded.notes) || []).find((x) => x.params && /FICHA_BLUE_JSON:/.test(x.params.text || ''));
-    if (nota) fichaBlue = JSON.parse(nota.params.text.split('FICHA_BLUE_JSON:')[1].trim());
+    // O Kommo troca as aspas da nota por &quot;: desfaz antes de ler
+    if (nota) fichaBlue = JSON.parse(String(nota.params.text).replace(/&quot;|&#0?34;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').split('FICHA_BLUE_JSON:')[1].trim());
   } catch (e) { /* segue pela conversa */ }
   const msgs = [];
   let url = location.origin + '/ajax/v3/leads/' + id + '/events_timeline?limit=100', pag = 0;

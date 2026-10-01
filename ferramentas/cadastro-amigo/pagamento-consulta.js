@@ -12,10 +12,10 @@ function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [], loc
   msgs = msgs.filter((m) => { const k = m.t + '|' + m.ts + '|' + (m.tipo || '') + '|' + (m.texto || ''); if (vistos.has(k)) return false; vistos.add(k); return true; }).sort((a, b) => a.ts - b.ts);
   const enviadas = msgs.filter((m) => m.t === 90), recebidas = msgs.filter((m) => m.t === 89);
 
-  // 1) Nota dos comprovantes (a mais nova)
+  // 1) Nota dos comprovantes (a mais nova). O Kommo apaga o emoji 💳 ao gravar: aceita com ou sem.
   let nota = null;
   for (const n of notas.slice().sort((a, b) => b.ts - a.ts)) {
-    const m = /💳 Comprovantes: pago R\$\s?([\d.,]+)(?: de R\$\s?([\d.,]+) · falta R\$\s?([\d.,]+))?/.exec(n.text || '');
+    const m = /(?:💳\s*)?Comprovantes: pago R\$\s?([\d.,]+)(?: de R\$\s?([\d.,]+) · falta R\$\s?([\d.,]+))?/.exec(n.text || '');
     if (m) { nota = { ts: n.ts, pago: valor(m[1]), total: m[2] ? valor(m[2]) : valor(m[1]), falta: m[3] ? valor(m[3]) : 0 }; break; }
   }
   if (nota) provas.push('Comprovantes (nota de ' + dia(nota.ts) + '): pago R$ ' + nota.pago.toLocaleString('pt-BR') + (nota.falta ? ' de R$ ' + nota.total.toLocaleString('pt-BR') : ''));

@@ -59,3 +59,8 @@ test('nota do grupo vale mais que a tabela: SP com 1.100 de 2.200', () => {
   const r = avaliarPagamento({ local: 'sp', notas: [{ ts: T0, text: '💳 Comprovantes: pago R$ 1.100 de R$ 2.200 · falta R$ 1.100 (pix).' }] });
   assert.deepStrictEqual([r.status, r.falta], ['falta', 1100]);
 });
+
+test('nota de comprovantes sem o emoji (o Kommo apaga ao gravar)', () => {
+  const r = avaliarPagamento({ notas: [{ ts: T0, text: 'Comprovantes: pago R$ 900 de R$ 1.800 · falta R$ 900 (pix).' }] });
+  assert.deepStrictEqual([r.status, r.falta], ['falta', 900]);
+});

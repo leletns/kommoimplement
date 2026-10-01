@@ -47,3 +47,9 @@ test('fichas recentes: lê as notas dos últimos dias e mostra a mais nova de ca
   assert.deepStrictEqual(r.fichas.map((f) => [f.lead, f.nome]), [[1, 'Ana']]);
   assert.ok(urls[0].includes('filter[updated_at][from]=1789395200'));
 });
+
+test('lê a ficha mesmo com as aspas trocadas por &quot; pelo Kommo', () => {
+  const { lerFicha } = require('../src/services/fichaBusca');
+  const d = lerFicha('FICHA BLUE recebida\n\nFICHA_BLUE_JSON: {&quot;nome&quot;:&quot;Ana &amp; Cia&quot;,&quot;_ficha&quot;:{&quot;ver&quot;:&quot;lip&quot;}}');
+  assert.deepStrictEqual([d.nome, d._ficha.ver], ['Ana & Cia', 'lip']);
+});

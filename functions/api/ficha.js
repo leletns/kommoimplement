@@ -4,6 +4,7 @@
 import ficha from '../../src/services/fichaBlue.js';
 import amigoClient from '../../src/services/amigoClient.js';
 import { json, kommoFetch } from '../_lib/comum.js';
+import { salvarFicha, atualizarFicha } from '../_lib/banco.js';
 
 async function humano(corpo, env, request) {
   if (corpo.hp) return false; // campo escondido: só robô preenche
@@ -35,10 +36,35 @@ export async function onRequest({ request, env }) {
       return corpo.hp ? json({ ok: true }) : json({ ok: false, erro: 'verificacao' }, 403);
     }
     const amigo = env.AMIGO_TOKEN ? amigoClient.createAmigoClient({ token: env.AMIGO_TOKEN, baseURL: env.AMIGO_API_URL || undefined }) : null;
-    const r = await ficha.processarFicha(
-      { codigo: corpo.c || null, lang: ['pt', 'es', 'en'].includes(corpo.lang) ? corpo.lang : 'pt', ver: corpo.ver === 'pla' ? 'pla' : 'lip', dados: corpo.dados },
-      { kommo, amigo, segredo: corpo.c ? ficha.segredoPadrao(env) : undefined, pipelineId: env.FICHA_PIPELINE_ID || 13604187 }
-    );
+    const lang = ['pt', 'es', 'en'].includes(corpo.lang) ? corpo.lang : 'pt', ver = corpo.ver === 'pla' ? 'pla' : 'lip';
+    const d = ficha.limparDados(corpo.dados);
+    const invalidos = ficha.validar(d);
+    if (invalidos.length) return json({ ok: false, erro: 'dados incompletos', campos: invalidos }, 400);
+    // 1) Banco primeiro: a ficha fica guardada mesmo se o Kommo falhar
+    let idBanco = null;
+    if (env.DB) {
+      try { idBanco = await salvarFicha(env.DB, { ver, lang, d, dados: { ...ficha.paraBotao(d, null), _ficha: { ver, lang, em: new Date().toISOString(), r: d } } }); }
+      catch (e) { console.error('[ficha] banco', e.message); }
+    }
+    // 2) Kommo (+ Amigo, se configurado)
+    let r;
+    try {
+      r = await ficha.processarFicha({ codigo: corpo.c || null, lang, ver, dados: corpo.dados },
+        { kommo, amigo, segredo: corpo.c ? ficha.segredoPadrao(env) : undefined, pipelineId: env.FICHA_PIPELINE_ID || 13604187 });
+    } catch (e) {
+      console.error('[ficha] kommo', e.message);
+      if (idBanco) {
+        await atualizarFicha(env.DB, idBanco, { status: 'erro_kommo', erro: String(e.message).slice(0, 300) }).catch(() => {});
+        return json({ ok: true }); // a ficha está salva; a equipe vê o aviso na página /equipe
+      }
+      throw e;
+    }
+    if (idBanco) {
+      await atualizarFicha(env.DB, idBanco, r.ok
+        ? { leadId: r.leadId, origem: r.origem, status: 'no_kommo', amigo: r.amigo, dados: { ...ficha.paraBotao(d, r.leadId), _ficha: { ver, lang, em: new Date().toISOString(), r: d } } }
+        : { status: 'erro_kommo', erro: r.erro }).catch((e) => console.error('[ficha] banco', e.message));
+      if (!r.ok && r.status !== 404) return json({ ok: true });
+    }
     console.log('[ficha]', r.ok ? `lead ${r.leadId} (${r.origem}) · amigo ${r.amigo}` : r.erro);
     return json(r.ok ? { ok: true } : { ok: false, erro: r.erro, campos: r.campos }, r.ok ? 200 : r.status);
   } catch (e) {
