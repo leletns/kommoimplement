@@ -1,6 +1,29 @@
-# kommoimplement — Blue Clínica × Kommo CRM
+# Blue Clínica · Sistemas do comercial
 
-Integração da conta **https://comercialblueclinica.kommo.com** (API v4):
+Ferramentas da Blue Clínica (Dr. Rafael Erthal) que ligam **Kommo CRM**, **AmigoClinic**, **DocSignature** e o WhatsApp.
+
+| O quê | Para quem | Onde está | Guia |
+|---|---|---|---|
+| **Ficha Blue**: link pessoal para a paciente preencher o cadastro (PT/ES/EN). Ao enviar, cria a paciente no Amigo e anexa a ficha no Kommo | Paciente e Comercial 1 | `ficha/`, `functions/`, `src/services/fichaBlue.js` | [docs/ficha-blue-cloudflare.md](docs/ficha-blue-cloudflare.md) |
+| **Botões do navegador** (Chrome e Safari): 📝 Link da ficha · 📋 Copiar ficha · ✍️ Preencher cadastro (Amigo/DocSignature) · 💌 Mensagem do exame · ✅ Confirmar consulta (confere o pagamento) | Comercial e concierge | `ferramentas/cadastro-amigo/` | abra `ferramentas/cadastro-amigo/instalar-botoes.html` |
+| **Painel comercial**: agendadas, pagas, CPL, CAC, ROAS | Gestão | `Blue Painel Comercial.dc.html`, `src/services/metricsService.js` | [Painel](#painel-v2-blue-painel-comercialdchtml) |
+| **Automação da Maria**: follow-up e "Retomar", a cada 15 min | Comercial 1 | `src/services/automacaoMaria.js` | [Automação](#automação-da-maria-srcservicesautomacaomariajs) |
+| **Pagamentos**: lê o grupo de comprovantes e o relatório do Amigo e preenche valor e data no Kommo | Financeiro e comissão | `src/services/pagamentos.js`, `src/scripts/preencherPagamentos.js` | [Pagamentos](#consultas-pagas-e-etapas-grupo-de-comprovantes--amigoclinic) |
+| **Leitura das conversas com IA** | Growth | `ferramentas/kommo-leitura-conversas/` | `SKILL.md` da pasta |
+
+**Regras de segurança.** Tokens e senhas só nas variáveis do Cloudflare, do Netlify ou no `.env` local, nunca no código. Dados de pacientes ficam em `backups/`, que fica fora do git. Para quem continua o projeto: [docs/HANDOFF-blue-intelligence-os.md](docs/HANDOFF-blue-intelligence-os.md).
+
+```bash
+npm install && npm test                                  # testes
+node ferramentas/cadastro-amigo/gerar-botoes.js          # regenera os botões e a página de instalação
+npx wrangler pages dev ficha                             # Ficha Blue no computador (precisa de .dev.vars)
+```
+
+---
+
+<details><summary><b>Integração Kommo (detalhes técnicos)</b></summary>
+
+Conta **https://comercialblueclinica.kommo.com** (API v4):
 
 | Peça | Arquivo | O que faz |
 |---|---|---|
@@ -233,3 +256,5 @@ node src/scripts/importarGrupo.js --lead 79973970 --arquivo "Conversa do WhatsAp
 O score soma sinais explicáveis: sintomas (dor, peso, hematomas, inchaço, desproporção…), diagnóstico/suspeita de lipedema, intenção (agendar, consulta, cirurgia, valor, Sublift), desinteresse (negativo), valor no card, engajamento (nº de notas), recência e progresso no funil. Com `--sem-nota-alice` (recomendado), o resultado vai para os campos do card, na aba "Qualificação (Alice)": Score, Classificação (Fria/Morna/Quente), Objeção registrada e Resumo Alice Bot (sinais, objeções e uma sugestão de resposta no método dos 5 passos: **Acolher → Investigar → Compreender → Reposicionar → Conduzir**). Sem essa opção, também cria uma nota com a composição completa do score.
 
 As 19 objeções são: valor da consulta, valor da cirurgia, distância, paciente internacional, medo de cirurgia, tempo de afastamento, sem diagnóstico, lipedema × gordura localizada, comparação com outros médicos, desconfiança de promessas, resultado artificial, recuperação difícil, pele irregular, Sublift serve?, plano de saúde, "preciso pensar/falar com alguém", falta de tempo, forma de pagamento e consulta online. Os textos seguem as regras de segurança médica da Blue: sem diagnóstico, sem promessa de resultado, sempre conduzindo para avaliação individualizada. **Valide a lista e as falas com o Manual Comercial Blue** antes de usar com pacientes. Elas ficam em `OBJECTIONS`, em `aliceEngine.js`.
+
+</details>
