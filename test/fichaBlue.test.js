@@ -46,7 +46,7 @@ test('ficha nova: cria no Amigo, nota com JSON para o botão, etiqueta e tarefa'
   const criados = [];
   const amigo = { pacienteExiste: async () => null, criarPaciente: async (p) => { criados.push(p); return { id: 777 }; } };
   const r = await F.processarFicha({ codigo: F.codigoFicha(123, SEG), lang: 'pt', ver: 'lip', dados }, { kommo, amigo, segredo: SEG });
-  assert.deepStrictEqual(r, { ok: true, leadId: 123, amigo: 'criado' });
+  assert.deepStrictEqual(r, { ok: true, leadId: 123, amigo: 'criado', novo: false, origem: 'link pessoal' });
   assert.strictEqual(criados.length, 1);
   const nota = kommo.chamadas.find((c) => c[1] === '/leads/123/notes')[2].data[0].params.text;
   assert.match(nota, /paciente cadastrada \(#777\)/);
@@ -72,4 +72,43 @@ test('sem autorização ou com CPF errado não envia; link falso dá 404', async
   r = await F.processarFicha({ codigo: '3f-AAAAAAAAAA', dados }, { kommo, segredo: SEG });
   assert.strictEqual(r.status, 404);
   assert.strictEqual(kommo.chamadas.length, 0);
+});
+
+test('link fixo (sem código): acha o lead pelo celular e ignora contato que só parece', async () => {
+  const chamadas = [];
+  const kommo = {
+    request: async (m, url, opts) => {
+      chamadas.push([m, url, opts]);
+      if (url.startsWith('/contacts?')) return { _embedded: { contacts: [
+        { id: 1, custom_fields_values: [{ field_code: 'PHONE', values: [{ value: '+55 21 99876-5432' }] }], _embedded: { leads: [{ id: 50 }, { id: 51 }] } },
+        { id: 2, custom_fields_values: [{ field_code: 'PHONE', values: [{ value: '+55 11 90000-0000' }] }], _embedded: { leads: [{ id: 99 }] } },
+      ] } };
+      if (url === '/leads/50') return { id: 50, status_id: 143, updated_at: 900 };
+      if (url === '/leads/51') return { id: 51, status_id: 142, updated_at: 800, responsible_user_id: 7 };
+      if (url === '/leads/99') return { id: 99, status_id: 142, updated_at: 999 };
+      return {};
+    },
+  };
+  const amigo = { pacienteExiste: async () => null, criarPaciente: async () => ({ id: 1 }) };
+  const r = await F.processarFicha({ lang: 'pt', ver: 'lip', dados }, { kommo, amigo });
+  assert.deepStrictEqual([r.leadId, r.origem, r.novo, r.amigo], [51, 'celular', false, 'criado']);
+  assert.ok(!chamadas.some((c) => c[1] === '/leads/99'), 'lead de outro contato não pode ser usado');
+});
+
+test('link fixo: paciente fora do Kommo vira lead novo e não é cadastrada no Amigo sozinha', async () => {
+  const chamadas = [];
+  const kommo = {
+    request: async (m, url, opts) => {
+      chamadas.push([m, url, opts]);
+      if (url.startsWith('/contacts?')) return null;
+      if (url === '/leads/complex') return [{ id: 777, contact_id: 5 }];
+      return {};
+    },
+  };
+  const amigo = { pacienteExiste: async () => assert.fail('não deveria consultar'), criarPaciente: async () => assert.fail('não deveria criar') };
+  const r = await F.processarFicha({ lang: 'es', ver: 'lip', dados }, { kommo, amigo, pipelineId: 13604187 });
+  assert.deepStrictEqual([r.leadId, r.novo, r.amigo], [777, true, 'sem_lead']);
+  const novo = chamadas.find((c) => c[1] === '/leads/complex')[2].data[0];
+  assert.strictEqual(novo.pipeline_id, 13604187);
+  assert.strictEqual(novo._embedded.contacts[0].custom_fields_values[0].values[0].value, dados.cel);
 });

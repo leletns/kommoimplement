@@ -1,5 +1,19 @@
 # Ficha Blue no Cloudflare (sem Netlify)
 
+## Links para mandar às pacientes (resposta rápida no Kommo)
+| Ficha | Português | Espanhol | Inglês |
+|---|---|---|---|
+| Lipedema | `/lipedema` | `/lipedema/es` | `/lipedema/en` |
+| Cirurgia plástica | `/plastica` | `/plastica/es` | `/plastica/en` |
+
+Ex.: `https://clinicablue.pages.dev/lipedema`. A ficha é ligada ao lead pelo **celular** (8 últimos dígitos) ou **e-mail**
+que a paciente preencher. Se ela não estiver no Kommo, nasce um lead novo com a etiqueta `ficha_sem_lead` (e o Amigo
+não é preenchido sozinho nesse caso). O link pessoal `/f/<código>` do botão 📝 continua funcionando.
+
+Proteções: link HTTPS, cabeçalhos de segurança (CSP), campo-isca e tempo mínimo contra robôs, respostas guardadas só
+na aba aberta (somem ao fechar ou enviar). Opcional: Cloudflare Turnstile (`TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET`).
+
+
 Grátis, sem cartão. A paciente vê `https://ficha.clinicablue.com.br/f/<código>` (com o CNAME no Registro.br) ou,
 enquanto isso, `https://<nome-do-projeto>.pages.dev/f/<código>`. Dê ao projeto o nome **clinicablue** (ou **blueclinica**)
 para o endereço provisório ficar `clinicablue.pages.dev`.
