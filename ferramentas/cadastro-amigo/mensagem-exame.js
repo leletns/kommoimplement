@@ -63,13 +63,7 @@
       '♡ El laboratorio te indicará el ayuno y la preparación de cada examen.\n\n' +
       (ehTele ? 'La teleconsulta se realiza por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace. 💻\n\n' : '') +
       '¡Cualquier duda, estoy aquí! 💙';
-  const BIO = '*Orientações para o exame de bioimpedância e documentação de fotos*\n' +
-    '_Para garantir precisão nas medições, siga as orientações:_\n' +
-    '• Jejum de 4 horas (sólidos e líquidos);\n• Não ingerir bebidas alcoólicas nas 8 horas anteriores;\n• Evitar café, chás escuros e chocolates;\n' +
-    '• Evitar atividade física intensa e sauna no dia anterior;\n• Evitar realizar o exame no período menstrual;\n• Esvaziar a bexiga antes do exame;\n' +
-    '• Remover metais do corpo (brincos, anéis, piercings etc.).\n\n' +
-    '*📸 Registro fotográfico (recomendado):*\nPara melhor padronização e comparação da evolução, dê preferência a biquíni *preto* ou roupa íntima *preta de modelo menor* (calcinha pequena e sutiã). Peças maiores ou de outras cores dificultam a análise. Recomendação técnica, sem obrigatoriedade.\n\n' +
-    '*Quem não pode realizar o exame?*\n• Usuários de marcapasso ou aparelhos elétricos implantados;\n• Pessoas com peças metálicas internas (placas e parafusos);\n• Gestantes ou suspeita de gestação.';
+  /*BIO*/
 
   const box = document.createElement('div');
   box.id = 'blue-exame-box';
@@ -104,7 +98,7 @@
       else prazo = pad(lim.getDate()) + '/' + pad(lim.getMonth() + 1);
     }
     $('#bx-msg').value = TXT[$('#bx-lang').value]($('#bx-nome').value.trim(), dataBr, h, prazo, perto, tele2);
-    $('#bx-c2').style.display = tele2 || $('#bx-lang').value !== 'pt' ? 'none' : '';
+    $('#bx-c2').style.display = tele2 ? 'none' : '';
   };
   const copiar = async (texto) => {
     try { await navigator.clipboard.writeText(texto); $('#bx-ok').textContent = '✅ Copiado! Cole no chat da paciente (Ctrl+V).'; }
@@ -113,7 +107,7 @@
   ['#bx-nome', '#bx-data', '#bx-hora', '#bx-tele', '#bx-lang'].forEach((s) => $(s).addEventListener('input', gerar));
   $('#bx-tele').addEventListener('change', gerar); $('#bx-lang').addEventListener('change', gerar);
   $('#bx-c1').onclick = () => copiar($('#bx-msg').value);
-  $('#bx-c2').onclick = () => copiar(BIO);
+  $('#bx-c2').onclick = () => copiar(BIO[$('#bx-lang').value]);
   $('#bx-x').onclick = () => box.remove();
   gerar();
 })();

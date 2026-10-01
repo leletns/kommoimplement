@@ -8,7 +8,8 @@ const DIR = __dirname;
 const ler = (f) => fs.readFileSync(path.join(DIR, f), 'utf8');
 const parser = ler('parse-ficha.js').replace(/^if \(typeof module.*$/m, '');
 const pagamento = ler('pagamento-consulta.js').replace(/^if \(typeof module.*$/m, '');
-const compactar = (codigo) => codigo.replace('/*PARSER*/', parser).replace('/*PAGAMENTO*/', pagamento).split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).join('\n');
+const bio = ler('textos-bio.js').replace(/^if \(typeof module.*$/m, '');
+const compactar = (codigo) => codigo.replace('/*BIO*/', bio).replace('/*PARSER*/', parser).replace('/*PAGAMENTO*/', pagamento).split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).join('\n');
 const bookmarklet = (arquivo) => 'javascript:' + encodeURIComponent(compactar(ler(arquivo)));
 
 const BOTOES = [
@@ -29,7 +30,7 @@ for (const b of [...BOTOES, DIAG]) {
 const a = (b, pad = '12px 18px') => `<a href="${links[b.rotulo]}" style="background:${b.cor};color:#fff;padding:${pad};border-radius:12px;text-decoration:none;font-weight:bold">${b.rotulo}</a>`;
 
 const html = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Botões Blue</title><body style="font:16px/1.5 Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;color:#13294a;background:#f4f8fd">
-<h1 style="font-size:24px">Botões da Comercial · Blue Clínica <small style="font-size:13px;color:#8a97a8">versão 7</small></h1>
+<h1 style="font-size:24px">Botões da Comercial · Blue Clínica <small style="font-size:13px;color:#8a97a8">versão 8</small></h1>
 <p><b>1. Mostre a barra de favoritos</b><br>Chrome: <b>Ctrl+Shift+B</b> (Mac: <b>⌘+Shift+B</b>). Safari no Mac: menu <b>Visualizar → Mostrar Barra de Favoritos</b> (<b>⌘+Shift+B</b>).</p>
 <p><b>2. Arraste</b> cada botão abaixo até a barra de favoritos (se já tinha a versão antiga, apague a antiga antes):</p>
 <p style="display:flex;gap:12px;flex-wrap:wrap">${BOTOES.map((b) => a(b)).join('\n')}</p>

@@ -40,3 +40,8 @@ test('comprovante novo depois da nota que dizia "falta" → conferir', () => {
 test('sem nota, sem valor no lead e sem comprovante → sem pagamento', () => {
   assert.strictEqual(avaliarPagamento({ msgs: [OFERTA] }).status, 'sem_pagamento');
 });
+
+test('valor seguido de vírgula ou ponto final é lido certo', () => {
+  const r = avaliarPagamento({ msgs: [eq(0, 'Puedes optar por el pago integral de R$ 1.800,00, o R$ 900,00 de reserva.'), pa(60, 'la reserva'), eq(120, 'https://www.userede.com.br/pagamentos/pt/x'), pa(3600, 'blob:https://www.userede.com.br/y', 'file')] });
+  assert.deepStrictEqual([r.status, r.total, r.falta], ['falta', 1800, 900]);
+});

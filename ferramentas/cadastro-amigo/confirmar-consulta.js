@@ -61,13 +61,7 @@
     sp: 'Alameda Campinas, 977 - 8º andar / conjunto 82 - Jardim Paulista, São Paulo - SP (estacionamento terceirizado no local)',
   };
   const SEM = { pt: ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'], es: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] };
-  const BIO = '*Orientações para o exame de bioimpedância e documentação de fotos*\n' +
-    '_Para garantir precisão nas medições, siga as orientações:_\n' +
-    '• Jejum de 4 horas (sólidos e líquidos);\n• Não ingerir bebidas alcoólicas nas 8 horas anteriores;\n• Evitar café, chás escuros e chocolates;\n' +
-    '• Evitar atividade física intensa e sauna no dia anterior;\n• Evitar realizar o exame no período menstrual;\n• Esvaziar a bexiga antes do exame;\n' +
-    '• Remover metais do corpo (brincos, anéis, piercings etc.).\n\n' +
-    '*📸 Registro fotográfico (recomendado):*\nPara melhor padronização e comparação da evolução, dê preferência a biquíni *preto* ou roupa íntima *preta de modelo menor* (calcinha pequena e sutiã). Peças maiores ou de outras cores dificultam a análise. Recomendação técnica, sem obrigatoriedade.\n\n' +
-    '*Quem não pode realizar o exame?*\n• Usuários de marcapasso ou aparelhos elétricos implantados;\n• Pessoas com peças metálicas internas (placas e parafusos);\n• Gestantes ou suspeita de gestação.';
+  /*BIO*/
   const FOTOS = {
     pt: (prazo) => '*📸 Fotos para a sua teleconsulta*\n' +
       'Para a avaliação, o Dr. Rafael precisa de algumas fotos suas. Estou te enviando um PDF com o passo a passo das posições.\n\n' +
@@ -128,17 +122,17 @@
     if (l === 'es') {
       return '¡Hola, ' + (n || '[nombre]') + '! ¿Cómo estás? 😊\n\n' +
         '¿Podemos confirmar tu ' + (loc === 'tele' ? 'teleconsulta' : 'consulta') + ' con el Dr. Rafael Erthal, ' + (quandoTxt || '[día]') + ', a las *' + (horaTxt || '[hora]') + '*?\n' +
-        (loc === 'tele' ? 'La consulta es online, por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace. 💻\n' : '📍 Dirección: ' + END[loc] + '\n') +
+        (loc === 'tele' ? 'La consulta es online, por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace. 💻\n' : '📍 Dirección: ' + END[loc].replace('estacionamento terceirizado no local', 'estacionamiento en el lugar') + '\n') +
         (exames ? '\n¿Podrías enviarnos por aquí los resultados de tus exámenes? Así los guardamos en tu historia clínica. 💙\n' : '') +
         (falta !== null ? SEGUNDA.es(falta) : '') +
-        (loc === 'tele' ? '\nEn seguida te envío la guía en PDF para las fotos de tu evaluación. 📸' : '');
+        (loc === 'tele' ? '\nEn seguida te envío la guía en PDF para las fotos de tu evaluación. 📸' : '\nEn seguida te envío las indicaciones para tu examen de bioimpedancia. Te pido que las leas con atención para que el resultado sea más preciso.');
     }
     return 'Hi, ' + (n || '[name]') + '! How are you? 😊\n\n' +
       'Could you please confirm your ' + (loc === 'tele' ? 'online consultation' : 'consultation') + ' with Dr. Rafael Erthal ' + (quandoTxt || '[day]') + ' at *' + (horaTxt || '[time]') + '*?\n' +
-      (loc === 'tele' ? 'It will take place on Google Meet. Our concierge Helen will send you the link close to the time. 💻\n' : '📍 Address: ' + END[loc] + '\n') +
+      (loc === 'tele' ? 'It will take place on Google Meet. Our concierge Helen will send you the link close to the time. 💻\n' : '📍 Address: ' + END[loc].replace('estacionamento terceirizado no local', 'parking available on site') + '\n') +
       (exames ? '\nCould you also send us your test results here, so we can add them to your medical record? 💙\n' : '') +
       (falta !== null ? SEGUNDA.en(falta) : '') +
-      (loc === 'tele' ? '\nNext, I will send you the PDF guide for the photos for your assessment. 📸' : '');
+      (loc === 'tele' ? '\nNext, I will send you the PDF guide for the photos for your assessment. 📸' : '\nNext, I will send you the instructions for your bioimpedance test. Please read them carefully so the result is as accurate as possible.');
   };
 
   const box = document.createElement('div');
@@ -171,16 +165,15 @@
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   $('#cf-lang').value = lang; $('#cf-local').value = local;
-  $('#cf-pag').value = pg.status === 'integral' ? 'integral' : pg.status === 'falta' ? 'falta' : 'nao';
+  $('#cf-pag').value = pg.status === 'integral' ? 'integral' : pg.status === 'falta' ? 'falta' : pg.sugestao || 'nao';
   const gerar = () => {
     const l = $('#cf-lang').value, loc = $('#cf-local').value;
     const pede = $('#cf-pag').value === 'falta';
     $('#cf-falta').parentElement.style.visibility = pede ? '' : 'hidden';
     const falta = pede ? Number(String($('#cf-falta').value).replace(/\./g, '').replace(',', '.')) || 0 : null;
     $('#cf-msg').value = montar(l, $('#cf-nome').value.trim(), $('#cf-data').value, $('#cf-hora').value, loc, $('#cf-exames').checked, falta);
-    // presencial: bioimpedância (só em português); teleconsulta: pedido das fotos
+    // presencial: bioimpedância; teleconsulta: pedido das fotos (os dois em PT/ES/EN)
     $('#cf-c2').textContent = loc === 'tele' ? '2. Copiar pedido das fotos (depois anexe o PDF)' : '2. Copiar orientações da bioimpedância';
-    $('#cf-c2').style.display = loc !== 'tele' && l !== 'pt' ? 'none' : '';
   };
   const copiar = async (t, qual, extra) => {
     try { await navigator.clipboard.writeText(t); $('#cf-ok').textContent = '✅ ' + qual + ' copiada. Cole no chat (Ctrl+V).' + (extra ? ' ' + extra : ''); }
@@ -202,7 +195,7 @@
   $('#cf-c2').onclick = () => {
     const l = $('#cf-lang').value;
     if ($('#cf-local').value === 'tele') copiar(FOTOS[l](prazoFotos(l, $('#cf-data').value)), 'Mensagem das fotos', '📎 Agora anexe o PDF das fotos no chat.');
-    else copiar(BIO, 'Orientação');
+    else copiar(BIO[l], 'Orientação');
   };
   $('#cf-c3').onclick = () => {
     const link = $('#cf-link').value.trim();
