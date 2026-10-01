@@ -81,7 +81,31 @@
   };
   const soNumeros = (v) => String(v).replace(/\D/g, '');
   const celularBR = (v) => { let d = soNumeros(v); if (d.length >= 12 && d.startsWith('55')) d = d.slice(2); return d.length === 11 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : d.length === 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) : v; };
-  if (d.telefone && /^\+?55|^\d{10,11}$/.test(String(d.telefone).replace(/\s/g, ''))) d.telefone = celularBR(d.telefone);
+  // País pelo código: +55 (ou 10–11 dígitos sem código) é Brasil; +54, +598, +351, 00351… é de fora.
+  const DDIS = ['1', '7', '20', '27', '30', '31', '32', '33', '34', '39', '41', '43', '44', '45', '46', '47', '48', '49', '51', '52', '53', '54', '56', '57', '58', '61', '64', '65', '81', '82', '86', '90', '91', '212', '244', '258', '263', '351', '352', '353', '354', '370', '372', '380', '420', '502', '503', '504', '505', '506', '507', '591', '593', '595', '598', '971', '972', '974'];
+  const telInfo = (v) => {
+    const bruto = String(v || '').trim(); let dg = soNumeros(bruto);
+    const internacional = /^\+/.test(bruto) || /^00\d/.test(dg);
+    if (/^00/.test(dg)) dg = dg.slice(2);
+    if (!internacional && (dg.length === 10 || dg.length === 11)) return { ddi: '55', nacional: dg };
+    if (dg.startsWith('55') && (dg.length === 12 || dg.length === 13)) return { ddi: '55', nacional: dg.slice(2) };
+    const ddi = ['3', '2', '1'].map((n) => dg.slice(0, +n)).find((c) => DDIS.includes(c));
+    return ddi ? { ddi, nacional: dg.slice(ddi.length) } : { ddi: '55', nacional: dg };
+  };
+  const tel = d.telefone ? telInfo(d.telefone) : null;
+  if (tel) d.telefone = tel.ddi === '55' ? celularBR(tel.nacional) : tel.nacional;
+  // Escolhe o país (+54, +598…) no seletor de DDI ao lado do campo de celular.
+  const escolherDDI = (campo) => {
+    if (!tel || !campo) return true;
+    let p = campo.parentElement, sel = null;
+    for (let i = 0; i < 3 && p && !sel; i++, p = p.parentElement) sel = p.querySelector('select');
+    if (sel) {
+      const op = [...sel.options].find((o) => new RegExp('\\+' + tel.ddi + '(?!\\d)').test(o.textContent) || o.value === tel.ddi || o.value === '+' + tel.ddi);
+      if (op) { sel.value = op.value; ['input', 'change'].forEach((ev) => sel.dispatchEvent(new Event(ev, { bubbles: true }))); return true; }
+      return tel.ddi === '55';
+    }
+    return null; // sem seletor: o código vai junto no número
+  };
   d.conheceu = d.indicacao ? 'Indicação: ' + d.indicacao : d.comoConheceu;
   d.sexo = d.sexo || 'Feminino';
   if (d.plano && d.plano === d.plano.toLowerCase()) d.plano = d.plano.replace(/(^|\s)\S/g, (x) => x.toUpperCase());
@@ -89,12 +113,12 @@
   const poucos = campos.length <= 3;
   const checagem = poucos && /duplicidade|celular com ddd|tipo de busca/i.test(document.body.innerText);
   if (checagem) {
-    const tel = acha(['celular', 'telefone', 'whatsapp'], null, texto);
+    const campoTel = acha(['celular', 'telefone', 'whatsapp'], null, texto);
     const mail = acha(['e mail', 'email']);
     let ok = false;
-    if (tel) { const dig = soNumeros(d.telefone).replace(/^55(?=\d{10,11}$)/, ''); ok = setValor(tel, /^\+/.test(tel.value) ? tel.value.trim().split(' ')[0] + ' ' + dig : d.telefone); }
+    if (campoTel) { const sd = escolherDDI(campoTel); ok = setValor(campoTel, sd === null || /^\+/.test(campoTel.value) ? '+' + tel.ddi + ' ' + soNumeros(tel.nacional) : d.telefone); }
     else if (mail) ok = setValor(mail, d.email);
-    caixa(ok ? '<div style="font-weight:bold;font-size:15px">✅ ' + (tel ? 'Celular' : 'E-mail') + ' preenchido</div><div style="font-size:13px;margin-top:6px">Clique em <b>Validar e continuar</b>. Na próxima tela, clique de novo em <b>Preencher cadastro</b>.</div>' : 'Não achei o campo de celular ou e-mail nesta tela.');
+    caixa(ok ? '<div style="font-weight:bold;font-size:15px">✅ ' + (campoTel ? 'Celular' : 'E-mail') + ' preenchido</div><div style="font-size:13px;margin-top:6px">Clique em <b>Validar e continuar</b>. Na próxima tela, clique de novo em <b>Preencher cadastro</b>.</div>' : 'Não achei o campo de celular ou e-mail nesta tela.');
     return;
   }
   d.nomeContrato = d.nome;
@@ -117,14 +141,16 @@
     ['plano', ['plano de saude', ' plano '], ['convenio', 'carteira', 'validade', 'matricula'], (c) => c.tagName !== 'SELECT'],
     ['conheceu', ['como nos conheceu', 'como conheceu', 'conheceu', 'origem', 'indicacao']],
   ];
-  const feitos = [], faltou = [];
+  const feitos = [], faltou = [], avisos = [];
   for (const [k, pal, evitar, filtro] of MAPA) {
     if (!d[k]) continue;
-    if (k === 'telefone' && campos.some((c) => soNumeros(c.value).endsWith(soNumeros(d[k]).slice(-8)))) { feitos.push(k); continue; } // já veio da etapa anterior
+    if (k === 'telefone' && campos.some((c) => soNumeros(c.value).endsWith(soNumeros(tel.nacional).slice(-8)))) { feitos.push(k); continue; } // já veio da etapa anterior
     const el = acha(pal, evitar, filtro);
     // Não apaga o que o sistema já completou pelo CEP com algo mais curto (ex.: "Rua").
     if (el && k === 'rua' && el.value && el.value.length >= String(d[k]).length) { usados.add(el); feitos.push(k); continue; }
-    let ok = el && setValor(el, d[k]);
+    let valor = d[k];
+    if (k === 'telefone' && el) { const sd = escolherDDI(el); if (sd === null && tel.ddi !== '55') valor = '+' + tel.ddi + ' ' + tel.nacional; if (sd === false) avisos.push('Escolha o país +' + tel.ddi + ' no campo Celular.'); }
+    let ok = el && setValor(el, valor);
     if (!ok && k === 'estadoCivil') ok = await escolherNaLista(['estado civil'], d[k]);
     if (!ok && k === 'sexo') {
       // Sexo em botões/rádios: clica no que diz "Feminino".
@@ -138,7 +164,7 @@
   const obs = acha(['observac', 'anotac']);
   const extra = [!feitos.includes('instagram') && d.instagram ? 'Instagram: ' + d.instagram : '', !feitos.includes('conheceu') && d.conheceu ? 'Como conheceu: ' + d.conheceu : '', !feitos.includes('plano') && d.plano ? 'Plano: ' + d.plano : '', d.objetivo ? 'Objetivo: ' + d.objetivo : ''].filter(Boolean).join(' · ');
   if (obs && extra && !obs.value) { setValor(obs, extra); feitos.push('observações'); ['instagram', 'conheceu', 'plano'].forEach((k) => { const i = faltou.indexOf(k); if (i >= 0) faltou.splice(i, 1); }); }
-  caixa('<div style="font-weight:bold;font-size:15px">✅ ' + feitos.length + ' campos preenchidos <span style="font-weight:normal;font-size:11px;color:#8a97a8">v3</span></div>' +
+  caixa('<div style="font-weight:bold;font-size:15px">✅ ' + feitos.length + ' campos preenchidos <span style="font-weight:normal;font-size:11px;color:#8a97a8">v4</span></div>' +
     '<div style="font-size:12px;color:#5b6b82;margin:6px 0">Os campos preenchidos estão com borda verde. <b>Confira e clique em Salvar.</b></div>' +
-    (faltou.length ? '<div style="font-size:13px;color:#a46d1c">Preencha à mão: ' + faltou.map((k) => k + ': <b>' + String(d[k]).replace(/</g, '&lt;') + '</b>').join('<br>') + '</div>' : ''));
+    (avisos.length ? '<div style="font-size:13px;color:#b04848;margin-bottom:6px">' + avisos.join('<br>') + '</div>' : '') + (faltou.length ? '<div style="font-size:13px;color:#a46d1c">Preencha à mão: ' + faltou.map((k) => k + ': <b>' + String(d[k]).replace(/</g, '&lt;') + '</b>').join('<br>') + '</div>' : ''));
 })();
