@@ -33,6 +33,9 @@ async function main() {
   } else {
     console.warn('⚠️  support.js não está na raiz do projeto: o painel não renderiza sem ele.');
   }
+  // Ficha Blue: página pública que a paciente preenche (/f/<código> abre ficha/index.html).
+  fs.mkdirSync(path.join(OUT, 'ficha'), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'ficha', 'index.html'), path.join(OUT, 'ficha', 'index.html'));
 
   // Diagnóstico (sem mostrar valores secretos): o log do Netlify diz exatamente o que falta.
   console.log(`Node ${process.version} · conta ${config.kommo.subdomain}`);

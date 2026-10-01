@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ficha Blue · Dr. Rafael Erthal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Cormorant+Garamond:wght@500&display=swap">
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--okbg:#e9f6ef;--bad:#b04848;
+  --f-display:"Cormorant Garamond",Georgia,serif;--f-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:15px/1.55 var(--f-body)}
+.card{max-width:520px;margin:0 auto;min-height:100vh;background:var(--surface);display:flex;flex-direction:column}
+@media (min-width:560px){.card{margin:32px auto;min-height:auto;border-radius:24px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(19,41,74,.35)}}
+.head{background:#13294a;color:#fff;padding:24px 22px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#c7d6ea}
+.mono{width:26px;height:26px;border:1.5px solid #c7d6ea;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-size:17px;color:#fff}
+.head h1{font-family:var(--f-display);font-weight:500;font-size:30px;margin:14px 0 0;color:#fff;line-height:1.1}
+.head p{margin:6px 0 0;color:#c7d6ea;font-size:13px}
+.langs{display:flex;gap:6px;margin-top:12px}
+.langs button{border:1px solid rgba(255,255,255,.3);background:transparent;color:#c7d6ea;border-radius:999px;padding:4px 10px;font:600 11px var(--f-body);cursor:pointer}
+.langs button[aria-pressed="true"]{background:#fff;color:#13294a}
+.steps{display:flex;gap:6px;margin-top:14px}.steps i{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.22)}.steps i.on{background:#7fb0ee}
+form{display:flex;flex-direction:column;flex:1}
+.body{padding:20px 22px;display:grid;gap:14px;align-content:start;flex:1}
+.body h2{margin:0;color:var(--ink);font-size:17px;font-weight:600}
+.field{display:grid;gap:6px}
+.field label,.legend{font-size:12.5px;font-weight:600;color:var(--ink)}
+.field small{color:var(--muted);font-size:12px}
+.req::after{content:" *";color:var(--bad)}
+input:not([type]),input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],textarea,select{width:100%;font:16px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+textarea{min-height:80px;resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{position:relative;border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:13.5px;cursor:pointer;background:var(--surface)}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label:has(input:checked){border-color:var(--accent);background:var(--soft);color:var(--accent);font-weight:600}
+.hint{font-size:12px;color:var(--ok);font-weight:600}.err{font-size:12px;color:var(--bad);font-weight:600}
+.nav{display:flex;gap:10px;padding:14px 22px 24px}
+.btn{flex:1;border:0;border-radius:14px;padding:14px 16px;font:600 15px var(--f-body);cursor:pointer}
+.btn.primary{background:#13294a;color:#fff}.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn[disabled]{opacity:.6;cursor:wait}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:#2f6fb5}}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;background:var(--soft);padding:14px;border-radius:12px;cursor:pointer}
+.consent input{margin-top:3px;width:18px;height:18px;flex:none}
+.done{text-align:center;display:grid;gap:10px;place-items:center;padding:48px 10px}
+.done .check{width:68px;height:68px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;font-size:32px}
+.done h2{font-family:var(--f-display);font-size:30px;font-weight:500}
+.lock{font-size:11.5px;color:var(--muted);text-align:center;padding:0 22px 18px}
+</style>
+</head>
+<body>
+<main class="card">
+  <header class="head">
+    <div class="brand"><span class="mono">b</span><span id="t-brand">Blue Clínica · Dr. Rafael Erthal</span></div>
+    <h1 id="t-hello">Sua ficha 💙</h1>
+    <p id="t-sub"></p>
+    <div class="langs" role="group" aria-label="Idioma">
+      <button type="button" data-l="pt" aria-pressed="true">PT</button><button type="button" data-l="es" aria-pressed="false">ES</button><button type="button" data-l="en" aria-pressed="false">EN</button>
+    </div>
+    <div class="steps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  </header>
+  <form id="ficha" novalidate>
+    <div class="body" id="step" aria-live="polite"></div>
+    <div class="nav"><button type="button" class="btn ghost" id="back" hidden></button><button type="submit" class="btn primary" id="next"></button></div>
+  </form>
+  <p class="lock" id="t-lock"></p>
+</main>
+<script>
+(function(){
+  "use strict";
+  const T={
+    pt:{brand:"Blue Clínica · Dr. Rafael Erthal",hello:n=>n?`Olá, ${n} 💙`:"Sua ficha 💙",sub:c=>(c?`Sua consulta: ${c} · `:"")+"leva 3 minutos",next:"Continuar",send:"Enviar ficha",back:"Voltar",sending:"Enviando…",
+      lock:"🔒 Seus dados vão direto para o seu cadastro na Blue Clínica, com sigilo (LGPD).",
+      s1:"Seus dados",nome:"Nome completo",cpf:"CPF",doc:"Documento ou passaporte",rg:"RG",nasc:"Data de nascimento",sexo:"Sexo",sexoO:["Feminino","Masculino"],civil:"Estado civil",civilO:["Solteira(o)","Casada(o)","União estável","Divorciada(o)","Viúva(o)"],cel:"Celular (WhatsApp)",mail:"E-mail",insta:"Instagram",prof:"Profissão",
+      s2:"Endereço",cep:"CEP",cepok:"Endereço encontrado ✓",rua:"Rua / avenida",num:"Número",compl:"Complemento",bairro:"Bairro",cidade:"Cidade",uf:"UF",pais:"País",end:"Endereço completo",
+      s3:"Sua saúde",alt:"Altura (cm)",peso:"Peso (kg)",diag:"Você já tem diagnóstico de lipedema?",diagO:["Sim, confirmado por especialista","Ainda não, mas me identifico com os sintomas"],reg:"Quais regiões mais incomodam?",regO:["Coxas","Panturrilhas","Braços","Glúteos","Culotes","Abdômen"],dor:"Com que frequência sente dor, peso ou cansaço?",dorO:["Diariamente","Algumas vezes por semana","Eventualmente","Não sinto dor"],med:"Medicamentos de uso contínuo, alergias ou cirurgias anteriores",
+      s3p:"Seu objetivo",area:"O que você gostaria de avaliar?",areaO:["Abdômen","Mamas","Coxas","Braços","Flancos","Rosto"],cirP:"Já fez alguma cirurgia plástica? Qual e quando?",
+      s4:"Expectativas",quer:"O que você deseja alcançar com o tratamento?",como:"Como conheceu o Dr. Rafael?",comoO:["Instagram","Indicação","Google / site","Já acompanhava o Dr."],quem:"Se foi indicação, quem indicou? Queremos agradecer 😉",plano:"Plano de saúde (se tiver)",
+      s5:"Para finalizar",cons:"Autorizo o uso destas informações para meu atendimento, cadastro e prontuário na Blue Clínica, conforme a LGPD.",
+      doneT:"Ficha recebida",doneP:n=>`Obrigada${n?", "+n:""}! O Dr. Rafael vai chegar à sua consulta já conhecendo a sua história.`,
+      okcpf:"CPF válido ✓",badcpf:"Confira o CPF",need:"Preencha os campos com *",nome2:"Escreva o nome completo",consNeed:"Marque a autorização para enviar.",age:"anos",
+      bad:"Este link não é válido ou expirou. Peça um novo link à nossa equipe pelo WhatsApp.",fail:"Não conseguimos enviar agora. Confira sua internet e tente de novo."},
+    es:{brand:"Blue Clínica · Dr. Rafael Erthal",hello:n=>n?`¡Hola, ${n}! 💙`:"Tu ficha 💙",sub:c=>(c?`Tu consulta: ${c} (hora de Brasilia) · `:"")+"toma 3 minutos",next:"Continuar",send:"Enviar ficha",back:"Volver",sending:"Enviando…",
+      lock:"🔒 Tus datos van directo a tu registro en Blue Clínica, con total confidencialidad.",
+      s1:"Tus datos",nome:"Nombre completo",cpf:"CPF (si tienes)",doc:"Documento o pasaporte",rg:"",nasc:"Fecha de nacimiento",sexo:"Sexo",sexoO:["Feminino","Masculino"],sexoV:["Femenino","Masculino"],civil:"Estado civil",civilO:["Soltera(o)","Casada(o)","Unión libre","Divorciada(o)","Viuda(o)"],cel:"Teléfono (WhatsApp, con código de país)",mail:"Correo",insta:"Instagram",prof:"Profesión",
+      s2:"Dirección",pais:"País",cidade:"Ciudad",end:"Dirección completa",
+      s3:"Tu salud",alt:"Altura (cm)",peso:"Peso (kg)",diag:"¿Ya tienes diagnóstico de lipedema?",diagO:["Sí, confirmado por un especialista","Todavía no, pero me identifico con los síntomas"],reg:"¿Qué zonas te molestan más?",regO:["Muslos","Pantorrillas","Brazos","Glúteos","Cartucheras","Abdomen"],dor:"¿Con qué frecuencia sientes dolor, pesadez o cansancio?",dorO:["Todos los días","Algunas veces por semana","De vez en cuando","No siento dolor"],med:"Medicamentos de uso continuo, alergias o cirugías previas",
+      s3p:"Tu objetivo",area:"¿Qué te gustaría evaluar?",areaO:["Abdomen","Mamas","Muslos","Brazos","Flancos","Rostro"],cirP:"¿Ya te hiciste alguna cirugía plástica? ¿Cuál y cuándo?",
+      s4:"Expectativas",quer:"¿Qué deseas lograr con el tratamiento?",como:"¿Cómo conociste al Dr. Rafael?",comoO:["Instagram","Recomendación","Google / sitio","Ya lo seguía"],quem:"Si fue una recomendación, ¿quién te recomendó? Queremos agradecer 😉",plano:"Seguro médico (si tienes)",
+      s5:"Para terminar",cons:"Autorizo el uso de esta información para mi atención, registro e historia clínica en Blue Clínica, según la ley brasileña de protección de datos (LGPD).",
+      doneT:"Ficha recibida",doneP:n=>`¡Gracias${n?", "+n:""}! El Dr. Rafael llegará a tu consulta conociendo tu historia.`,
+      okcpf:"",badcpf:"Revisa el CPF",need:"Completa los campos con *",nome2:"Escribe tu nombre completo",consNeed:"Marca la autorización para enviar.",age:"años",
+      bad:"Este enlace no es válido. Pide uno nuevo a nuestro equipo por WhatsApp.",fail:"No pudimos enviar ahora. Revisa tu conexión e inténtalo de nuevo."},
+    en:{brand:"Blue Clinic · Dr. Rafael Erthal",hello:n=>n?`Hi, ${n} 💙`:"Your form 💙",sub:c=>(c?`Your appointment: ${c} (Brasília time) · `:"")+"takes 3 minutes",next:"Continue",send:"Submit",back:"Back",sending:"Sending…",
+      lock:"🔒 Your details go straight to your Blue Clinic record, kept confidential.",
+      s1:"Your details",nome:"Full name",cpf:"CPF (if you have one)",doc:"ID or passport number",rg:"",nasc:"Date of birth",sexo:"Sex",sexoO:["Feminino","Masculino"],sexoV:["Female","Male"],civil:"Marital status",civilO:["Single","Married","Domestic partnership","Divorced","Widowed"],cel:"Phone (WhatsApp, with country code)",mail:"Email",insta:"Instagram",prof:"Occupation",
+      s2:"Address",pais:"Country",cidade:"City",end:"Full address",
+      s3:"Your health",alt:"Height (cm)",peso:"Weight (kg)",diag:"Have you been diagnosed with lipedema?",diagO:["Yes, confirmed by a specialist","Not yet, but I identify with the symptoms"],reg:"Which areas bother you most?",regO:["Thighs","Calves","Arms","Glutes","Saddlebags","Abdomen"],dor:"How often do you feel pain, heaviness or tiredness?",dorO:["Daily","A few times a week","Occasionally","No pain"],med:"Continuous medication, allergies or previous surgeries",
+      s3p:"Your goal",area:"What would you like to evaluate?",areaO:["Abdomen","Breasts","Thighs","Arms","Flanks","Face"],cirP:"Have you had plastic surgery before? Which and when?",
+      s4:"Expectations",quer:"What would you like to achieve with treatment?",como:"How did you find Dr. Rafael?",comoO:["Instagram","Referral","Google / website","Already followed him"],quem:"If referred, who referred you? We'd love to thank them 😉",plano:"Health insurance (if any)",
+      s5:"Last step",cons:"I authorize Blue Clinic to use this information for my care, registration and medical record, under Brazilian data protection law (LGPD).",
+      doneT:"Form received",doneP:n=>`Thank you${n?", "+n:""}! Dr. Rafael will meet you already knowing your story.`,
+      okcpf:"",badcpf:"Please check the CPF",need:"Please fill in the fields marked *",nome2:"Please write your full name",consNeed:"Please tick the authorization to submit.",age:"years",
+      bad:"This link is not valid. Please ask our team for a new one on WhatsApp.",fail:"We couldn't send it now. Check your connection and try again."}
+  };
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const q=new URLSearchParams(location.search);
+  const codigo=(location.pathname.match(/\/f\/([^/?#]+)/)||[])[1]||q.get("c")||"";
+  const ver=q.get("v")==="pla"?"pla":"lip";
+  let lang=["pt","es","en"].includes(q.get("l"))?q.get("l"):(/^es/i.test(navigator.language||"")?"es":"pt"); // o link já vem com &l=es/en para pacientes de fora
+  let step=0,info={nome:"",consulta:null},enviando=false;
+  const CHAVE="fichaBlue:"+codigo;
+  let data={nome:"",cpf:"",documento:"",rg:"",nasc:"",sexo:ver==="lip"?"Feminino":"",estadoCivil:"",cel:"",mail:"",instagram:"",prof:"",cep:"",rua:"",numero:"",compl:"",bairro:"",cidade:"",uf:"",pais:"",end:"",alt:"",peso:"",diag:"",reg:[],dor:"",med:"",area:[],cirP:"",quer:"",como:"",quem:"",plano:"",cons:false};
+  try{const s=JSON.parse(localStorage.getItem(CHAVE)||"null");if(s&&typeof s==="object")data=Object.assign(data,s);}catch(e){}
+  const salvar=()=>{try{localStorage.setItem(CHAVE,JSON.stringify(data));}catch(e){}};
+  function cpfOk(v){const d=String(v).replace(/\D/g,"");if(d.length!==11||/^(\d)\1+$/.test(d))return false;for(const n of[9,10]){let s=0;for(let i=0;i<n;i++)s+=+d[i]*(n+1-i);if((s*10)%11%10!==+d[n])return false;}return true;}
+  function idade(iso){if(!iso)return"";const b=new Date(iso+"T12:00:00"),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a>0&&a<120?a:"";}
+  const consultaTxt=()=>{if(!info.consulta)return"";const d=new Date(info.consulta);const loc=lang==="pt"?"pt-BR":lang==="es"?"es":"en-GB";
+    return d.toLocaleDateString(loc,{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit"})+" "+(lang==="en"?"at":lang==="es"?"a las":"às")+" "+d.toLocaleTimeString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"}).replace(":",lang==="pt"?"h":":");};
+  const inp=(k,label,type="text",extra="",req=false)=>`<div class="field"><label for="f-${k}"${req?' class="req"':""}>${label}</label><input id="f-${k}" name="${k}" type="${type}" value="${esc(data[k])}" ${extra}></div>`;
+  const ta=(k,label)=>`<div class="field"><label for="f-${k}">${label}</label><textarea id="f-${k}" name="${k}">${esc(data[k])}</textarea></div>`;
+  const radios=(k,label,opts,shown)=>`<div class="field"><span class="legend" id="lg-${k}">${label}</span><div class="chips" role="radiogroup" aria-labelledby="lg-${k}">${opts.map((o,i)=>`<label><input type="radio" name="${k}" value="${esc(o)}" ${data[k]===o?"checked":""}><span>${esc((shown||opts)[i])}</span></label>`).join("")}</div></div>`;
+  const checks=(k,label,opts)=>`<div class="field"><span class="legend">${label}</span><div class="chips">${opts.map(o=>`<label><input type="checkbox" name="${k}" value="${esc(o)}" ${data[k].includes(o)?"checked":""}><span>${esc(o)}</span></label>`).join("")}</div></div>`;
+  const sel=(k,label,opts)=>`<div class="field"><label for="f-${k}">${label}</label><select id="f-${k}" name="${k}"><option value=""></option>${opts.map(o=>`<option ${data[k]===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
+  const msg=(t,cls)=>{const m=$("msg");if(m){m.className=cls||"err";m.textContent=t||"";}};
+  function render(){
+    const t=T[lang];
+    document.documentElement.lang=lang==="pt"?"pt-BR":lang;
+    $("t-brand").textContent=t.brand;$("t-hello").textContent=t.hello(info.nome);$("t-sub").textContent=t.sub(consultaTxt());$("t-lock").textContent=t.lock;
+    document.querySelectorAll(".langs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===lang)));
+    document.querySelectorAll(".steps i").forEach((el,i)=>el.classList.toggle("on",i<=step));
+    $("back").textContent=t.back;$("back").hidden=step===0||step>=5;
+    $("next").hidden=step>=5;$("next").textContent=step===4?t.send:t.next;
+    const br=lang==="pt";let h="";
+    if(step===0){
+      h=`<h2>${t.s1}</h2>${inp("nome",t.nome,"text",'autocomplete="name"',true)}
+      ${br?`<div class="row2"><div class="field"><label for="f-cpf" class="req">${t.cpf}</label><input id="f-cpf" name="cpf" inputmode="numeric" value="${esc(data.cpf)}" placeholder="000.000.000-00"><span id="cpfmsg"></span></div>${inp("rg",t.rg,"text",'inputmode="numeric"')}</div>`
+          :`${inp("documento",t.doc,"text","",true)}${inp("cpf",t.cpf,"text",'inputmode="numeric"')}`}
+      <div class="row2"><div class="field"><label for="f-nasc" class="req">${t.nasc}</label><input id="f-nasc" name="nasc" type="date" value="${esc(data.nasc)}" max="${new Date().toISOString().slice(0,10)}"><small id="agemsg">${idade(data.nasc)?idade(data.nasc)+" "+t.age:""}</small></div>${sel("estadoCivil",t.civil,t.civilO)}</div>
+      ${ver==="pla"?radios("sexo",t.sexo,t.sexoO,t.sexoV):""}
+      ${inp("cel",t.cel,"tel",'autocomplete="tel" placeholder="'+(br?"(21) 99999-9999":"+54 9 11 …")+'"',true)}
+      ${inp("mail",t.mail,"email",'autocomplete="email"',true)}
+      <div class="row2">${inp("instagram",t.insta,"text",'placeholder="@" autocapitalize="off"')}${inp("prof",t.prof)}</div>`;
+    }else if(step===1){
+      h=br?`<h2>${t.s2}</h2><div class="row2"><div class="field"><label for="f-cep" class="req">${t.cep}</label><input id="f-cep" name="cep" inputmode="numeric" autocomplete="postal-code" value="${esc(data.cep)}" placeholder="00000-000"><small id="cepmsg"></small></div>${inp("numero",t.num,"text","",true)}</div>
+        ${inp("rua",t.rua,"text",'autocomplete="address-line1"',true)}<div class="row2">${inp("compl",t.compl)}${inp("bairro",t.bairro)}</div><div class="row3">${inp("cidade",t.cidade)}${inp("uf",t.uf,"text",'maxlength="2" autocapitalize="characters"')}</div>`
+        :`<h2>${t.s2}</h2><div class="row2">${inp("pais",t.pais,"text",'autocomplete="country-name"',true)}${inp("cidade",t.cidade,"text","",true)}</div>${inp("end",t.end,"text",'autocomplete="street-address"')}`;
+    }else if(step===2){
+      h=ver==="lip"
+        ?`<h2>${t.s3}</h2><div class="row2">${inp("alt",t.alt,"number",'inputmode="numeric"')}${inp("peso",t.peso,"number",'inputmode="decimal" step="0.1"')}</div>${radios("diag",t.diag,t.diagO)}${checks("reg",t.reg,t.regO)}${radios("dor",t.dor,t.dorO)}${ta("med",t.med)}`
+        :`<h2>${t.s3p}</h2><div class="row2">${inp("alt",t.alt,"number",'inputmode="numeric"')}${inp("peso",t.peso,"number",'inputmode="decimal" step="0.1"')}</div>${checks("area",t.area,t.areaO)}${ta("cirP",t.cirP)}${ta("med",t.med)}`;
+    }else if(step===3){
+      h=`<h2>${t.s4}</h2>${ta("quer",t.quer)}${radios("como",t.como,t.comoO)}${inp("quem",t.quem)}${inp("plano",t.plano)}`;
+    }else if(step===4){
+      h=`<h2>${t.s5}</h2><label class="consent" for="f-cons"><input type="checkbox" id="f-cons" name="cons" ${data.cons?"checked":""}><span>${t.cons}</span></label>`;
+    }else if(step===5){
+      h=`<div class="done"><div class="check" aria-hidden="true">✓</div><h2>${t.doneT}</h2><p>${esc(t.doneP(info.nome))}</p></div>`;
+    }else{
+      h=`<div class="done"><p>${t.bad}</p></div>`;$("next").hidden=true;$("back").hidden=true;
+    }
+    $("step").innerHTML=h+(step<5?'<span id="msg" role="alert"></span>':"");
+    const cpf=$("f-cpf");
+    if(cpf&&br){const fmt=()=>{const d=cpf.value.replace(/\D/g,"").slice(0,11);cpf.value=d.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2");const m=$("cpfmsg");m.className=d.length===11?(cpfOk(d)?"hint":"err"):"";m.textContent=d.length===11?(cpfOk(d)?t.okcpf:t.badcpf):"";};cpf.addEventListener("input",fmt);if(cpf.value)fmt();}
+    const n=$("f-nasc");if(n)n.addEventListener("input",()=>{const a=idade(n.value);$("agemsg").textContent=a?a+" "+t.age:"";});
+    const cep=$("f-cep");if(cep)cep.addEventListener("input",()=>{const d=cep.value.replace(/\D/g,"").slice(0,8);cep.value=d.length>5?d.slice(0,5)+"-"+d.slice(5):d;if(d.length===8)buscaCep(d);});
+  }
+  async function buscaCep(d){
+    try{const r=await(await fetch("https://viacep.com.br/ws/"+d+"/json/")).json();if(r.erro)return;
+      [["rua",r.logradouro],["bairro",r.bairro],["cidade",r.localidade],["uf",r.uf]].forEach(([k,v])=>{const el=$("f-"+k);if(el&&v&&!el.value){el.value=v;}});
+      const m=$("cepmsg");if(m){m.className="hint";m.textContent=T.pt.cepok;}const num=$("f-numero");if(num&&!num.value)num.focus();
+    }catch(e){}
+  }
+  function collect(){
+    const f=$("ficha");
+    Object.keys(data).forEach(k=>{
+      if(Array.isArray(data[k])){if(f.querySelector(`input[name="${k}"]`))data[k]=[...f.querySelectorAll(`input[name="${k}"]:checked`)].map(x=>x.value);}
+      else if(k==="cons"){if(f.elements.cons)data.cons=f.elements.cons.checked;}
+      else if(f.querySelector(`input[type=radio][name="${k}"]`)){const el=f.querySelector(`input[name="${k}"]:checked`);data[k]=el?el.value:"";}
+      else if(f.elements[k])data[k]=String(f.elements[k].value).trim();
+    });
+    salvar();
+  }
+  function valida(){
+    const t=T[lang],br=lang==="pt",falta=[];
+    if(step===0){
+      if(!data.nome)falta.push("nome");
+      if(br&&!data.cpf)falta.push("cpf");if(!br&&!data.documento)falta.push("documento");
+      ["nasc","cel","mail"].forEach(k=>{if(!data[k])falta.push(k);});
+      if(falta.length)return[t.need,falta[0]];
+      if(data.nome.split(/\s+/).length<2)return[t.nome2,"nome"];
+      if(data.cpf&&(br||data.cpf.replace(/\D/g,"").length)&&!cpfOk(data.cpf))return[t.badcpf,"cpf"];
+      if(!/@.+\./.test(data.mail))return[t.need,"mail"];
+    }
+    if(step===1){(br?["cep","rua","numero"]:["pais","cidade"]).forEach(k=>{if(!data[k])falta.push(k);});if(falta.length)return[t.need,falta[0]];}
+    if(step===4&&!data.cons)return[t.consNeed,"cons"];
+    return null;
+  }
+  async function enviar(){
+    const t=T[lang];enviando=true;$("next").disabled=true;$("next").textContent=t.sending;$("back").disabled=true;
+    const dados=Object.assign({},data);if(dados.sexo&&!["Feminino","Masculino"].includes(dados.sexo))dados.sexo="";
+    try{
+      const r=await fetch("/api/ficha",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({c:codigo,lang,ver,dados})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.ok){if(r.status===404){step=9;render();return;}throw new Error(j.erro||r.status);}
+      try{localStorage.removeItem(CHAVE);}catch(e){}
+      step=5;render();
+    }catch(e){msg(t.fail);}
+    finally{enviando=false;$("next").disabled=false;$("back").disabled=false;if(step===4)$("next").textContent=t.send;}
+  }
+  $("ficha").addEventListener("submit",e=>{
+    e.preventDefault();if(enviando)return;collect();
+    const v=valida();if(v){msg(v[0]);const el=$("f-"+v[1]);if(el)el.focus();return;}
+    if(step===4){enviar();return;}
+    step++;render();window.scrollTo(0,0);
+  });
+  $("back").addEventListener("click",()=>{collect();step=Math.max(0,step-1);render();});
+  document.querySelectorAll(".langs button").forEach(b=>b.addEventListener("click",()=>{collect();lang=b.dataset.l;render();}));
+  render();
+  if(!codigo){step=9;render();return;}
+  fetch("/api/ficha?c="+encodeURIComponent(codigo)).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{info=j;render();}).catch(s=>{if(s===404){step=9;render();}});
+})();
+</script>
+</body>
+</html>

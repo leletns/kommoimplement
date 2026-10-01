@@ -20,4 +20,5 @@ export default async (request, context) => {
   });
 };
 
-export const config = { path: '/*' };
+// A Ficha Blue é pública (a paciente abre pelo link pessoal); a segurança está no código assinado do link.
+export const config = { path: '/*', excludedPath: ['/f/*', '/ficha/*', '/api/ficha', '/api/ficha-link'] };

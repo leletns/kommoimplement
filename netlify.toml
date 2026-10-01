@@ -8,6 +8,8 @@
 #   OPENROUTER_API_KEY (opcional)    IA GRATUITA com modelos abertos — openrouter.ai
 #   GEMINI_API_KEY     (opcional)    IA GRATUITA do Google (aistudio.google.com)
 #   ANTHROPIC_API_KEY  (opcional)    IA paga (Claude). Vale a primeira chave nesta ordem: Groq, OpenRouter, Gemini, Claude
+#   AMIGO_TOKEN        (opcional)    token da API do AmigoClinic: a Ficha Blue cadastra a paciente sozinha
+#   FICHA_SEGREDO      (opcional)    texto aleatório que assina os links da Ficha Blue (sem ele, deriva do KOMMO_TOKEN)
 #   AUTOMACAO_KOMMO=0  (opcional)    pausa a automação da Maria (roda a cada 15 min)
 # O KOMMO_TOKEN precisa estar disponível para "Builds" E "Functions".
 
@@ -28,6 +30,12 @@
 [[redirects]]
   from = "/api/metrics"
   to = "/api/metrics.json"
+  status = 200
+
+# Link pessoal da Ficha Blue: /f/<código> abre a página da ficha (o código é lido no navegador).
+[[redirects]]
+  from = "/f/*"
+  to = "/ficha/index.html"
   status = 200
 
 [[headers]]
