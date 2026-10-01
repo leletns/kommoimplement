@@ -27,7 +27,7 @@ O que roda lá:
    | `FICHA_SENHA` | a senha que a comercial digita no botão 📝 na primeira vez |
    | `FICHA_URL_BASE` | `https://ficha.clinicablue.com.br` |
    Depois, **Deployments → Retry deployment** para valer.
-5. **Custom domains → Set up a custom domain** → `ficha.clinicablue.com.br`. O Cloudflare mostra um **CNAME** (`ficha` → `ficha-blue.pages.dev`): crie esse registro onde fica o DNS do domínio (Registro.br, Hostinger…). O cadeado (HTTPS) sai sozinho.
+5. **Custom domains → Set up a custom domain** → `ficha.clinicablue.com.br`. O Cloudflare mostra um **CNAME** (`ficha` → `clinicablue.pages.dev`): crie esse registro onde fica o DNS do domínio (Registro.br, Hostinger…). O cadeado (HTTPS) sai sozinho.
 6. No Kommo, clique em **📝 Link da ficha**: na primeira vez ele pede o endereço (`https://ficha.clinicablue.com.br`) e a senha (`FICHA_SENHA`).
 
 ## Testar no computador (opcional)
