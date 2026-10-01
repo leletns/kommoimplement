@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600&amp;family=Playfair+Display:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f4f0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:#284359;text-decoration:none}
+a:hover{color:#4b7da7}
+button,input,select{font-family:inherit}
+:focus-visible{outline:2px solid #4b7da7;outline-offset:2px}
+</style>
+</helmet>
+<div style="display:flex;min-height:100vh;background:#f5f4f0;color:#14202a;font-family:Montserrat,'Helvetica Neue',sans-serif;font-size:13px;line-height:1.5">
+
+<aside style="display:{{ sideDisplay }};flex-direction:column;width:228px;flex:none;position:sticky;top:0;height:100vh;padding:24px 12px 14px;border-right:1px solid #e6e4dd;background:#f5f4f0">
+  <button onClick="{{ goHome }}" style="border:none;background:none;padding:0 10px 28px;text-align:left;cursor:pointer;color:#14202a">
+    <div style="font-weight:200;font-size:31px;letter-spacing:-0.035em;line-height:1">blue<span style="color:#4b7da7;font-weight:600">.</span></div>
+    <div style="margin-top:7px;font-size:8.5px;letter-spacing:0.3em;color:#4d5a66;font-weight:500">INTELLIGENCE OS</div>
+  </button>
+  <nav aria-label="Principal" style="display:flex;flex-direction:column;gap:20px;flex:1;overflow:auto">
+    <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <div style="padding:0 10px 6px;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8d969e;font-weight:500">{{ g.label }}</div>
+        <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.onClick }}" aria-current="{{ n.current }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:7px 10px;border:none;border-radius:7px;background:{{ n.bg }};box-shadow:{{ n.shadow }};color:{{ n.color }};font-size:13px;font-weight:{{ n.fw }};cursor:{{ n.cursor }};text-align:left;transition:background .15s" style-hover="background:{{ n.hoverBg }}">
+            <span>{{ n.label }}</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:{{ n.countColor }};font-variant-numeric:tabular-nums;font-weight:500">{{ n.count }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-for>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid #e6e4dd">
+    <label style="display:flex;flex-direction:column;gap:4px;padding:0 10px">
+      <span style="font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8d969e;font-weight:500">Visão por função</span>
+      <select value="{{ role }}" onChange="{{ onRole }}" style="appearance:none;border:1px solid #e0ded6;background:#fff;border-radius:7px;padding:7px 10px;font-size:12.5px;color:#14202a;cursor:pointer">
+        <sc-for list="{{ roles }}" as="r"><option value="{{ r }}">{{ r }}</option></sc-for>
+      </select>
+    </label>
+    <button onClick="{{ goIntegrations }}" style="display:flex;flex-direction:column;gap:2px;margin:0 2px;padding:10px;border:1px solid #e6e4dd;border-radius:9px;background:#fbfaf7;cursor:pointer;text-align:left;color:#14202a" style-hover="background:#fff">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500"><span style="color:{{ freshC }};font-size:9px">{{ freshG }}</span>{{ freshTxt }}</span>
+      <span style="font-size:11px;color:#6b7680">Consolidado às 17:21 · 28/09</span>
+    </button>
+    <div style="padding:0 10px;font-size:10.5px;color:#8d969e;line-height:1.45">Protótipo · todos os valores são <b style="font-weight:600;color:#4d5a66">DEMO</b></div>
+  </div>
+</aside>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+  <header style="position:sticky;top:0;z-index:20;background:rgba(245,244,240,0.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #e6e4dd">
+    <div style="display:{{ topNavDisplay }};align-items:center;gap:14px;padding:12px 20px 0;overflow-x:auto">
+      <div style="font-weight:200;font-size:22px;letter-spacing:-0.03em;flex:none">blue<span style="color:#4b7da7;font-weight:600">.</span></div>
+      <sc-for list="{{ navFlat }}" as="n" hint-placeholder-count="6">
+        <button onClick="{{ n.onClick }}" style="flex:none;border:none;background:{{ n.bg }};color:{{ n.color }};font-weight:{{ n.fw }};padding:6px 10px;border-radius:7px;font-size:12.5px;cursor:pointer;white-space:nowrap">{{ n.short }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:{{ headPad }};flex-wrap:wrap;min-height:58px">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px">
+        <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ back }}" aria-label="Voltar" style="width:28px;height:28px;flex:none;border:1px solid #e0ded6;border-radius:7px;background:#fff;cursor:pointer;color:#284359;font-size:14px" style-hover="border-color:#a6bacb">←</button>
+        </sc-if>
+        <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="1">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <button onClick="{{ c.onClick }}" style="border:none;background:none;padding:0;cursor:pointer;font-size:13px;color:{{ c.color }};font-weight:{{ c.fw }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.label }}</button>
+            <span style="display:{{ c.sep }};color:#b9bfc4">/</span>
+          </div>
+        </sc-for>
+      </div>
+      <div role="group" aria-label="Período" style="display:flex;padding:3px;background:#ebeae4;border-radius:9px;gap:2px">
+        <sc-for list="{{ periods }}" as="p" hint-placeholder-count="4">
+          <button onClick="{{ p.onClick }}" aria-pressed="{{ p.on }}" style="border:none;padding:5px 11px;border-radius:7px;font-size:12px;cursor:pointer;background:{{ p.bg }};color:{{ p.color }};font-weight:{{ p.fw }};box-shadow:{{ p.shadow }};white-space:nowrap">{{ p.label }}</button>
+        </sc-for>
+      </div>
+      <div style="position:relative">
+        <button onClick="{{ toggleFilter }}" aria-expanded="{{ filterOpen }}" style="display:flex;align-items:center;gap:7px;border:1px solid #e0ded6;background:#fff;padding:6px 11px;border-radius:8px;font-size:12px;cursor:pointer;color:#14202a" style-hover="border-color:#a6bacb">
+          <span style="font-size:10px;color:#4b7da7">☰</span>Filtros<span style="font-variant-numeric:tabular-nums;color:#4b7da7;font-weight:600">{{ filterCount }}</span>
+        </button>
+        <sc-if value="{{ filterOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;right:0;top:40px;width:340px;max-width:88vw;background:#fff;border:1px solid #e6e4dd;border-radius:12px;box-shadow:0 18px 40px -16px rgba(20,32,42,0.22);padding:16px;z-index:30;display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ facets }}" as="f" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#808a93;font-weight:500">{{ f.facet }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ f.opts }}" as="o">
+                    <button onClick="{{ o.toggle }}" aria-pressed="{{ o.on }}" style="border:1px solid {{ o.border }};background:{{ o.bg }};color:{{ o.color }};padding:4px 10px;border-radius:999px;font-size:12px;cursor:pointer">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #efeee9">
+              <span style="font-size:11px;color:#808a93">Aplica-se a listas de leads e agenda</span>
+              <button onClick="{{ toggleFilter }}" style="border:none;background:#284359;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer">Concluir</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <button onClick="{{ openSearch }}" style="display:flex;align-items:center;gap:10px;border:1px solid #e0ded6;background:#fff;padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;color:#6b7680" style-hover="border-color:#a6bacb">Buscar lead<span style="font-size:10.5px;border:1px solid #e6e4dd;border-radius:4px;padding:0 4px;color:#808a93">⌘K</span></button>
+      <span title="Todos os dados exibidos são fictícios" style="font-size:9.5px;letter-spacing:0.16em;font-weight:600;color:#284359;border:1px solid #a6bacb;border-radius:5px;padding:3px 6px">DEMO</span>
+    </div>
+    <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 36px 10px">
+        <span style="font-size:11px;color:#808a93;margin-right:4px">Filtros aplicados</span>
+        <sc-for list="{{ appliedFilters }}" as="a">
+          <button onClick="{{ a.remove }}" aria-label="Remover filtro" style="display:flex;gap:6px;align-items:center;border:none;background:#e6edf3;color:#284359;padding:3px 8px 3px 10px;border-radius:999px;font-size:11.5px;cursor:pointer"><span style="color:#6b7f92">{{ a.facet }}:</span>{{ a.value }}<span style="opacity:.6">×</span></button>
+        </sc-for>
+        <button onClick="{{ clearFilters }}" style="border:none;background:none;color:#4b7da7;font-size:11.5px;cursor:pointer">Limpar</button>
+      </div>
+    </sc-if>
+  </header>
+
+  <main style="padding:{{ mainPad }};width:100%;max-width:1440px;margin:0 auto">
+    <sc-if value="{{ bannerShow }}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;padding:11px 14px;border-radius:10px;background:{{ bannerBg }};color:{{ bannerC }};font-size:12.5px">
+        <span style="font-size:10px">{{ bannerG }}</span>
+        <span style="flex:1;min-width:200px"><b style="font-weight:600">{{ bannerTitle }}</b> {{ bannerMsg }}</span>
+        <button onClick="{{ goIntegrations }}" style="border:none;background:none;color:inherit;text-decoration:underline;font-size:12px;cursor:pointer">Ver integrações</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Segunda, 28 de setembro · 17:24</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;letter-spacing:-0.01em;line-height:1.15;text-wrap:pretty">Visão geral</h1>
+          </div>
+          <p style="margin:0;max-width:520px;color:#4d5a66;font-size:13.5px;text-wrap:pretty">{{ ovSummary }}</p>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:stretch">
+          <section aria-label="Receita" style="flex:2 1 560px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:26px 28px 18px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Receita recebida · 01/09 → 28/09/2026</div>
+              <button onClick="{{ openRevenue }}" title="Ver origem do dado" style="display:flex;align-items:center;gap:6px;border:none;background:#f5f4f0;border-radius:999px;padding:4px 10px;font-size:11px;color:#4d5a66;cursor:pointer" style-hover="background:#ebeae4"><span style="color:{{ revFresh.c }};font-size:8px">{{ revFresh.g }}</span>Amigo Clinic · {{ revFresh.ago }}</button>
+            </div>
+            <sc-if value="{{ heroSkel }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:12px" aria-busy="true">
+                <div style="width:240px;height:44px;border-radius:8px;background:linear-gradient(90deg,#efeee9,#f6f5f1,#efeee9)"></div>
+                <div style="width:340px;max-width:100%;height:14px;border-radius:5px;background:#f1f0eb"></div>
+                <div style="height:200px;border-radius:10px;background:linear-gradient(180deg,#f7f6f2,#f1f0eb)"></div>
+                <div style="font-size:11.5px;color:#808a93">Carregando pagamentos do Amigo Clinic…</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ heroErr }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:34px 0 44px">
+                <div style="display:flex;align-items:center;gap:8px;color:#a8402f;font-weight:600;font-size:13px"><span style="font-size:10px">■</span>Receita indisponível</div>
+                <div style="max-width:440px;color:#4d5a66;text-wrap:pretty">A última sincronização com o Amigo Clinic falhou às 16:52. Para não exibir um número incorreto, o valor foi ocultado. O último valor confirmado foi <b style="font-weight:600">R$ 283.400</b> às 15:10.</div>
+                <div style="display:flex;gap:8px;margin-top:4px">
+                  <button onClick="{{ retry }}" style="border:none;background:#284359;color:#fff;padding:7px 13px;border-radius:7px;font-size:12px;cursor:pointer">Tentar novamente</button>
+                  <button onClick="{{ goIntegrations }}" style="border:1px solid #e0ded6;background:#fff;padding:7px 13px;border-radius:7px;font-size:12px;cursor:pointer;color:#14202a">Ver detalhes</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ heroData }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap">
+                  <button onClick="{{ openRevenue }}" style="border:none;background:none;padding:0;cursor:pointer;font-family:'Playfair Display',Georgia,serif;font-size:56px;line-height:1;letter-spacing:-0.02em;color:#14202a;font-variant-numeric:lining-nums" style-hover="color:#284359">{{ revTxt }}</button>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <span style="color:#2e7a5c;font-weight:600;font-size:13px">↑ {{ revDelta }}</span>
+                    <span style="color:#808a93;font-size:11.5px">vs agosto no mesmo ponto ({{ augTxt }})</span>
+                  </div>
+                </div>
+                <div style="font-size:12.5px;color:#4d5a66">29 consultas e 6 cirurgias pagas · <button onClick="{{ goFinance }}" style="border:none;background:none;padding:0;color:#284359;font-size:12.5px;cursor:pointer;text-decoration:underline;text-decoration-color:#a6bacb;text-underline-offset:3px">R$ 36.450 a receber</button></div>
+                <div style="position:relative;height:210px;margin-top:4px" onMouseMove="{{ chartMove }}" onMouseLeave="{{ chartLeave }}">
+                  <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="4">
+                    <div style="position:absolute;left:0;right:0;bottom:{{ t.bottom }};border-top:1px solid #f0efea"><span style="position:absolute;right:0;top:-16px;font-size:10px;color:#a3aab0;font-variant-numeric:tabular-nums">{{ t.label }}</span></div>
+                  </sc-for>
+                  <svg viewBox="0 0 600 200" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+                    <path d="{{ sepArea }}" fill="#4b7da7" fill-opacity="0.08"></path>
+                    <path d="{{ augPath }}" fill="none" stroke="#a6bacb" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" opacity="{{ augOpacity }}"></path>
+                    <path d="{{ sepPath }}" fill="none" stroke="#284359" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+                  </svg>
+                  <div style="position:absolute;left:{{ endLeft }};top:{{ endTop }};width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#284359;box-shadow:0 0 0 4px rgba(75,125,167,0.18)"></div>
+                  <div style="position:absolute;left:{{ endLeft }};top:0;bottom:0;border-left:1px dashed #d8d6ce"></div>
+                  <div style="position:absolute;left:{{ endLeft }};bottom:-2px;transform:translateX(6px);font-size:10px;color:#808a93;white-space:nowrap">hoje</div>
+                  <sc-if value="{{ hv.show }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:{{ hv.left }};top:0;bottom:0;border-left:1px solid #284359;opacity:.35;pointer-events:none"></div>
+                    <div style="position:absolute;left:{{ hv.left }};top:{{ hv.top }};width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:#fff;border:2px solid #284359;pointer-events:none"></div>
+                    <div style="position:absolute;left:{{ hv.tipLeft }};top:4px;transform:{{ hv.tipX }};background:#14202a;color:#fff;border-radius:8px;padding:8px 10px;font-size:11px;pointer-events:none;white-space:nowrap;display:flex;flex-direction:column;gap:2px;z-index:2">
+                      <span style="color:#a6bacb">{{ hv.day }}</span>
+                      <span>Setembro <b style="font-weight:600">{{ hv.sep }}</b></span>
+                      <span style="opacity:.75">Agosto {{ hv.aug }}</span>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:2px">
+                  <div style="display:flex;gap:18px;font-size:11px;color:#4d5a66">
+                    <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:#284359"></span>Setembro (acumulado)</span>
+                    <span style="display:{{ augLegend }};align-items:center;gap:6px"><span style="width:16px;border-top:1.5px dashed #a6bacb"></span>Agosto</span>
+                  </div>
+                  <div style="display:flex;gap:28px;font-size:10.5px;color:#a3aab0;font-variant-numeric:tabular-nums"><span>01/09</span><span>08/09</span><span>15/09</span><span>22/09</span><span>30/09</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </section>
+
+          <sc-if value="{{ showIntel }}" hint-placeholder-val="{{ true }}">
+            <section aria-label="Blue Intelligence" style="flex:1 1 340px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:22px 22px 12px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:12px">
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Playfair Display',Georgia,serif;font-size:19px">Blue Intelligence</span><span style="width:5px;height:5px;border-radius:50%;background:#4b7da7;display:inline-block"></span></div>
+                <span style="font-size:11px;color:#808a93">{{ insightCount }} sinais · ordem: {{ role }}</span>
+              </div>
+              <sc-for list="{{ insights }}" as="i" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:6px;padding:13px 0;border-top:1px solid #efeee9;opacity:{{ i.op }}">
+                  <div style="display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;font-weight:600;color:{{ i.c }}"><span style="font-size:8px">{{ i.g }}</span>{{ i.area }}<span style="margin-left:auto;letter-spacing:0;text-transform:none;font-weight:400;color:#a3aab0;font-size:10.5px">{{ i.base }}</span></div>
+                  <div style="font-size:13.5px;font-weight:500;line-height:1.4;text-wrap:pretty;color:#14202a">{{ i.title }}</div>
+                  <div style="font-size:12px;color:#5b6772;line-height:1.5;text-wrap:pretty">{{ i.why }}</div>
+                  <div style="display:flex;gap:14px;align-items:center;margin-top:2px">
+                    <button onClick="{{ i.act }}" style="border:none;background:none;padding:0;color:#284359;font-weight:600;font-size:12px;cursor:pointer" style-hover="color:#4b7da7">{{ i.cta }} →</button>
+                    <button onClick="{{ i.ack }}" style="border:none;background:none;padding:0;color:#808a93;font-size:11.5px;cursor:pointer">{{ i.ackLabel }}</button>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:13px 0 10px;border-top:1px solid #efeee9">
+                <div style="display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;font-weight:600;color:#2e7a5c"><span style="font-size:8px">●</span>Resultado · ontem</div>
+                <div style="font-size:12px;color:#4d5a66;text-wrap:pretty">Alerta de 5 leads sem resposta: 4 foram respondidos em até 30 min e 1 agendou consulta.</div>
+              </div>
+            </section>
+          </sc-if>
+        </div>
+
+        <section aria-label="Jornada do mês" style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:21px">Do lead ao faturamento</h2><span style="font-size:12px;color:#808a93">Setembro · conversão entre etapas · variação vs agosto</span></div>
+            <button onClick="{{ goCommercial }}" style="border:none;background:none;color:#284359;font-size:12px;font-weight:600;cursor:pointer">Abrir Comercial →</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+            <sc-for list="{{ flow }}" as="s" hint-placeholder-count="6">
+              <button onClick="{{ s.open }}" style="position:relative;display:flex;flex-direction:column;gap:6px;padding:18px 20px 16px;border:none;border-right:1px solid #efeee9;background:#fff;text-align:left;cursor:pointer;color:#14202a;transition:background .15s" style-hover="background:#fafaf7">
+                <span style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px;color:#5b6772"><span>{{ s.label }}</span><span style="color:#a3aab0;font-variant-numeric:tabular-nums">{{ s.conv }}</span></span>
+                <span style="font-family:'Playfair Display',Georgia,serif;font-size:32px;line-height:1.05;font-variant-numeric:lining-nums">{{ s.vTxt }}</span>
+                <span style="font-size:11px;color:{{ s.dc }};font-weight:500">{{ s.delta }}</span>
+                <span style="height:3px;border-radius:2px;background:#efeee9;margin-top:6px;overflow:hidden"><span style="display:block;height:100%;width:{{ s.w }};background:{{ s.bar }}"></span></span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:stretch">
+          <section aria-label="Próximas 48 horas" style="flex:1.3 1 380px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 22px 10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:8px">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Próximas 48 horas</h3>
+              <button onClick="{{ goOps }}" style="border:none;background:none;color:#284359;font-size:12px;font-weight:600;cursor:pointer">Operação →</button>
+            </div>
+            <sc-for list="{{ next48 }}" as="a" hint-placeholder-count="6">
+              <button onClick="{{ a.open }}" style="display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:10px 0;border:none;border-top:1px solid #efeee9;background:none;text-align:left;cursor:pointer;color:#14202a">
+                <span style="display:flex;flex-direction:column;font-variant-numeric:tabular-nums"><span style="font-size:10.5px;color:#808a93">{{ a.dayLabel }}</span><span style="font-weight:500">{{ a.t }}</span></span>
+                <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span><span style="font-size:11.5px;color:#808a93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.type }}</span></span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:999px;background:{{ a.bg }};color:{{ a.c }};white-space:nowrap"><span style="font-size:7px">{{ a.g }}</span>{{ a.status }}</span>
+              </button>
+            </sc-for>
+          </section>
+
+          <section aria-label="Aquisição" style="flex:1 1 320px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 22px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:4px">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Aquisição: volume × receita</h3>
+              <button onClick="{{ goMarketing }}" style="border:none;background:none;color:#284359;font-size:12px;font-weight:600;cursor:pointer">Marketing →</button>
+            </div>
+            <div style="display:flex;gap:14px;font-size:10.5px;color:#808a93;padding-bottom:10px"><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#a6bacb"></span>% dos leads</span><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#284359"></span>% da receita</span></div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><span style="font-weight:500">{{ ch.label }}</span><span style="color:#808a93;font-variant-numeric:tabular-nums">{{ ch.leads }} leads · {{ ch.recTxt }}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="height:5px;border-radius:3px;background:#a6bacb;width:{{ ch.lw }}"></span>
+                    <span style="height:5px;border-radius:3px;background:#284359;width:{{ ch.rw }}"></span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section aria-label="Equipe comercial" style="flex:1 1 280px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 22px 10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:8px">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Equipe</h3>
+              <span style="font-size:11px;color:#808a93">1ª resposta · mediana</span>
+            </div>
+            <sc-for list="{{ teamMini }}" as="r" hint-placeholder-count="2">
+              <button onClick="{{ r.open }}" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:12px 0;border:none;border-top:1px solid #efeee9;background:none;text-align:left;cursor:pointer;color:#14202a">
+                <span style="display:flex;align-items:center;gap:10px;width:100%">
+                  <span style="width:28px;height:28px;border-radius:50%;background:#e6edf3;color:#284359;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">{{ r.ini }}</span>
+                  <span style="flex:1;font-weight:500">{{ r.name }}</span>
+                  <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:{{ r.rc }}"><span style="font-size:7px">{{ r.rg }}</span>{{ r.resp }}</span>
+                </span>
+                <span style="display:flex;gap:16px;font-size:11.5px;color:#5b6772;font-variant-numeric:tabular-nums;padding-left:38px"><span>{{ r.leads }} leads</span><span>{{ r.pagos }} pagos</span><span style="color:#14202a;font-weight:500">{{ r.recTxt }}</span></span>
+              </button>
+            </sc-for>
+          </section>
+        </div>
+
+        <button onClick="{{ goIntegrations }}" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:12px 4px;border:none;border-top:1px solid #e6e4dd;background:none;cursor:pointer;text-align:left;color:#5b6772;font-size:11.5px">
+          <span style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#808a93;font-weight:500">Fontes</span>
+          <sc-for list="{{ sourcesMini }}" as="s" hint-placeholder-count="6">
+            <span style="display:flex;align-items:center;gap:6px"><span style="color:{{ s.c }};font-size:8px">{{ s.g }}</span>{{ s.name }}<span style="color:#a3aab0">{{ s.ago }}</span></span>
+          </sc-for>
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCommercial }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Commercial Intelligence · Setembro</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.15">Comercial</h1>
+          </div>
+          <p style="margin:0;max-width:540px;color:#4d5a66;font-size:13.5px;text-wrap:pretty">147 leads, 29 consultas pagas e 6 cirurgias. A maior perda em relação a agosto está entre qualificação e agendamento.</p>
+        </div>
+
+        <section aria-label="Conversão entre etapas" style="display:flex;flex-direction:column;gap:12px">
+          <h2 style="margin:0;font-size:13.5px;font-weight:600">Conversão entre etapas</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:#e6e4dd;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:{{ st.bg }}">
+                <div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px;color:#5b6772"><span>{{ st.label }}</span><span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#a8402f;font-weight:600">{{ st.tag }}</span></div>
+                <div style="font-family:'Playfair Display',Georgia,serif;font-size:28px;line-height:1.1">{{ st.cur }}</div>
+                <div style="display:flex;gap:8px;font-size:11px"><span style="color:{{ st.dc }};font-weight:600">{{ st.diff }}</span><span style="color:#a3aab0">{{ st.prev }}</span></div>
+                <span style="height:3px;background:#efeee9;border-radius:2px;overflow:hidden;margin-top:4px"><span style="display:block;height:100%;width:{{ st.w }};background:{{ st.bar }}"></span></span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:stretch">
+          <section aria-label="Performance por responsável" style="flex:2 1 520px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:18px 22px 10px"><h2 style="margin:0;font-size:13.5px;font-weight:600">Por responsável</h2><span style="font-size:11px;color:#808a93">Clique para filtrar a lista de leads</span></div>
+            <div style="overflow-x:auto">
+              <div style="min-width:640px">
+                <div style="display:grid;grid-template-columns:minmax(150px,1.4fr) repeat(6,minmax(70px,1fr)) 90px;gap:10px;padding:8px 22px;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#98a1a9;border-top:1px solid #efeee9;border-bottom:1px solid #efeee9">
+                  <span>Responsável</span><span>Leads</span><span>1ª resposta</span><span>Agendados</span><span>Pagos</span><span>Lead → pago</span><span style="text-align:right">Receita</span><span></span>
+                </div>
+                <sc-for list="{{ team }}" as="r" hint-placeholder-count="2">
+                  <button onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:minmax(150px,1.4fr) repeat(6,minmax(70px,1fr)) 90px;gap:10px;align-items:center;width:100%;padding:14px 22px;border:none;border-bottom:1px solid #f3f2ee;background:{{ r.bg }};text-align:left;cursor:pointer;color:#14202a;font-variant-numeric:tabular-nums;font-size:13px" style-hover="background:#fafaf7">
+                    <span style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:50%;background:#e6edf3;color:#284359;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">{{ r.ini }}</span><span style="display:flex;flex-direction:column"><span style="font-weight:500">{{ r.name }}</span><span style="font-size:11px;color:#808a93">{{ r.role }} · {{ r.open }} em aberto</span></span></span>
+                    <span>{{ r.leads }}</span>
+                    <span style="display:flex;align-items:center;gap:5px;color:{{ r.rc }}"><span style="font-size:7px">{{ r.rg }}</span>{{ r.resp }}</span>
+                    <span>{{ r.agend }}</span>
+                    <span>{{ r.pagos }}</span>
+                    <span>{{ r.conv }}</span>
+                    <span style="text-align:right;font-weight:500">{{ r.recTxt }}</span>
+                    <span style="text-align:right;font-size:11.5px;color:#284359;font-weight:600">{{ r.mark }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="padding:12px 22px;font-size:11px;color:#808a93;display:flex;gap:6px;align-items:center"><span style="color:#9a6a12;font-size:8px">▲</span>Receita por responsável exclui 2 vendas sem valor no CRM. <button onClick="{{ goIntegrations }}" style="border:none;background:none;padding:0;color:#4b7da7;font-size:11px;cursor:pointer">Ver em Data Health</button></div>
+          </section>
+
+          <section aria-label="Velocidade comercial" style="flex:1 1 300px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font-size:13.5px;font-weight:600">Velocidade</h2><span style="font-size:11px;color:#808a93">mediana, lead → cirurgia</span></div>
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:36px;line-height:1">{{ cycleTotal }}</div>
+            <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px">
+              <sc-for list="{{ velocity }}" as="v" hint-placeholder-count="4"><span style="width:{{ v.w }};background:{{ v.c }}"></span></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ velocity }}" as="v" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:8px;height:8px;border-radius:2px;background:{{ v.c }}"></span><span style="flex:1;color:#4d5a66">{{ v.label }}</span><span style="font-variant-numeric:tabular-nums;font-weight:500">{{ v.days }}</span></div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <section aria-label="Leads" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px 22px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <h2 style="margin:0;font-size:13.5px;font-weight:600">Leads</h2>
+              <sc-if value="{{ hasRepFocus }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearRep }}" style="display:flex;gap:6px;border:none;background:#e6edf3;color:#284359;padding:3px 10px;border-radius:999px;font-size:11.5px;cursor:pointer">Responsável: {{ repFocusName }}<span style="opacity:.6">×</span></button></sc-if>
+            </div>
+            <div role="tablist" style="display:flex;gap:4px;flex-wrap:wrap">
+              <sc-for list="{{ commTabs }}" as="t" hint-placeholder-count="4">
+                <button role="tab" onClick="{{ t.onClick }}" style="display:flex;gap:6px;border:none;background:{{ t.bg }};color:{{ t.color }};padding:5px 11px;border-radius:999px;font-size:12px;cursor:pointer">{{ t.label }}<span style="color:{{ t.nc }};font-variant-numeric:tabular-nums">{{ t.n }}</span></button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:760px">
+              <div style="display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(160px,1.3fr) 70px 90px minmax(140px,1fr) 120px 90px;gap:12px;padding:8px 22px;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#98a1a9;border-top:1px solid #efeee9;border-bottom:1px solid #efeee9">
+                <span>Lead</span><span>Campanha</span><span>Temp.</span><span>Resp.</span><span>Estágio</span><span>Atenção</span><span style="text-align:right">Última</span>
+              </div>
+              <sc-for list="{{ commLeads }}" as="l" hint-placeholder-count="6">
+                <button onClick="{{ l.open }}" style="display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(160px,1.3fr) 70px 90px minmax(140px,1fr) 120px 90px;gap:12px;align-items:center;width:100%;padding:11px 22px;border:none;border-bottom:1px solid #f3f2ee;background:#fff;text-align:left;cursor:pointer;color:#14202a;font-size:12.5px" style-hover="background:#fafaf7">
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:500">{{ l.name }}</span><span style="font-size:11px;color:#808a93">{{ l.id }} · {{ l.city }}</span></span>
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.campName }}</span><span style="font-size:11px;color:#808a93">{{ l.ch }}</span></span>
+                  <span title="{{ l.temp }}" style="color:#284359;letter-spacing:1px;font-size:9px">{{ l.tempBars }}</span>
+                  <span>{{ l.repName }}</span>
+                  <span style="display:flex;flex-direction:column;gap:4px"><span>{{ l.stageLabel }}</span><span style="height:3px;background:#efeee9;border-radius:2px;overflow:hidden"><span style="display:block;height:100%;width:{{ l.stageW }};background:#4b7da7"></span></span></span>
+                  <span><sc-if value="{{ l.hasFlag }}"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 8px;border-radius:999px;background:{{ l.flagBg }};color:{{ l.flagC }};white-space:nowrap"><span style="font-size:7px">{{ l.flagG }}</span>{{ l.flagTxt }}</span></sc-if></span>
+                  <span style="text-align:right;color:#808a93;font-size:12px">{{ l.last }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ commEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:44px 20px;text-align:center">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:19px">Nenhum lead com esses critérios</div>
+              <div style="color:#808a93;font-size:12.5px;max-width:380px">Os filtros aplicados não retornaram leads nesta aba. Ajuste os filtros ou volte para todos os leads.</div>
+              <button onClick="{{ clearAllComm }}" style="margin-top:6px;border:1px solid #e0ded6;background:#fff;padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer;color:#14202a">Limpar filtros</button>
+            </div>
+          </sc-if>
+          <div style="padding:12px 22px;font-size:11px;color:#808a93;border-top:1px solid #efeee9">Exibindo {{ commCount }} leads da amostra DEMO (12 de 147) · Fonte: Kommo · há 4 min</div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isLead }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <section aria-label="Identidade do lead" style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px">
+            <div style="width:60px;height:60px;border-radius:50%;background:#284359;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-size:22px;flex:none">{{ L.ini }}</div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:220px">
+              <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Lead 360 · {{ L.id }}</div>
+              <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.1">{{ L.name }}</h1>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:#4d5a66;margin-top:2px">
+                <span style="padding:3px 9px;border-radius:999px;background:#e6edf3;color:#284359;font-weight:500">{{ L.stageLabel }}</span>
+                <span style="display:flex;gap:6px;align-items:center;padding:3px 9px;border-radius:999px;border:1px solid #e6e4dd"><span style="color:#284359;font-size:8px;letter-spacing:1px">{{ L.tempBars }}</span>{{ L.temp }}</span>
+                <button onClick="{{ openLeadRep }}" style="padding:3px 9px;border-radius:999px;border:1px solid #e6e4dd;background:#fff;font-size:12px;cursor:pointer;color:#4d5a66">Responsável: <b style="font-weight:600;color:#14202a">{{ L.repName }}</b></button>
+                <sc-if value="{{ L.hasFlag }}"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:{{ L.flagBg }};color:{{ L.flagC }}"><span style="font-size:7px">{{ L.flagG }}</span>{{ L.flagTxt }}</span></sc-if>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ remindLead }}" style="border:1px solid #e0ded6;background:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;cursor:pointer;color:#14202a" style-hover="border-color:#a6bacb">Abrir no Kommo</button>
+              <button onClick="{{ leadIntel.act }}" style="border:none;background:#284359;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;cursor:pointer" style-hover="background:#1f3547">{{ leadIntel.cta }}</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:#e6e4dd;border:1px solid #e6e4dd;border-radius:12px;overflow:hidden">
+            <button onClick="{{ openLeadCamp }}" style="display:flex;flex-direction:column;gap:3px;padding:12px 16px;background:#fff;border:none;text-align:left;cursor:pointer;color:#14202a" style-hover="background:#fafaf7">
+              <span style="font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#98a1a9">Campanha</span>
+              <span style="font-weight:500;color:#284359;text-decoration:underline;text-decoration-color:#a6bacb;text-underline-offset:3px">{{ L.campName }} →</span>
+            </button>
+            <sc-for list="{{ leadFacts }}" as="f" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:3px;padding:12px 16px;background:#fff">
+                <span style="font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#98a1a9">{{ f.k }}</span>
+                <span style="font-weight:500">{{ f.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+          <section aria-label="Jornada" style="flex:2 1 520px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:22px 24px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding-bottom:14px">
+              <h2 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:21px">Jornada</h2>
+              <span style="font-size:11.5px;color:#808a93">Kommo + Amigo Clinic, consolidados pela Blue Database</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;padding-bottom:6px">
+              <sc-for list="{{ progress }}" as="p" hint-placeholder-count="9"><span title="{{ p.label }}" style="height:4px;border-radius:2px;background:{{ p.bg }}"></span></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;padding-top:12px">
+              <sc-for list="{{ journey }}" as="j" hint-placeholder-count="9">
+                <div style="display:grid;grid-template-columns:92px 22px minmax(0,1fr);gap:0 12px">
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;padding-top:9px;text-align:right">
+                    <span style="font-size:11.5px;color:{{ j.tc }};font-variant-numeric:tabular-nums;font-weight:500">{{ j.date }}</span>
+                    <sc-if value="{{ j.hasGap }}"><span style="font-size:10.5px;color:#a3aab0">{{ j.gap }}</span></sc-if>
+                  </div>
+                  <div style="position:relative;display:flex;justify-content:center">
+                    <span style="position:absolute;top:22px;bottom:-12px;width:1.5px;background:{{ j.line }};display:{{ j.lineDisplay }}"></span>
+                    <span style="position:relative;margin-top:11px;width:11px;height:11px;border-radius:50%;background:{{ j.dotBg }};border:2px solid {{ j.dotBorder }};box-shadow:{{ j.dotRing }}"></span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px;padding:6px 10px 18px;margin-bottom:4px;border-radius:10px;background:{{ j.nowBg }}">
+                    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:{{ j.stC }};font-weight:600">{{ j.label }}</span><span style="font-size:10.5px;color:{{ j.stC }}">{{ j.stLabel }}</span></div>
+                    <div style="font-size:13.5px;font-weight:500;color:{{ j.tc }}">{{ j.title }}</div>
+                    <div style="font-size:12px;color:{{ j.dc }};text-wrap:pretty">{{ j.detail }}</div>
+                    <sc-if value="{{ j.hasMsg }}">
+                      <div style="margin-top:6px;padding:10px 12px;border-radius:10px;background:#f5f4f0;font-size:12.5px;color:#14202a;max-width:520px;display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;color:#808a93">{{ j.msgFrom }} · WhatsApp</span>{{ j.msg }}</div>
+                    </sc-if>
+                    <sc-if value="{{ j.hasSrc }}"><span style="font-size:10.5px;color:#a3aab0;margin-top:2px">Fonte: {{ j.src }}</span></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <aside style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ showIntel }}" hint-placeholder-val="{{ true }}">
+              <section aria-label="Leitura Blue" style="background:#14202a;color:#fff;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#a6bacb;font-weight:600"><span style="width:5px;height:5px;border-radius:50%;background:#a6bacb"></span>Blue Intelligence</div>
+                <div style="font-family:'Playfair Display',Georgia,serif;font-size:18px;line-height:1.3;text-wrap:pretty">{{ leadIntel.title }}</div>
+                <div style="font-size:12px;color:#c7d0d8;text-wrap:pretty">{{ leadIntel.why }}</div>
+                <button onClick="{{ leadIntel.act }}" style="align-self:flex-start;margin-top:4px;border:none;background:#fff;color:#14202a;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">{{ leadIntel.cta }} →</button>
+              </section>
+            </sc-if>
+            <section aria-label="Pagamento" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;font-size:13px;font-weight:600">Pagamento</h3><span style="display:flex;gap:5px;align-items:center;font-size:11px;padding:2px 8px;border-radius:999px;background:{{ leadPay.bg }};color:{{ leadPay.c }}"><span style="font-size:7px">{{ leadPay.g }}</span>{{ leadPay.status }}</span></div>
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:28px;line-height:1">{{ leadPay.val }}</div>
+              <div style="font-size:11.5px;color:#808a93">{{ leadPay.sub }} · Amigo Clinic</div>
+            </section>
+            <section aria-label="Consulta" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+              <h3 style="margin:0;font-size:13px;font-weight:600">Consulta</h3>
+              <sc-if value="{{ hasConsult }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px">{{ leadConsult.when }}</div>
+                  <div style="color:#4d5a66">{{ leadConsult.where }}</div>
+                  <div style="color:#4d5a66">{{ leadConsult.doctor }}</div>
+                  <div style="display:flex;gap:6px;align-items:center;color:{{ leadConsult.confC }};font-size:12px"><span style="font-size:7px">{{ leadConsult.confG }}</span>{{ leadConsult.conf }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noConsult }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;color:#808a93;padding:4px 0">Sem consulta agendada. O registro aparece aqui quando o agendamento é criado no Amigo Clinic.</div>
+              </sc-if>
+            </section>
+            <section aria-label="Identificadores" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:8px">
+              <h3 style="margin:0 0 2px;font-size:13px;font-weight:600">Registros vinculados</h3>
+              <sc-for list="{{ leadIds }}" as="i" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#808a93">{{ i.k }}</span><span style="font-variant-numeric:tabular-nums">{{ i.v }}</span></div>
+              </sc-for>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMarketing }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Marketing Intelligence · Setembro</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.15">Marketing</h1>
+          </div>
+          <div style="display:flex;gap:28px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column"><span style="font-size:11px;color:#808a93">Investimento</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:24px">{{ mkSpend }}</span></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:11px;color:#808a93">CPL pago</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:24px">{{ mkCpl }}</span></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:11px;color:#808a93">Receita ÷ investimento</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:24px">{{ mkRoas }}</span></div>
+          </div>
+        </div>
+        <sc-if value="{{ metaStale }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#9a6a12;margin-top:-10px"><span style="font-size:9px">▲</span>Investimento do Meta Ads reflete 15:14 (atrasado 2 h 10 min). Leads, consultas e receita vêm do Kommo e Amigo Clinic e estão em dia.</div>
+        </sc-if>
+
+        <section aria-label="Campanhas" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:10px;padding:18px 22px 10px">
+            <h2 style="margin:0;font-size:13.5px;font-weight:600">Campanhas: da aquisição à receita</h2>
+            <div style="display:flex;gap:14px;font-size:10.5px;color:#808a93"><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#a6bacb"></span>% dos leads</span><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#284359"></span>% da receita</span></div>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:900px">
+              <div style="display:grid;grid-template-columns:minmax(200px,1.6fr) 90px 60px 80px 70px 70px 100px 100px 60px minmax(120px,1fr);gap:10px;padding:8px 22px;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#98a1a9;border-top:1px solid #efeee9;border-bottom:1px solid #efeee9">
+                <span>Campanha</span><span>Invest.</span><span>Leads</span><span>CPL</span><span>Qualif.</span><span>Agend.</span><span>Custo/agend.</span><span>Receita</span><span>R÷I</span><span>Volume × receita</span>
+              </div>
+              <sc-for list="{{ camps }}" as="c" hint-placeholder-count="6">
+                <button onClick="{{ c.onClick }}" style="display:grid;grid-template-columns:minmax(200px,1.6fr) 90px 60px 80px 70px 70px 100px 100px 60px minmax(120px,1fr);gap:10px;align-items:center;width:100%;padding:12px 22px;border:none;border-bottom:1px solid #f3f2ee;box-shadow:inset 3px 0 0 {{ c.bl }};background:{{ c.bg }};text-align:left;cursor:pointer;color:#14202a;font-size:12.5px;font-variant-numeric:tabular-nums" style-hover="background:#fafaf7">
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:500">{{ c.name }}</span><span style="font-size:11px;color:#808a93">{{ c.ch }}</span></span>
+                  <span>{{ c.spendTxt }}</span><span>{{ c.leads }}</span><span>{{ c.cpl }}</span><span>{{ c.qualPct }}</span><span>{{ c.agend }}</span><span>{{ c.cpa }}</span><span style="font-weight:500">{{ c.recTxt }}</span><span>{{ c.roas }}</span>
+                  <span style="display:flex;flex-direction:column;gap:3px"><span style="height:4px;border-radius:2px;background:#a6bacb;width:{{ c.lw }}"></span><span style="height:4px;border-radius:2px;background:#284359;width:{{ c.rw }}"></span></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:12px 22px;font-size:11px;color:#808a93">Atribuição por primeiro toque (UTM registrada no Kommo). Receita atribuída = pagamentos do Amigo Clinic vinculados ao lead. Correlação, não causalidade.</div>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:stretch">
+          <section aria-label="Cadeia da campanha" style="flex:2 1 520px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">{{ sc.ch }} · campanha selecionada</span>
+              <h2 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:22px">{{ sc.name }}</h2>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ chain }}" as="k" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 50px;gap:12px;align-items:center;font-size:12.5px">
+                  <span style="color:#4d5a66">{{ k.label }}</span>
+                  <span style="height:22px;background:#f5f4f0;border-radius:5px;overflow:hidden"><span style="display:flex;align-items:center;height:100%;width:{{ k.w }};background:#4b7da7;border-radius:5px;padding-left:8px;color:#fff;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;min-width:26px">{{ k.v }}</span></span>
+                  <span style="text-align:right;color:#808a93;font-size:11.5px;font-variant-numeric:tabular-nums">{{ k.conv }}</span>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 50px;gap:12px;align-items:baseline;padding-top:8px;border-top:1px solid #efeee9">
+                <span style="color:#4d5a66;font-size:12.5px">Receita</span>
+                <button onClick="{{ goFinance }}" style="border:none;background:none;padding:0;text-align:left;cursor:pointer;font-family:'Playfair Display',Georgia,serif;font-size:26px;color:#14202a" style-hover="color:#284359">{{ sc.recTxt }}</button>
+                <span></span>
+              </div>
+            </div>
+            <sc-if value="{{ showIntel }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:#f3f6f9;font-size:12.5px;color:#284359"><span style="width:5px;height:5px;border-radius:50%;background:#4b7da7;margin-top:7px;flex:none"></span><span style="text-wrap:pretty">{{ selNote }}</span></div>
+            </sc-if>
+          </section>
+          <section aria-label="Leads da campanha" style="flex:1 1 300px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:18px 22px 8px">
+            <h3 style="margin:0 0 8px;font-size:13px;font-weight:600">Leads desta campanha</h3>
+            <sc-for list="{{ selLeads }}" as="l">
+              <button onClick="{{ l.open }}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;width:100%;padding:10px 0;border:none;border-top:1px solid #efeee9;background:none;text-align:left;cursor:pointer;color:#14202a" style-hover="color:#284359">
+                <span style="display:flex;flex-direction:column"><span style="font-weight:500">{{ l.name }}</span><span style="font-size:11px;color:#808a93">{{ l.repName }} · {{ l.city }}</span></span>
+                <span style="font-size:11.5px;color:#4d5a66;align-self:center">{{ l.stageLabel }}</span>
+              </button>
+            </sc-for>
+            <sc-if value="{{ selHasLeads }}" hint-placeholder-val="{{ true }}"><div style="padding:8px 0;font-size:11px;color:#a3aab0;border-top:1px solid #efeee9">Amostra DEMO</div></sc-if>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isFinance }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Financial Intelligence · Setembro</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.15">Financeiro</h1>
+          </div>
+          <button onClick="{{ openRevenue }}" style="display:flex;align-items:center;gap:6px;border:none;background:#ebeae4;border-radius:999px;padding:5px 11px;font-size:11.5px;color:#4d5a66;cursor:pointer"><span style="color:{{ revFresh.c }};font-size:8px">{{ revFresh.g }}</span>Amigo Clinic · {{ revFresh.ago }} · ver origem</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:#e6e4dd;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <button onClick="{{ openRevenue }}" style="display:flex;flex-direction:column;gap:4px;padding:18px 22px;background:#fff;border:none;text-align:left;cursor:pointer;color:#14202a" style-hover="background:#fafaf7"><span style="font-size:11.5px;color:#5b6772">Recebido</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:34px;line-height:1.1">{{ revTxt }}</span><span style="font-size:11px;color:#2e7a5c;font-weight:500">↑ {{ revDelta }} vs agosto</span></button>
+          <div style="display:flex;flex-direction:column;gap:4px;padding:18px 22px;background:#fff"><span style="font-size:11.5px;color:#5b6772">A receber</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:34px;line-height:1.1">R$ 36.450</span><span style="font-size:11px;color:#9a6a12;font-weight:500">R$ 18.450 vencem em até 72 h</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px;padding:18px 22px;background:#fff"><span style="font-size:11.5px;color:#5b6772">Ticket médio · cirurgia</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:34px;line-height:1.1">R$ 42.000</span><span style="font-size:11px;color:#808a93">6 procedimentos</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px;padding:18px 22px;background:#fff"><span style="font-size:11.5px;color:#5b6772">Ticket médio · consulta</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:34px;line-height:1.1">R$ 1.124</span><span style="font-size:11px;color:#808a93">29 consultas pagas</span></div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:stretch">
+          <section aria-label="Receita por semana" style="flex:1.4 1 420px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><h2 style="margin:0;font-size:13.5px;font-weight:600">Receita por semana</h2><div style="display:flex;gap:14px;font-size:10.5px;color:#808a93"><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#284359"></span>Setembro</span><span style="display:{{ augLegend }};align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#d6dee6"></span>Agosto</span></div></div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;height:200px;align-items:end;border-bottom:1px solid #e6e4dd">
+              <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+                  <span style="font-size:11px;font-variant-numeric:tabular-nums;color:#14202a;font-weight:500">{{ w.sepTxt }}</span>
+                  <div style="display:flex;gap:4px;align-items:flex-end;height:78%;width:100%;justify-content:center">
+                    <span style="width:34%;max-width:26px;height:{{ w.ah }};background:#d6dee6;border-radius:3px 3px 0 0;opacity:{{ augOpacity }}"></span>
+                    <span style="width:34%;max-width:26px;height:{{ w.sh }};background:#284359;border-radius:3px 3px 0 0"></span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:-8px">
+              <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4"><span style="text-align:center;font-size:10.5px;color:#808a93">{{ w.label }} · {{ w.sub }}</span></sc-for>
+            </div>
+            <div style="font-size:11px;color:#808a93">Semanas com cirurgia concentram a receita. Leia a variação semanal junto com a agenda cirúrgica.</div>
+          </section>
+          <section aria-label="Por procedimento" style="flex:1 1 320px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+            <h2 style="margin:0;font-size:13.5px;font-weight:600">Por procedimento</h2>
+            <sc-for list="{{ procs }}" as="p" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px"><span style="font-weight:500">{{ p.label }}</span><span style="font-variant-numeric:tabular-nums">{{ p.v }}</span></div>
+                <span style="height:5px;background:#efeee9;border-radius:3px;overflow:hidden"><span style="display:block;height:100%;width:{{ p.w }};background:#4b7da7"></span></span>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#808a93"><span>{{ p.n }} · ticket {{ p.ticket }}</span><span>{{ p.pct }}</span></div>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+
+        <section aria-label="Pendências" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:18px 22px 10px"><h2 style="margin:0;font-size:13.5px;font-weight:600">Pendências ligadas a atendimentos próximos</h2><span style="font-size:11.5px;color:#9a6a12;font-weight:500">R$ 18.450 · próximas 72 h</span></div>
+          <div style="overflow-x:auto"><div style="min-width:700px">
+            <sc-for list="{{ pendRows }}" as="p" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(170px,1.2fr) 120px 110px 150px;gap:12px;align-items:center;padding:12px 22px;border-top:1px solid #f3f2ee;font-size:12.5px">
+                <button onClick="{{ p.open }}" style="border:none;background:none;padding:0;text-align:left;cursor:{{ p.cursor }};display:flex;flex-direction:column;color:#14202a"><span style="font-weight:500">{{ p.name }}</span><span style="font-size:11px;color:#808a93">{{ p.st }}</span></button>
+                <span style="color:#4d5a66">{{ p.what }}</span>
+                <span style="color:#4d5a66">{{ p.when }}</span>
+                <span style="font-weight:600;font-variant-numeric:tabular-nums">{{ p.valTxt }}</span>
+                <button onClick="{{ p.remind }}" style="justify-self:end;border:1px solid #e0ded6;background:#fff;padding:5px 10px;border-radius:7px;font-size:11.5px;cursor:pointer;color:{{ p.btnC }}" style-hover="border-color:#a6bacb">{{ p.btn }}</button>
+              </div>
+            </sc-for>
+          </div></div>
+        </section>
+
+        <section aria-label="Transações recentes" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <div style="padding:18px 22px 10px"><h2 style="margin:0;font-size:13.5px;font-weight:600">Transações recentes</h2></div>
+          <div style="overflow-x:auto"><div style="min-width:600px">
+            <sc-for list="{{ txRows }}" as="t" hint-placeholder-count="6">
+              <button onClick="{{ t.open }}" style="display:grid;grid-template-columns:110px minmax(160px,1.2fr) minmax(150px,1fr) 120px 110px;gap:12px;align-items:center;width:100%;padding:11px 22px;border:none;border-top:1px solid #f3f2ee;background:#fff;text-align:left;cursor:{{ t.cursor }};color:#14202a;font-size:12.5px" style-hover="background:#fafaf7">
+                <span style="color:#808a93;font-variant-numeric:tabular-nums">{{ t.d }}</span><span style="font-weight:500">{{ t.name }}</span><span style="color:#4d5a66">{{ t.what }}</span><span style="color:#808a93">{{ t.m }}</span><span style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">{{ t.valTxt }}</span>
+              </button>
+            </sc-for>
+          </div></div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isOps }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Operational Center</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.15">O que precisa acontecer</h1>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:54px" aria-label="Consultas nos próximos 7 dias">
+            <sc-for list="{{ week7 }}" as="w" hint-placeholder-count="7">
+              <div title="{{ w.v }} atendimentos" style="display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;width:30px">
+                <span style="font-size:10px;color:#4d5a66;font-variant-numeric:tabular-nums">{{ w.v }}</span>
+                <span style="width:14px;height:{{ w.h }};min-height:2px;max-height:26px;background:{{ w.c }};border-radius:2px"></span>
+                <span style="font-size:9.5px;color:#808a93">{{ w.d }} {{ w.n }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+          <section aria-label="Agenda" style="flex:1.3 1 460px;min-width:0;background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 22px">
+              <h2 style="margin:0;font-size:13.5px;font-weight:600">Agenda</h2>
+              <div role="tablist" style="display:flex;gap:4px">
+                <sc-for list="{{ opsTabs }}" as="t" hint-placeholder-count="2">
+                  <button role="tab" onClick="{{ t.onClick }}" style="display:flex;gap:6px;border:none;background:{{ t.bg }};color:{{ t.color }};padding:5px 11px;border-radius:999px;font-size:12px;cursor:pointer">{{ t.label }}<span style="color:{{ t.nc }}">{{ t.n }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ heroErr }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:10px 22px;background:#f8ebe8;color:#a8402f;font-size:12px">■ Agenda exibida conforme a última sincronização confirmada (15:10). Alterações posteriores não aparecem.</div>
+            </sc-if>
+            <sc-for list="{{ agenda }}" as="a" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 22px;border-top:1px solid #f3f2ee">
+                <span style="font-family:'Playfair Display',Georgia,serif;font-size:18px;font-variant-numeric:tabular-nums">{{ a.t }}</span>
+                <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                  <button onClick="{{ a.open }}" style="border:none;background:none;padding:0;text-align:left;font-weight:500;font-size:13px;color:#14202a;cursor:{{ a.nameCursor }};text-decoration:{{ a.nameDeco }};text-decoration-color:#d0d5d9;text-underline-offset:3px">{{ a.name }}</button>
+                  <span style="font-size:11.5px;color:#808a93">{{ a.type }}</span>
+                  <span style="display:flex;gap:12px;font-size:11px;flex-wrap:wrap">
+                    <span style="display:flex;gap:5px;align-items:center;color:{{ a.cc }}"><span style="font-size:7px">{{ a.cg }}</span>{{ a.conf }}</span>
+                    <span style="display:flex;gap:5px;align-items:center;color:{{ a.pc }}"><span style="font-size:7px">{{ a.pg }}</span>Pagamento: {{ a.pay }}</span>
+                  </span>
+                </span>
+                <sc-if value="{{ a.needsConf }}"><button onClick="{{ a.confirm }}" style="border:1px solid #e0ded6;background:#fff;padding:6px 11px;border-radius:7px;font-size:11.5px;cursor:pointer;color:#284359;white-space:nowrap" style-hover="border-color:#a6bacb">Confirmar presença</button></sc-if>
+              </div>
+            </sc-for>
+          </section>
+
+          <section aria-label="Pendências" style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font-size:13.5px;font-weight:600">Pendências</h2><span style="font-size:11.5px;color:#808a93">{{ openTasks }} em aberto</span></div>
+            <sc-for list="{{ taskGroups }}" as="g" hint-placeholder-count="4">
+              <div style="background:#fff;border:1px solid #e6e4dd;border-radius:12px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px 8px"><span style="font-size:12.5px;font-weight:600">{{ g.title }}</span><span style="font-size:10.5px;color:#808a93;letter-spacing:0.08em;text-transform:uppercase">{{ g.area }} · {{ g.open }}</span></div>
+                <sc-for list="{{ g.items }}" as="it">
+                  <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid #f3f2ee">
+                    <button onClick="{{ it.toggle }}" aria-pressed="{{ it.dn }}" aria-label="Concluir tarefa" style="width:16px;height:16px;border-radius:4px;border:1.5px solid {{ it.boxB }};background:{{ it.box }};color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">{{ it.check }}</button>
+                    <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:12.5px;color:{{ it.tc }};text-decoration:{{ it.deco }}">{{ it.t }}</span><span style="font-size:11px;color:#a3aab0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.sub }}</span></span>
+                    <sc-if value="{{ it.hasLink }}"><button onClick="{{ it.open }}" aria-label="Abrir" style="border:none;background:none;color:#4b7da7;cursor:pointer;font-size:13px">→</button></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isIntegrations }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Integrations &amp; Data Health</div>
+            <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:34px;line-height:1.15">Fontes e saúde dos dados</h1>
+          </div>
+          <div style="display:flex;gap:22px;flex-wrap:wrap">
+            <sc-for list="{{ srcSummary }}" as="x" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column"><span style="display:flex;gap:6px;align-items:center;font-size:11px;color:#808a93"><span style="color:{{ x.c }};font-size:8px">{{ x.g }}</span>{{ x.label }}</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:26px;line-height:1.1">{{ x.n }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <section aria-label="Fontes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+          <sc-for list="{{ sources }}" as="x" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;gap:12px;background:{{ x.bg }};border:1px solid #e6e4dd;border-radius:14px;padding:18px 20px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">{{ x.name }}</span><span style="font-size:11.5px;color:#808a93">{{ x.kind }}</span></div>
+                <span style="display:flex;gap:6px;align-items:center;font-size:11.5px;color:{{ x.c }};font-weight:500;white-space:nowrap"><span style="font-size:8px">{{ x.g }}</span>{{ x.label }}</span>
+              </div>
+              <div style="font-size:12px;color:#4d5a66;text-wrap:pretty">{{ x.feeds }}</div>
+              <sc-if value="{{ x.hasErr }}"><div style="font-size:12px;color:#a8402f;padding:8px 10px;border-radius:8px;background:#f8ebe8">{{ x.errTxt }}</div></sc-if>
+              <div style="display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:2px" aria-label="Sincronizações nas últimas 24 horas">
+                <sc-for list="{{ x.cells }}" as="c"><span style="height:14px;border-radius:2px;background:{{ c.bg }}"></span></sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:#a3aab0"><span>24 h atrás</span><span>agora</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #efeee9">
+                <span style="display:flex;flex-direction:column;font-size:11px;color:#808a93"><span style="color:#14202a;font-size:12px">{{ x.ago }}</span>{{ x.last }} · {{ x.cad }}</span>
+                <button onClick="{{ x.sync }}" disabled="{{ x.btnDisabled }}" style="border:1px solid #e0ded6;background:#fff;padding:6px 11px;border-radius:7px;font-size:11.5px;cursor:pointer;color:#284359;white-space:nowrap" style-hover="border-color:#a6bacb">{{ x.btn }}</button>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-label="Saúde dos dados" style="background:#fff;border:1px solid #e6e4dd;border-radius:14px;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:18px 22px 10px"><h2 style="margin:0;font-size:13.5px;font-weight:600">Inconsistências e impacto</h2><span style="font-size:11.5px;color:#808a93">Verificação da Blue Database · 17:21</span></div>
+          <sc-for list="{{ issues }}" as="i" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:22px minmax(0,1.3fr) minmax(0,1.3fr) auto;gap:14px;align-items:start;padding:14px 22px;border-top:1px solid #f3f2ee;opacity:{{ i.op }}">
+              <span style="color:{{ i.c }};font-size:9px;padding-top:4px">{{ i.g }}</span>
+              <span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:500;font-size:13px">{{ i.title }}</span><span style="font-size:11.5px;color:#808a93">{{ i.detail }} · {{ i.src }}</span></span>
+              <span style="font-size:12px;color:#4d5a66;text-wrap:pretty"><b style="font-weight:600;color:#14202a">Impacto:</b> {{ i.impact }}</span>
+              <button onClick="{{ i.act }}" style="border:1px solid #e0ded6;background:#fff;padding:6px 11px;border-radius:7px;font-size:11.5px;cursor:pointer;color:#284359;white-space:nowrap" style-hover="border-color:#a6bacb">{{ i.btn }}</button>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </sc-if>
+
+    <div data-slot="screens"></div>
+  </main>
+</div>
+
+<div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(20,32,42,0.2);opacity:{{ dr.op }};pointer-events:{{ dr.pe }};transition:opacity .2s;z-index:40"></div>
+<aside role="dialog" aria-label="Detalhamento" aria-hidden="{{ dr.hidden }}" style="position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:#fff;border-left:1px solid #e6e4dd;box-shadow:-30px 0 60px -30px rgba(20,32,42,0.25);transform:{{ dr.x }};transition:transform .28s cubic-bezier(.2,.7,.2,1);z-index:41;overflow:auto;display:flex;flex-direction:column">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 26px;border-bottom:1px solid #efeee9;position:sticky;top:0;background:#fff;z-index:1">
+    <span style="font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:#808a93;font-weight:500">Detalhamento · {{ d.area }}</span>
+    <button onClick="{{ closeDrawer }}" aria-label="Fechar" style="border:1px solid #e0ded6;background:#fff;width:28px;height:28px;border-radius:7px;cursor:pointer;color:#4d5a66">×</button>
+  </div>
+  <div style="padding:24px 26px 32px;display:flex;flex-direction:column;gap:26px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:13px;color:#4d5a66">{{ d.title }}</div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span style="font-family:'Playfair Display',Georgia,serif;font-size:46px;line-height:1.05">{{ d.value }}</span><span style="font-size:12.5px;color:{{ d.dc }};font-weight:600">{{ d.delta }}</span></div>
+      <div style="font-size:12px;color:#5b6772;text-wrap:pretty;max-width:440px">{{ d.def }}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0;border:1px solid #e6e4dd;border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;background:#fafaf7;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#808a93;font-weight:500;border-bottom:1px solid #efeee9">Origem do dado</div>
+      <sc-for list="{{ d.lineage }}" as="l" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:10px 14px;border-bottom:1px solid #f3f2ee;font-size:12.5px">
+          <span style="color:#808a93">{{ l.k }}</span>
+          <span style="display:flex;align-items:center;gap:6px;color:#14202a"><span style="color:{{ l.c }};font-size:8px">{{ l.g }}</span>{{ l.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12.5px;font-weight:600">{{ d.bTitle }}</div>
+      <sc-for list="{{ d.breakdown }}" as="b" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 110px 60px;gap:12px;align-items:center;font-size:12.5px">
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.label }}</span>
+          <span style="height:5px;border-radius:3px;background:#efeee9;overflow:hidden"><span style="display:block;height:100%;width:{{ b.w }};background:#4b7da7"></span></span>
+          <span style="text-align:right;font-variant-numeric:tabular-nums;color:#4d5a66">{{ b.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;padding-bottom:8px"><span>{{ d.rTitle }}</span><span style="font-weight:400;color:#808a93;font-size:11px">amostra DEMO</span></div>
+      <sc-for list="{{ d.records }}" as="r" hint-placeholder-count="5">
+        <button onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 0;border:none;border-top:1px solid #efeee9;background:none;text-align:left;cursor:pointer;color:#14202a" style-hover="color:#284359">
+          <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:500">{{ r.name }}</span><span style="font-size:11.5px;color:#808a93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</span></span>
+          <span style="font-size:12px;color:#4d5a66;font-variant-numeric:tabular-nums;align-self:center">{{ r.right }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <button onClick="{{ d.go }}" style="align-self:flex-start;border:none;background:#284359;color:#fff;padding:9px 16px;border-radius:8px;font-size:12.5px;cursor:pointer" style-hover="background:#1f3547">{{ d.goLabel }} →</button>
+  </div>
+</aside>
+
+<sc-if value="{{ searchOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSearch }}" style="position:fixed;inset:0;background:rgba(20,32,42,0.25);z-index:50"></div>
+  <div role="dialog" aria-label="Buscar" style="position:fixed;top:12vh;left:50%;transform:translateX(-50%);width:min(560px,92vw);background:#fff;border-radius:14px;box-shadow:0 30px 70px -20px rgba(20,32,42,0.35);z-index:51;overflow:hidden">
+    <input autoFocus="{{ true }}" value="{{ q }}" onChange="{{ onQ }}" placeholder="Buscar lead por nome, ID ou campanha" aria-label="Buscar" style="width:100%;border:none;border-bottom:1px solid #efeee9;padding:18px 20px;font-size:15px;outline:none;color:#14202a">
+    <div style="max-height:360px;overflow:auto;padding:6px 0">
+      <sc-for list="{{ searchResults }}" as="r">
+        <button onClick="{{ r.open }}" style="display:flex;justify-content:space-between;gap:10px;width:100%;padding:10px 20px;border:none;background:none;text-align:left;cursor:pointer;color:#14202a" style-hover="background:#f5f4f0">
+          <span style="display:flex;flex-direction:column"><span style="font-weight:500">{{ r.name }}</span><span style="font-size:11.5px;color:#808a93">{{ r.id }} · {{ r.campName }}</span></span>
+          <span style="font-size:11.5px;color:#5b6772;align-self:center">{{ r.stageLabel }}</span>
+        </button>
+      </sc-for>
+      <sc-if value="{{ noResults }}">
+        <div style="padding:22px 20px;color:#808a93;font-size:12.5px">Nenhum lead encontrado para “{{ q }}”. A busca cobre a amostra DEMO.</div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#14202a;color:#fff;padding:10px 16px;border-radius:9px;font-size:12.5px;z-index:60;display:flex;gap:8px;align-items:center;box-shadow:0 12px 30px -10px rgba(20,32,42,0.4)"><span style="color:#7fc3a3;font-size:9px">●</span>{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;dataState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dados em dia&quot;,&quot;Carregando&quot;,&quot;Dados atrasados&quot;,&quot;Erro de fonte&quot;],&quot;default&quot;:&quot;Dados em dia&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Estados de dados&quot;},&quot;showIntelligence&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Camadas&quot;},&quot;comparePrevious&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Camadas&quot;}}">
+const BRL = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+const PCT = (x, d) => (x * 100).toFixed(d || 0).replace('.', ',') + '%';
+const NUM = n => n.toLocaleString('pt-BR');
+const STAGES = ['Lead','Contato','Qualificação','Agendamento','Pagamento','Confirmação','Consulta','Realização','Faturamento'];
+const LV = {crit:{g:'■',c:'#a8402f',bg:'#f8ebe8'},warn:{g:'▲',c:'#9a6a12',bg:'#f7f0e1'},info:{g:'●',c:'#4b7da7',bg:'#eef3f7'},ok:{g:'●',c:'#2e7a5c',bg:'#e9f3ee'},off:{g:'○',c:'#808a93',bg:'#f0efeb'}};
+const FS = {ok:{g:'●',c:'#2e7a5c',label:'Atualizado'},sync:{g:'◐',c:'#4b7da7',label:'Sincronizando'},stale:{g:'▲',c:'#9a6a12',label:'Atrasado'},err:{g:'■',c:'#a8402f',label:'Erro'},off:{g:'○',c:'#808a93',label:'Indisponível'}};
+const SCREENS = {overview:'Visão geral',commercial:'Comercial',lead:'Lead 360',marketing:'Marketing',finance:'Financeiro',ops:'Operação',integrations:'Integrações & Data Health',ds:'Design System'};
+const REPS = {
+  maria:{id:'maria',name:'Maria',ini:'M',role:'Comercial 1',leads:92,qual:41,agend:26,pagos:23,real:17,cir:5,rec:241300,resp:'14 min',respOk:true,pipe:96000,open:31},
+  mayra:{id:'mayra',name:'Mayra',ini:'M',role:'Comercial 2',leads:55,qual:17,agend:8,pagos:6,real:5,cir:1,rec:43300,resp:'1 h 52 min',respOk:false,pipe:38500,open:24}
+};
+const CAMPS = [
+  {id:'c1',name:'Lipedema — Conversão BR',ch:'Meta Ads',spend:18400,leads:64,qual:22,agend:11,pagos:10,cir:2,rec:96200},
+  {id:'c2',name:'LipeDefinition — Remarketing',ch:'Meta Ads',spend:6200,leads:21,qual:12,agend:8,pagos:8,cir:2,rec:88400},
+  {id:'c3',name:'Sublift — Awareness',ch:'Meta Ads',spend:9800,leads:38,qual:5,agend:2,pagos:2,cir:0,rec:2400},
+  {id:'c4',name:'Search — Lipedema',ch:'Google Ads',spend:7900,leads:14,qual:10,agend:7,pagos:5,cir:1,rec:61300},
+  {id:'c5',name:'Instagram orgânico',ch:'Orgânico',spend:0,leads:6,qual:5,agend:2,pagos:1,cir:0,rec:1100},
+  {id:'c6',name:'Indicação de pacientes',ch:'Indicação',spend:0,leads:4,qual:4,agend:4,pagos:3,cir:1,rec:35200}
+];
+const LEADS = [
+  {id:'L-2041',name:'Carolina Menezes',camp:'c1',canal:'WhatsApp',temp:'Quente',rep:'maria',stage:4,city:'São Paulo, SP',lang:'Português',mod:'Presencial',value:1200,last:'há 2 d',flag:'Sinal pendente',entered:16},
+  {id:'L-2077',name:'Juliana Prado',camp:'c4',temp:'Quente',rep:'mayra',stage:1,city:'Campinas, SP',last:'há 3 h',flag:'Sem resposta',entered:28},
+  {id:'L-2069',name:'Laura Whitman',camp:'c2',canal:'Instagram DM',temp:'Quente',rep:'maria',stage:3,city:'Miami, EUA',lang:'Inglês',mod:'Online',value:1000,last:'há 5 h',entered:22},
+  {id:'L-2052',name:'Renata Ogawa',camp:'c2',temp:'Quente',rep:'maria',stage:5,city:'Curitiba, PR',mod:'Presencial',value:1200,last:'ontem',flag:'Não confirmada',entered:12},
+  {id:'L-2018',name:'Camila Duarte',camp:'c4',temp:'Quente',rep:'maria',stage:8,city:'São Paulo, SP',mod:'Presencial',value:43500,last:'há 2 d',entered:3},
+  {id:'L-2080',name:'Mariana Teles',camp:'c1',temp:'Quente',rep:'mayra',stage:0,city:'Rio de Janeiro, RJ',last:'há 2 h',flag:'Sem resposta',entered:28},
+  {id:'L-2064',name:'Fernanda Castro',camp:'c6',canal:'Indicação',temp:'Morno',rep:'maria',stage:7,city:'Lisboa, Portugal',mod:'Online',value:1000,last:'hoje',entered:14},
+  {id:'L-2071',name:'Patrícia Ramos',camp:'c3',temp:'Frio',rep:'mayra',stage:2,city:'Belo Horizonte, MG',last:'há 6 d',entered:19},
+  {id:'L-2058',name:'Ana Beatriz Lopes',camp:'c5',canal:'Instagram DM',temp:'Morno',rep:'mayra',stage:2,city:'São Paulo, SP',last:'há 1 d',entered:21},
+  {id:'L-2033',name:'Sofia Albuquerque',camp:'c1',temp:'Quente',rep:'maria',stage:7,city:'Brasília, DF',mod:'Presencial',value:1200,last:'hoje',entered:9},
+  {id:'L-2075',name:'Beatriz Nogueira',camp:'c3',temp:'Morno',rep:'mayra',stage:1,city:'Salvador, BA',last:'há 4 h',flag:'Sem resposta',entered:27},
+  {id:'L-2046',name:'Helena Vasconcelos',camp:'c4',temp:'Quente',rep:'maria',stage:4,city:'Ribeirão Preto, SP',mod:'Presencial',value:1200,last:'há 1 d',flag:'Sinal pendente',entered:20}
+].map(l => ({canal:'WhatsApp',lang:'Português',mod:'—',value:null,flag:null,...l}));
+const FLAGS = {'Sem resposta':LV.crit,'Sinal pendente':LV.warn,'Não confirmada':LV.warn};
+const SOURCES = [
+  {id:'kommo',name:'Kommo',kind:'CRM',feeds:'Leads, conversas, estágios, responsáveis',st:'ok',ago:'há 4 min',last:'28/09/2026 17:20',cad:'a cada 5 min',recs:'1.705 registros'},
+  {id:'amigo',name:'Amigo Clinic',kind:'Gestão clínica',feeds:'Agenda, consultas, pagamentos, procedimentos',st:'ok',ago:'há 18 min',last:'28/09/2026 17:06',cad:'a cada 15 min',recs:'885 registros'},
+  {id:'meta',name:'Meta Ads',kind:'Mídia paga',feeds:'Campanhas, investimento, formulários',st:'stale',ago:'há 2 h 10 min',last:'28/09/2026 15:14',cad:'esperado a cada 30 min',recs:'3 campanhas'},
+  {id:'gads',name:'Google Ads',kind:'Mídia paga',feeds:'Campanhas, investimento, conversões',st:'sync',ago:'sincronizando',last:'28/09/2026 16:58',cad:'a cada 60 min',recs:'1 campanha'},
+  {id:'ga4',name:'GA4',kind:'Analytics',feeds:'Sessões, origem de tráfego, eventos do site',st:'err',ago:'falhou há 19 h',last:'27/09/2026 22:14',cad:'a cada 60 min',recs:'—',err:'Token de acesso expirado. Reautorização necessária.'},
+  {id:'bdb',name:'Blue Database',kind:'Consolidação',feeds:'Unifica fontes, resolve identidades, calcula métricas',st:'ok',ago:'há 3 min',last:'28/09/2026 17:21',cad:'contínuo',recs:'2.590 registros'}
+];
+const AGENDA = {
+  hoje:[
+    {t:'09:00',name:'Sofia Albuquerque',id:'L-2033',type:'Consulta · Presencial · SP',conf:'Realizada',pay:'Pago'},
+    {t:'10:30',name:'Fernanda Castro',id:'L-2064',type:'Consulta · Online · Lisboa',conf:'Realizada',pay:'Pago'},
+    {t:'14:00',name:'Luiza Freitas',type:'Retorno pós-operatório · Presencial',conf:'Confirmada',pay:'—'},
+    {t:'16:30',name:'Isabela Moura',type:'Consulta · Online',conf:'Confirmada',pay:'Pago'},
+    {t:'18:00',name:'Priscila Antunes',type:'Consulta · Presencial · SP',conf:'Não confirmada',pay:'Pago'}
+  ],
+  amanha:[
+    {t:'09:30',name:'Renata Ogawa',id:'L-2052',type:'Consulta · Presencial · SP',conf:'Não confirmada',pay:'Pago'},
+    {t:'11:00',name:'Tatiana Reis',type:'Consulta · Presencial · SP',conf:'Não confirmada',pay:'Parcial'},
+    {t:'15:00',name:'Clara Mendes',type:'Consulta · Online',conf:'Confirmada',pay:'Pago'},
+    {t:'17:00',name:'Vanessa Lima',type:'Consulta · Presencial · SP',conf:'Não confirmada',pay:'Pago'},
+    {t:'18:00',name:'Débora Sá',type:'Consulta · Online',conf:'Não confirmada',pay:'Pago'}
+  ]
+};
+const PEND = [
+  {name:'Marta Silveira',what:'Saldo · LipeDefinition',when:'Cirurgia 02/10',val:14850,st:'Parcial · 66% pago'},
+  {name:'Carolina Menezes',id:'L-2041',what:'Sinal · Consulta presencial',when:'Consulta 01/10',val:1200,st:'Link enviado há 4 d'},
+  {name:'Helena Vasconcelos',id:'L-2046',what:'Sinal · Consulta presencial',when:'Consulta 30/09',val:1200,st:'Link enviado há 1 d'},
+  {name:'Joana Pires',what:'Sinal · Consulta online',when:'Consulta 30/09',val:600,st:'Aguardando'},
+  {name:'Tatiana Reis',what:'Restante · Consulta presencial',when:'Consulta 29/09',val:600,st:'Parcial · 50% pago'}
+];
+const TX = [
+  {d:'28/09 11:42',name:'Sofia Albuquerque',id:'L-2033',what:'Consulta presencial',val:1200,m:'Pix'},
+  {d:'27/09 16:05',name:'Clara Mendes',what:'Consulta online',val:1000,m:'Cartão'},
+  {d:'26/09 10:18',name:'Camila Duarte',id:'L-2018',what:'LipeDefinition',val:43500,m:'Transferência'},
+  {d:'25/09 14:51',name:'Isabela Moura',what:'Consulta online',val:1000,m:'Pix'},
+  {d:'23/09 09:30',name:'R. Andrade',what:'Sublift',val:39000,m:'Cartão · 6x'},
+  {d:'22/09 18:02',name:'Vanessa Lima',what:'Consulta presencial',val:1200,m:'Pix'}
+];
+const ISSUES = [
+  {id:'h1',lvl:'crit',title:'2 pagamentos sem lead correspondente',detail:'Pagamentos no Amigo Clinic sem vínculo com lead no Kommo (R$ 2.400).',impact:'Esses valores entram na receita, mas não podem ser atribuídos a campanha ou responsável.',src:'Amigo Clinic × Kommo',cta:'Vincular manualmente'},
+  {id:'h2',lvl:'warn',title:'3 possíveis leads duplicados',detail:'Mesmo telefone em registros diferentes do Kommo.',impact:'O total de leads do mês pode estar superestimado em até 3.',src:'Kommo',cta:'Revisar pares'},
+  {id:'h3',lvl:'warn',title:'2 vendas fechadas sem valor no CRM',detail:'Estágio “Venda” no Kommo sem campo de valor.',impact:'Receita por responsável fica incompleta. A receita total usa o Amigo Clinic.',src:'Kommo',cta:'Abrir registros'},
+  {id:'h4',lvl:'info',title:'5 leads com UTM incompleta',detail:'Atribuídos a “Instagram orgânico” por regra de fallback.',impact:'Campanhas pagas podem estar subestimadas no Marketing.',src:'Kommo',cta:'Ver leads'},
+  {id:'h5',lvl:'off',title:'Sessões do site indisponíveis',detail:'GA4 sem sincronizar desde 27/09 22:14.',impact:'Conversão do site não é exibida em Marketing.',src:'GA4',cta:'Reautorizar GA4'}
+];
+function series(total, days, surg, seed) {
+  let r = seed; const rnd = () => { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+  const w = []; for (let d = 1; d <= days; d++) w.push(((d + 1) % 7 === 0) ? 0.15 : 0.5 + rnd());
+  const s = w.reduce((a, b) => a + b, 0);
+  const c = w.map(x => Math.round(x / s * total)); c[days - 1] += total - c.reduce((a, b) => a + b, 0);
+  return c.map((v, i) => v + (surg[i + 1] || 0));
+}
+const SEP = series(32600, 28, {4:43500,9:39000,15:43500,18:43500,23:39000,26:43500}, 7);
+const AUG = series(36000, 31, {3:43500,8:39000,14:43500,20:43500,27:39000,30:43500}, 3);
+const cum = a => { let s = 0; return a.map(v => (s += v)); };
+const SEPC = cum(SEP), AUGC = cum(AUG);
+const YMAX = 320000;
+const px = d => ((d - 1) / 29) * 600, py = v => 200 - (v / YMAX) * 200;
+const pathOf = arr => arr.slice(0, 30).map((v, i) => (i ? 'L' : 'M') + px(i + 1).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
+
+class Component extends DCLogic {
+  state = {screen:'overview',leadId:'L-2041',trail:[],drawer:null,period:'Mês',filters:[],filterOpen:false,searchOpen:false,q:'',commTab:'todos',repId:null,campId:'c1',opsDay:'hoje',done:{},acked:{},toast:null,hoverDay:null,vw:typeof window !== 'undefined' ? window.innerWidth : 1440,role:'Direção',syncing:{},retried:false};
+  componentDidMount() {
+    this.onR = () => this.setState({vw:window.innerWidth});
+    this.onK = e => {
+      if (e.key === 'Escape') this.setState({drawer:null,filterOpen:false,searchOpen:false});
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.setState({searchOpen:true,q:''}); }
+    };
+    window.addEventListener('resize', this.onR); window.addEventListener('keydown', this.onK);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onR); window.removeEventListener('keydown', this.onK); clearTimeout(this.tt); }
+  top() { try { window.scrollTo({top:0}); } catch (e) {} }
+  go = (screen, opts) => { this.setState(st => ({trail:[...st.trail, {screen:st.screen, leadId:st.leadId}].slice(-4), screen, drawer:null, searchOpen:false, filterOpen:false, ...(opts || {})})); this.top(); };
+  nav = screen => { this.setState({screen, trail:[], drawer:null, filterOpen:false}); this.top(); };
+  back = () => { this.setState(st => { const t = [...st.trail]; const p = t.pop(); return p ? {trail:t, screen:p.screen, leadId:p.leadId, drawer:null} : {}; }); this.top(); };
+  openLead = id => this.go('lead', {leadId:id});
+  flash = msg => { this.setState({toast:msg}); clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({toast:null}), 2600); };
+  toggleDone = (id, msg) => { this.setState(st => ({done:{...st.done, [id]:!st.done[id]}})); if (!this.state.done[id] && msg) this.flash(msg); };
+
+  sources() {
+    const ds = this.props.dataState || 'Dados em dia';
+    return SOURCES.map(s => {
+      let x = {...s};
+      if (s.id === 'amigo' && ds === 'Dados atrasados') x = {...x, st:'stale', ago:'há 3 h 40 min', last:'28/09/2026 13:44'};
+      if (s.id === 'amigo' && ds === 'Erro de fonte' && !this.state.retried) x = {...x, st:'err', ago:'falhou às 16:52', err:'Tempo de resposta excedido (timeout). Nova tentativa automática em 10 min.'};
+      if (this.state.syncing[s.id]) x = {...x, st:'sync', ago:'sincronizando'};
+      if (this.state.syncing[s.id] === 'done') x = {...x, st:'ok', ago:'agora', last:'28/09/2026 17:24', err:null};
+      return {...x, ...FS[x.st]};
+    });
+  }
+  decor(l) {
+    const c = CAMPS.find(x => x.id === l.camp), r = REPS[l.rep], f = FLAGS[l.flag];
+    return {...l, campName:c.name, ch:c.ch, repName:r.name, stageLabel:STAGES[l.stage], ini:l.name.split(' ').map(p => p[0]).slice(0, 2).join(''),
+      tempBars:l.temp === 'Quente' ? '●●●' : l.temp === 'Morno' ? '●●○' : '●○○', hasFlag:!!l.flag, flagTxt:l.flag || '', flagC:f ? f.c : '#808a93', flagBg:f ? f.bg : 'transparent', flagG:f ? f.g : '',
+      valueTxt:l.value ? BRL(l.value) : '—', stageW:((l.stage + 1) / 9 * 100).toFixed(0) + '%', open:() => this.openLead(l.id)};
+  }
+  filtered(list) {
+    const fs = this.state.filters; if (!fs.length) return list;
+    const map = {'Responsável':'repName','Origem':'ch','Temperatura':'temp','Modalidade':'mod','Idioma':'lang'};
+    const by = {}; fs.forEach(f => { (by[f.facet] = by[f.facet] || []).push(f.value); });
+    return list.filter(l => Object.keys(by).every(k => by[k].includes(l[map[k]])));
+  }
+  journey(l) {
+    const r = REPS[l.rep], c = CAMPS.find(x => x.id === l.camp);
+    const dt = off => { let d = l.entered + off, m = 9; if (d > 30) { d -= 30; m = 10; } return String(d).padStart(2, '0') + '/' + String(m).padStart(2, '0'); };
+    let ev;
+    if (l.id === 'L-2041') ev = [
+      {date:'16/09 · 09:12',title:'Entrou pelo formulário do Meta Lead Ads',detail:'Lipedema — Conversão BR · anúncio “Diagnóstico precoce”',src:'Meta Ads → Kommo',gap:''},
+      {date:'16/09 · 09:26',title:'Primeira resposta de Maria',detail:'WhatsApp · tempo de resposta 14 min',msg:'Olá, Carolina! Aqui é a Maria, da Blue. Vi que você quer entender melhor o diagnóstico de lipedema. Posso te fazer algumas perguntas rápidas?',msgFrom:'Maria · 09:26',src:'Kommo',gap:'+14 min'},
+      {date:'18/09 · 11:03',title:'Qualificada',detail:'Sintomas descritos compatíveis com avaliação. Prefere consulta presencial em São Paulo. Temperatura: morno → quente.',src:'Kommo',gap:'+2 d'},
+      {date:'24/09 · 15:40',title:'Consulta agendada para 01/10 às 10:00',detail:'Presencial · Unidade São Paulo · Dr. Rafael Erthal',src:'Amigo Clinic',gap:'+6 d'},
+      {date:'Agora',title:'Aguardando pagamento do sinal',detail:'Link de R$ 1.200 enviado em 24/09. Sem pagamento há 4 dias.',msg:'Perfeito, Maria! Vou fazer o pagamento até o fim de semana.',msgFrom:'Carolina · 25/09 20:11',src:'Amigo Clinic',gap:'+4 d'},
+      {date:'até 30/09',title:'Confirmação de presença',detail:'Depende do pagamento do sinal'},
+      {date:'01/10 · 10:00',title:'Consulta',detail:'Presencial · São Paulo'},
+      {date:'—',title:'Realização',detail:'Registro do atendimento no Amigo Clinic'},
+      {date:'—',title:'Faturamento',detail:'Consulta e eventual procedimento'}
+    ];
+    else {
+      const offs = [0, 0, 2, 5, 5, 8, 11, 11, 13];
+      const paid = l.value ? BRL(l.value) : 'R$ 1.200';
+      ev = [
+        {title:'Lead criado via ' + c.name, detail:c.ch + ' · ' + l.canal, src:c.ch + ' → Kommo'},
+        {title:l.stage >= 1 && l.flag !== 'Sem resposta' ? 'Primeira resposta de ' + r.name : 'Aguardando primeira resposta', detail:l.flag === 'Sem resposta' ? 'Sem resposta ' + l.last.replace('há ', 'há ') + ' · responsável ' + r.name : l.canal + ' · tempo de resposta ' + r.resp, src:'Kommo'},
+        {title:'Qualificação', detail:'Interesse e perfil avaliados por ' + r.name, src:'Kommo'},
+        {title:'Consulta agendada', detail:l.mod + ' · ' + l.city, src:'Amigo Clinic'},
+        {title:l.stage > 4 ? 'Sinal pago · ' + paid : 'Aguardando pagamento do sinal', detail:l.stage > 4 ? 'Pagamento confirmado' : 'Link de pagamento enviado', src:'Amigo Clinic'},
+        {title:'Presença confirmada', detail:'Confirmação pela paciente', src:'Kommo'},
+        {title:'Consulta', detail:l.mod + ' · Dr. Rafael Erthal', src:'Amigo Clinic'},
+        {title:'Consulta realizada', detail:'Atendimento registrado', src:'Amigo Clinic'},
+        {title:l.value > 5000 ? 'Faturado · LipeDefinition ' + BRL(l.value) : 'Faturado', detail:'Pagamento integral confirmado', src:'Amigo Clinic'}
+      ].map((e, i) => ({...e, date:i < l.stage ? dt(offs[i]) : i === l.stage ? 'Agora' : '—', gap:i && i <= l.stage ? '+' + (offs[i] - offs[i - 1] || 0) + ' d' : ''}));
+      if (l.stage === 8) ev[8].date = dt(13);
+    }
+    return ev.map((e, i) => {
+      const st = i < l.stage || (l.stage === 8 && i === 8) ? 'done' : i === l.stage ? 'now' : 'next';
+      return {...e, label:STAGES[i], hasMsg:!!e.msg, hasGap:!!e.gap && st !== 'next', hasSrc:!!e.src && st !== 'next',
+        dotBg:st === 'done' ? '#284359' : st === 'now' ? '#fff' : '#fff', dotBorder:st === 'done' ? '#284359' : st === 'now' ? '#4b7da7' : '#d5d9dc', dotRing:st === 'now' ? '0 0 0 4px rgba(75,125,167,0.18)' : 'none',
+        line:i < l.stage ? '#284359' : '#e6e4dd', lineDisplay:i === 8 ? 'none' : 'block', tc:st === 'next' ? '#98a1a9' : '#14202a', dc:st === 'next' ? '#a3aab0' : '#5b6772',
+        nowBg:st === 'now' ? '#f3f6f9' : 'transparent', stLabel:st === 'done' ? 'Concluído' : st === 'now' ? 'Etapa atual' : 'Próxima', stC:st === 'now' ? '#4b7da7' : '#a3aab0'};
+    });
+  }
+
+  screenVals({L, FL, lead, srcs, src, amigo, isLoading, heroErr}) {
+    const s = this.state;
+    // commercial
+    const ST = [['Lead → Qualificado', 58 / 147, 55 / 135], ['Qualificado → Agendado', 34 / 58, 35 / 55], ['Agendado → Pago', 29 / 34, 27 / 35], ['Pago → Realizado', 22 / 29, 20 / 27], ['Realizado → Cirurgia', 6 / 22, 5 / 20]];
+    const minD = Math.min(...ST.map(x => x[1] - x[2]));
+    const steps = ST.map(([label, c, p]) => { const dd = c - p, isB = dd === minD; return {label, cur:PCT(c, 1), prev:'ago ' + PCT(p, 1), diff:(dd >= 0 ? '+' : '−') + Math.abs(dd * 100).toFixed(1).replace('.', ',') + ' p.p.', dc:dd >= 0 ? '#2e7a5c' : '#a8402f', w:(c * 100) + '%', isB, bg:isB ? '#fbf3f1' : '#fff', tag:isB ? 'Gargalo' : '', bar:isB ? '#a8402f' : '#4b7da7'}; });
+    const team = Object.values(REPS).map(r => { const on = s.repId === r.id; return {...r, conv:PCT(r.pagos / r.leads, 1), recTxt:BRL(r.rec), pipeTxt:BRL(r.pipe), rc:r.respOk ? '#2e7a5c' : '#9a6a12', rg:r.respOk ? '●' : '▲', bg:on ? '#f3f6f9' : '#fff', mark:on ? 'Filtrando ✓' : 'Ver leads', onClick:() => this.setState(st => ({repId:st.repId === r.id ? null : r.id}))}; });
+    const V = [['Lead → qualificação', 2.1, '#a6bacb'], ['Qualificação → agendamento', 4.2, '#7f9dba'], ['Agendamento → consulta', 6.1, '#4b7da7'], ['Consulta → cirurgia', 10.6, '#284359']];
+    const vt = V.reduce((a, v) => a + v[1], 0);
+    const velocity = V.map(([label, dd, c]) => ({label, days:String(dd).replace('.', ',') + ' d', w:(dd / vt * 100) + '%', c}));
+    const byRep = s.repId ? FL.filter(l => l.rep === s.repId) : FL;
+    const TABS = [['todos', 'Todos', () => true], ['semresp', 'Sem resposta', l => l.flag === 'Sem resposta'], ['quentes', 'Quentes', l => l.temp === 'Quente'], ['pagamento', 'Pagamento pendente', l => l.flag === 'Sinal pendente']];
+    const commTabs = TABS.map(([id, label, fn]) => { const on = s.commTab === id; return {label, n:byRep.filter(fn).length, bg:on ? '#14202a' : 'transparent', color:on ? '#fff' : '#4d5a66', nc:on ? '#a6bacb' : '#a3aab0', onClick:() => this.setState({commTab:id})}; });
+    const commLeads = byRep.filter((TABS.find(t => t[0] === s.commTab) || TABS[0])[2]);
+
+    // lead 360
+    const LI = lead.flag === 'Sinal pendente' ? {lvl:'warn', title:'Sinal pendente há 4 dias; a consulta é em 3 dias.', why:'A última mensagem da paciente indica intenção de pagar. Não houve novo contato desde 25/09.', cta:'Reenviar link de pagamento'}
+      : lead.flag === 'Sem resposta' ? {lvl:'crit', title:'Lead quente sem primeira resposta ' + lead.last + '.', why:'Responsável: ' + lead.repName + '. Leads desta campanha que receberam resposta em até 15 min agendaram com mais frequência neste mês.', cta:'Assumir atendimento'}
+      : lead.flag === 'Não confirmada' ? {lvl:'warn', title:'Consulta amanhã sem confirmação de presença.', why:'Pagamento confirmado. Falta apenas a confirmação da paciente.', cta:'Enviar confirmação'}
+      : lead.stage === 8 ? {lvl:'ok', title:'Jornada concluída em 13 dias.', why:'Do primeiro contato ao faturamento de ' + lead.valueTxt + '. Ciclo médio da clínica: 23 dias.', cta:'Ver no Financeiro'}
+      : {lvl:'info', title:'Próxima etapa: ' + STAGES[lead.stage + 1].toLowerCase() + '.', why:'Última interação ' + lead.last + ' com ' + lead.repName + '.', cta:'Registrar contato'};
+    const leadIntel = {...LI, ...LV[LI.lvl], act:() => LI.cta === 'Ver no Financeiro' ? this.go('finance') : this.flash(LI.cta + ' · registrado no Kommo (demo)')};
+    const journey = this.journey(lead);
+    const progress = STAGES.map((x, i) => ({label:x, bg:i < lead.stage || lead.stage === 8 ? '#284359' : i === lead.stage ? '#4b7da7' : '#e6e4dd'}));
+    const leadFacts = [['Origem', lead.ch], ['Canal', lead.canal], ['Modalidade', lead.mod], ['Localização', lead.city], ['Idioma', lead.lang], ['Entrada', String(lead.entered).padStart(2, '0') + '/09/2026']].map(([k, v]) => ({k, v}));
+    const hasConsult = lead.stage >= 3;
+    const payTxt = lead.stage < 4 ? 'Ainda não gerado' : lead.stage === 4 ? 'Pendente' : 'Pago';
+    const leadPay = {val:lead.value ? BRL(lead.value) : '—', status:payTxt, ...(lead.stage === 4 ? LV.warn : lead.stage > 4 ? LV.ok : LV.off), sub:lead.stage === 4 ? 'Link enviado · aguardando' : lead.stage > 4 ? 'Confirmado no Amigo Clinic' : 'Gerado após agendamento'};
+    const leadConsult = {when:lead.id === 'L-2041' ? '01/10 · 10:00' : lead.stage >= 7 ? 'Realizada' : 'Agendada', where:lead.mod + (lead.mod === 'Online' ? ' · videochamada' : ' · Unidade São Paulo'), doctor:'Dr. Rafael Erthal', conf:lead.stage >= 5 ? 'Confirmada' : 'Não confirmada', confC:lead.stage >= 5 ? '#2e7a5c' : '#9a6a12', confG:lead.stage >= 5 ? '●' : '▲'};
+    const leadIds = [{k:'Kommo', v:'#' + lead.id.replace('L-', '48')}, {k:'Amigo Clinic', v:hasConsult ? 'PAC-' + lead.id.replace('L-', '10') : 'sem cadastro'}, {k:'Blue Database', v:lead.id}];
+
+    // marketing
+    const paidSpend = CAMPS.reduce((a, c) => a + c.spend, 0);
+    const camps = CAMPS.map(c => { const on = s.campId === c.id; return {...c, spendTxt:c.spend ? BRL(c.spend) : '—', cpl:c.spend ? BRL(c.spend / c.leads) : '—', qualPct:PCT(c.qual / c.leads), cpa:c.spend ? BRL(c.spend / c.agend) : '—', recTxt:BRL(c.rec), roas:c.spend ? (c.rec / c.spend).toFixed(1).replace('.', ',') + '×' : '—', lw:(c.leads / 147 * 100) + '%', rw:(c.rec / 284600 * 100) + '%', bg:on ? '#f3f6f9' : 'transparent', bl:on ? '#284359' : 'transparent', onClick:() => this.setState({campId:c.id})}; });
+    const sc = camps.find(c => c.id === s.campId) || camps[0];
+    const chain = [['Leads', sc.leads], ['Qualificados', sc.qual], ['Agendados', sc.agend], ['Consultas pagas', sc.pagos], ['Cirurgias', sc.cir]].map(([label, v], i, a) => ({label, v, w:Math.max(2, v / sc.leads * 100) + '%', conv:i ? PCT(a[i - 1][1] ? v / a[i - 1][1] : 0) : '100%'}));
+    const selLeads = L.filter(l => l.camp === sc.id);
+    const selNote = sc.id === 'c3' ? 'Volume alto com baixa qualificação. Antes de pausar, verificar se o público e a mensagem do anúncio correspondem ao Sublift.' : sc.rec / (sc.spend || 1) > 8 ? 'Alta receita por real investido. Volume limitado pelo tamanho do público de remarketing.' : 'Conversão dentro da média das campanhas pagas.';
+
+    // finance
+    const wk = (arr, a, b) => arr.slice(a - 1, b).reduce((x, y) => x + y, 0);
+    const WK = [[1, 7], [8, 14], [15, 21], [22, 28]].map(([a, b], i) => ({label:'S' + (i + 1), sub:String(a).padStart(2, '0') + '–' + b, sep:wk(SEP, a, b), aug:wk(AUG, a, b)}));
+    const wmax = Math.max(...WK.map(w => Math.max(w.sep, w.aug)));
+    const weeks = WK.map(w => ({...w, sepTxt:BRL(w.sep), sh:(w.sep / wmax * 100) + '%', ah:(w.aug / wmax * 100) + '%'}));
+    const procs = [['LipeDefinition', 4, 174000], ['Sublift', 2, 78000], ['Consulta presencial', 18, 21600], ['Consulta online', 11, 11000]].map(([label, n, v]) => ({label, n:n + (n > 2 ? ' consultas' : ' cirurgias'), v:BRL(v), pct:PCT(v / 284600), w:(v / 284600 * 100) + '%', ticket:BRL(v / n)}));
+    const pendRows = PEND.map((p, i) => { const k = 'p' + i, dn = !!s.done[k]; return {...p, valTxt:BRL(p.val), btn:dn ? 'Lembrete enviado ✓' : 'Enviar lembrete', btnC:dn ? '#2e7a5c' : '#284359', open:() => p.id ? this.openLead(p.id) : null, cursor:p.id ? 'pointer' : 'default', remind:() => this.toggleDone(k, 'Lembrete de pagamento enviado para ' + p.name + ' (demo)')}; });
+    const txRows = TX.map(t => ({...t, valTxt:BRL(t.val), open:() => t.id ? this.openLead(t.id) : null, cursor:t.id ? 'pointer' : 'default'}));
+
+    // ops
+    const day = s.opsDay;
+    const agenda = (AGENDA[day] || AGENDA.hoje).map((a, i) => { const k = day + i, conf = s.done[k] ? 'Confirmada' : a.conf; const x = {...a, conf}; const stt = conf === 'Realizada' ? LV.ok : conf === 'Confirmada' ? LV.info : LV.warn; const pay = a.pay === 'Pago' ? LV.ok : a.pay === 'Parcial' ? LV.warn : LV.off; return {...x, cg:stt.g, cc:stt.c, cbg:stt.bg, pg:pay.g, pc:pay.c, needsConf:conf === 'Não confirmada', confirm:() => this.toggleDone(k, 'Presença de ' + a.name + ' confirmada (demo)'), open:() => a.id ? this.openLead(a.id) : null, nameCursor:a.id ? 'pointer' : 'default', nameDeco:a.id ? 'underline' : 'none'}; });
+    const opsTabs = [['hoje', 'Hoje · 28/09'], ['amanha', 'Amanhã · 29/09']].map(([id, label]) => { const on = day === id; return {label, n:AGENDA[id].length, bg:on ? '#14202a' : 'transparent', color:on ? '#fff' : '#4d5a66', nc:on ? '#a6bacb' : '#a3aab0', onClick:() => this.setState({opsDay:id})}; });
+    const T = [
+      {title:'Confirmar presença', area:'Agenda', items:[...AGENDA.amanha.filter(a => a.conf === 'Não confirmada').map(a => ({id:'tc-' + a.name, t:a.name, sub:'Amanhã ' + a.t + ' · ' + a.type})), {id:'tc-pri', t:'Priscila Antunes', sub:'Hoje 18:00 · Consulta presencial'}]},
+      {title:'Cobrar pagamentos', area:'Financeiro', items:PEND.map(p => ({id:'tp-' + p.name, t:p.name + ' · ' + BRL(p.val), sub:p.what + ' · ' + p.when, lead:p.id}))},
+      {title:'Responder leads', area:'Comercial', items:L.filter(l => l.flag === 'Sem resposta').map(l => ({id:'tl-' + l.id, t:l.name, sub:l.campName + ' · ' + l.repName + ' · ' + l.last, lead:l.id}))},
+      {title:'Corrigir dados', area:'Data Health', items:[{id:'td-1', t:'2 pagamentos sem lead', sub:'Amigo Clinic × Kommo · R$ 2.400', go:'integrations'}, {id:'td-2', t:'3 possíveis duplicados', sub:'Kommo · mesmo telefone', go:'integrations'}]}
+    ];
+    const taskGroups = T.map(g => { const items = g.items.map(it => { const dn = !!s.done[it.id]; return {...it, dn, box:dn ? '#284359' : '#fff', boxB:dn ? '#284359' : '#c9cdd0', check:dn ? '✓' : '', tc:dn ? '#a3aab0' : '#14202a', deco:dn ? 'line-through' : 'none', toggle:() => this.toggleDone(it.id, 'Tarefa concluída'), open:() => it.lead ? this.openLead(it.lead) : it.go ? this.go(it.go) : null, hasLink:!!(it.lead || it.go)}; }); return {...g, items, open:items.filter(i => !i.dn).length}; });
+    const openTasks = taskGroups.reduce((a, g) => a + g.open, 0);
+    const week7 = [['Seg', '28', 5], ['Ter', '29', 5], ['Qua', '30', 4], ['Qui', '01', 6], ['Sex', '02', 4], ['Sáb', '03', 1], ['Dom', '04', 0]].map(([d, n, v], i) => ({d, n, v, h:(v / 6 * 100) + '%', c:i === 0 ? '#284359' : '#a6bacb', note:n === '02' ? '1 cirurgia' : ''}));
+
+    // integrations
+    const cellsFor = x => Array.from({length:24}, (_, i) => { let st = 'ok'; if (x.id === 'meta' && i >= 22) st = 'stale'; if (x.id === 'gads' && i === 23) st = 'sync'; if (x.id === 'ga4' && i >= 5) st = 'err'; if (x.id === 'amigo' && x.st === 'stale' && i >= 20) st = 'stale'; if (x.id === 'amigo' && x.st === 'err' && i === 23) st = 'err'; if (x.id === 'kommo' && i === 9) st = 'stale'; return {bg:{ok:'#bcd7c8', stale:'#e4c98f', sync:'#a6bacb', err:'#d99a8f'}[st]}; });
+    const sources = srcs.map(x => ({...x, hasErr:!!x.err, errTxt:x.err || '', bg:x.st === 'err' ? '#fdf7f6' : '#fff', cells:cellsFor(x), btn:x.st === 'err' ? 'Reautorizar' : x.st === 'sync' ? 'Sincronizando…' : 'Sincronizar agora', btnDisabled:x.st === 'sync',
+      sync:() => { if (x.st === 'sync') return; this.setState(st => ({syncing:{...st.syncing, [x.id]:true}})); setTimeout(() => { this.setState(st => ({syncing:{...st.syncing, [x.id]:'done'}, retried:x.id === 'amigo' ? true : st.retried})); this.flash(x.name + ' sincronizado · 17:24'); }, 1600); }}));
+    const cnt = k => srcs.filter(x => x.st === k).length;
+    const srcSummary = [{label:'Em dia', n:cnt('ok'), ...FS.ok}, {label:'Sincronizando', n:cnt('sync'), ...FS.sync}, {label:'Atrasadas', n:cnt('stale'), ...FS.stale}, {label:'Com erro', n:cnt('err'), ...FS.err}];
+    const issues = ISSUES.map(i => { const dn = !!s.done[i.id]; return {...i, ...LV[i.lvl], op:dn ? 0.55 : 1, btn:dn ? 'Em revisão ✓' : i.cta, act:() => this.toggleDone(i.id, 'Marcado para revisão')}; });
+
+    return {
+      steps, team, velocity, cycleTotal:'23 dias', commTabs, commLeads, commEmpty:commLeads.length === 0, commCount:commLeads.length, hasRepFocus:!!s.repId, repFocusName:s.repId ? REPS[s.repId].name : '', clearRep:() => this.setState({repId:null}), clearAllComm:() => this.setState({repId:null, filters:[], commTab:'todos'}),
+      L:lead, journey, progress, leadIntel, leadFacts, hasConsult, noConsult:!hasConsult, leadPay, leadConsult, leadIds, openLeadCamp:() => this.go('marketing', {campId:lead.camp}), openLeadRep:() => this.go('commercial', {repId:lead.rep}),
+      remindLead:() => this.flash('Lembrete enviado para ' + lead.name + ' (demo)'),
+      camps, sc, chain, selLeads, selHasLeads:selLeads.length > 0, selNote, mkSpend:BRL(paidSpend), mkCpl:BRL(paidSpend / 137), mkRoas:(248300 / paidSpend).toFixed(1).replace('.', ',') + '×', metaStale:src('meta').st !== 'ok',
+      weeks, procs, pendRows, txRows,
+      agenda, opsTabs, taskGroups, openTasks, week7,
+      sources, srcSummary, issues, hours:['17:00 ontem', '05:00', '11:00', 'agora']
+    };
+  }
+  renderVals() {
+    const s = this.state, P = this.props;
+    const ds = P.dataState || 'Dados em dia';
+    const showIntel = P.showIntelligence !== false, cmp = P.comparePrevious !== false;
+    const wide = s.vw >= 1080, narrow = s.vw < 760;
+    const srcs = this.sources();
+    const src = id => srcs.find(x => x.id === id);
+    const okCount = srcs.filter(x => x.st === 'ok').length;
+    const amigo = src('amigo');
+    const isLoading = ds === 'Carregando';
+    const heroErr = amigo.st === 'err';
+    const L = LEADS.map(l => this.decor(l));
+    const FL = this.filtered(L);
+
+    const pend = {ops:12, integ:srcs.filter(x => x.st !== 'ok').length};
+    const mk = (id, label, count, countColor, short) => {
+      const on = s.screen === id || (id === 'lead' && s.screen === 'lead');
+      return {id, label, short:short || label, count:count || '', countColor:countColor || '#808a93', current:on ? 'page' : undefined, bg:on ? '#ffffff' : 'transparent', hoverBg:on ? '#ffffff' : '#ecebe5', shadow:on ? '0 1px 2px rgba(20,32,42,0.06), 0 0 0 1px #e6e4dd' : 'none', color:on ? '#14202a' : '#4d5a66', fw:on ? 600 : 400, cursor:'pointer', onClick:() => this.nav(id)};
+    };
+    const soon = label => ({label, count:'fase 2', countColor:'#b3b9be', bg:'transparent', hoverBg:'transparent', shadow:'none', color:'#a3aab0', fw:400, cursor:'default', onClick:() => this.flash(label + ' faz parte da Fase 2 do produto')});
+    const navGroups = [
+      {label:'Visão', items:[mk('overview', 'Visão geral')]},
+      {label:'Receita', items:[mk('commercial', 'Comercial'), mk('lead', 'Lead 360'), mk('marketing', 'Marketing'), mk('finance', 'Financeiro')]},
+      {label:'Execução', items:[mk('ops', 'Operação', pend.ops + ' pendências', '#9a6a12', 'Operação')]},
+      {label:'Sistema', items:[mk('integrations', 'Integrações & Dados', (pend.integ ? '▲ ' + pend.integ : ''), '#9a6a12', 'Dados'), soon('Equipe'), soon('Configurações'), mk('ds', 'Design System')]}
+    ];
+    const navFlat = ['overview', 'commercial', 'lead', 'marketing', 'finance', 'ops', 'integrations', 'ds'].map(id => mk(id, SCREENS[id], '', '', id === 'integrations' ? 'Dados' : SCREENS[id]));
+    const lead = L.find(l => l.id === s.leadId) || L[0];
+    const crumbs = [...s.trail.map((t, i) => ({label:t.screen === 'lead' ? (L.find(l => l.id === t.leadId) || {}).name : SCREENS[t.screen], onClick:() => this.setState(st => ({screen:t.screen, leadId:t.leadId, trail:st.trail.slice(0, i), drawer:null})), color:'#808a93', fw:400, sep:'inline'})),
+      {label:s.screen === 'lead' ? 'Lead 360 · ' + lead.name : SCREENS[s.screen], onClick:() => {}, color:'#14202a', fw:600, sep:'none'}];
+    const periods = ['Hoje', '7 dias', 'Mês', 'Personalizado'].map(p => ({label:p === 'Mês' ? 'Setembro' : p, on:s.period === p, bg:s.period === p ? '#fff' : 'transparent', color:s.period === p ? '#14202a' : '#5b6772', fw:s.period === p ? 600 : 400, shadow:s.period === p ? '0 1px 2px rgba(20,32,42,0.08)' : 'none', onClick:() => { this.setState({period:p}); if (p !== 'Mês') this.flash('Protótipo: os valores DEMO exibidos são sempre de setembro'); }}));
+    const FACETS = {'Responsável':['Maria', 'Mayra'], 'Origem':['Meta Ads', 'Google Ads', 'Orgânico', 'Indicação'], 'Temperatura':['Quente', 'Morno', 'Frio'], 'Modalidade':['Presencial', 'Online'], 'Idioma':['Português', 'Inglês']};
+    const has = (f, v) => s.filters.some(x => x.facet === f && x.value === v);
+    const toggleF = (f, v) => this.setState(st => ({filters:has(f, v) ? st.filters.filter(x => !(x.facet === f && x.value === v)) : [...st.filters, {facet:f, value:v}]}));
+    const facets = Object.keys(FACETS).map(f => ({facet:f, opts:FACETS[f].map(v => { const on = has(f, v); return {label:v, on, bg:on ? '#284359' : '#fff', color:on ? '#fff' : '#14202a', border:on ? '#284359' : '#e0ded6', toggle:() => toggleF(f, v)}; })}));
+
+    // banner
+    let banner = null;
+    if (amigo.st === 'err') banner = {lvl:LV.crit, title:'Amigo Clinic não sincronizou.', msg:'Receita, agenda e pagamentos exibem o último valor confirmado (15:10) ou ficam ocultos.'};
+    else if (amigo.st === 'stale') banner = {lvl:LV.warn, title:'Dados do Amigo Clinic atrasados em 3 h 40 min.', msg:'Receita e agenda refletem 13:44. Novos pagamentos podem não aparecer.'};
+
+    // overview
+    const sep28 = SEPC[27], aug28 = AUGC[27];
+    const hd = s.hoverDay;
+    const hv = hd ? {show:true, left:((hd - 1) / 29 * 100) + '%', top:(100 - SEPC[hd - 1] / YMAX * 100) + '%', tipLeft:((hd - 1) / 29 * 100) + '%', tipX:hd > 18 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)', day:String(hd).padStart(2, '0') + '/09', sep:BRL(SEPC[hd - 1]), aug:BRL(AUGC[hd - 1])} : {show:false, left:'0%', top:'0%', tipLeft:'0%', tipX:'none', day:'', sep:'', aug:''};
+    const FLOW = [
+      {k:'leads', label:'Leads', v:147, prev:135}, {k:'qual', label:'Qualificados', v:58, prev:55}, {k:'agend', label:'Agendados', v:34, prev:35},
+      {k:'pagos', label:'Consultas pagas', v:29, prev:27}, {k:'real', label:'Realizadas', v:22, prev:20}, {k:'cir', label:'Cirurgias', v:6, prev:5}
+    ];
+    const flow = FLOW.map((f, i) => { const d = f.v / f.prev - 1; return {...f, vTxt:isLoading ? '—' : NUM(f.v), conv:i ? PCT(f.v / FLOW[i - 1].v) : '', delta:isLoading ? 'carregando…' : (d >= 0 ? '↑ ' : '↓ ') + PCT(Math.abs(d), 1) + ' vs ago', dc:isLoading ? '#a3aab0' : d >= 0 ? '#2e7a5c' : '#a8402f', w:(isLoading ? 0 : Math.max(3, f.v / 147 * 100)) + '%', bar:i === 5 ? '#284359' : '#4b7da7', open:() => this.setState({drawer:f.k})}; });
+    const INS = [
+      {id:'i1', area:'Comercial', lvl:'crit', title:'8 leads quentes estão sem resposta há mais de 2 horas.', why:'6 estão na fila de Mayra, cuja mediana de primeira resposta no mês é 1 h 52 min (Maria: 14 min).', base:'Kommo · há 4 min', cta:'Ver os leads', go:() => this.go('commercial', {commTab:'semresp'})},
+      {id:'i3', area:'Financeiro', lvl:'warn', title:'R$ 18.450 pendentes em atendimentos das próximas 72 horas.', why:'4 sinais de consulta e 1 saldo de cirurgia (02/10) sem pagamento confirmado.', base:'Amigo Clinic · ' + amigo.ago, cta:'Ver pendências', go:() => this.go('finance')},
+      {id:'i2', area:'Marketing', lvl:'warn', title:'Sublift — Awareness gera 26% dos leads e 6% das consultas.', why:'38 leads, 5 qualificados, 2 consultas. Custo por consulta de R$ 4.900; média das campanhas pagas: R$ 1.511.', base:'Meta Ads (atrasado) + Kommo', cta:'Abrir campanha', go:() => this.go('marketing', {campId:'c3'})},
+      {id:'i4', area:'Operação', lvl:'info', title:'4 consultas de amanhã ainda não foram confirmadas.', why:'Renata Ogawa, Tatiana Reis, Vanessa Lima e Débora Sá. Tatiana também tem pagamento parcial.', base:'Amigo Clinic · ' + amigo.ago, cta:'Abrir agenda de amanhã', go:() => this.go('ops', {opsDay:'amanha'})},
+      {id:'i5', area:'Dados', lvl:'warn', title:'GA4 está indisponível e Meta Ads atrasou 2 horas.', why:'Custo e CPL podem não refletir as últimas 2 horas. Sessões do site não são exibidas.', base:'Monitor de integrações', cta:'Ver Data Health', go:() => this.go('integrations')}
+    ];
+    const roleArea = {'Direção':null, 'Comercial':'Comercial', 'Marketing':'Marketing', 'Financeiro':'Financeiro', 'Operação':'Operação'}[s.role];
+    const ins = [...INS].sort((a, b) => (b.area === roleArea) - (a.area === roleArea)).slice(0, 4);
+    const insights = ins.map(i => ({...i, ...LV[i.lvl], act:i.go, op:s.acked[i.id] ? 0.5 : 1, ackLabel:s.acked[i.id] ? 'Em andamento ✓' : 'Marcar em andamento', ack:() => this.setState(st => ({acked:{...st.acked, [i.id]:!st.acked[i.id]}}))}));
+    const statusOf = a => a.conf === 'Realizada' ? {status:'Realizada', ...LV.ok} : a.pay === 'Parcial' ? {status:'Pagamento parcial', ...LV.warn} : a.conf === 'Não confirmada' ? {status:'Não confirmada', ...LV.warn} : {status:'Confirmada', ...LV.info};
+    const next48 = [...AGENDA.hoje.filter(a => a.conf !== 'Realizada').map(a => ({...a, dayLabel:'Hoje'})), ...AGENDA.amanha.map(a => ({...a, dayLabel:'Amanhã'}))].slice(0, 6).map(a => ({...a, ...statusOf(a), open:() => a.id ? this.openLead(a.id) : this.go('ops', {opsDay:a.dayLabel === 'Hoje' ? 'hoje' : 'amanha'})}));
+    const CH = [['Meta Ads', ['c1', 'c2', 'c3']], ['Google Ads', ['c4']], ['Indicação', ['c6']], ['Orgânico', ['c5']]];
+    const channels = CH.map(([label, ids]) => { const cs = CAMPS.filter(c => ids.includes(c.id)); const le = cs.reduce((a, c) => a + c.leads, 0), re = cs.reduce((a, c) => a + c.rec, 0); return {label, leads:le, recTxt:BRL(re), lw:Math.max(1.5, le / 147 * 100) + '%', rw:Math.max(1.5, re / 284600 * 100) + '%'}; });
+    const teamMini = Object.values(REPS).map(r => ({...r, recTxt:BRL(r.rec), rc:r.respOk ? '#2e7a5c' : '#9a6a12', rg:r.respOk ? '●' : '▲', open:() => this.go('commercial', {repId:r.id})}));
+    const sourcesMini = srcs.map(x => ({name:x.name, ago:x.ago, g:x.g, c:x.c}));
+    const ovSummary = heroErr ? 'A receita está indisponível por falha de sincronização. Leads e campanhas seguem atualizados.' : 'Receita ' + PCT(sep28 / aug28 - 1, 0) + ' acima de agosto no mesmo ponto do mês. Três pontos pedem atenção hoje: leads sem resposta, pagamentos pendentes e confirmações de amanhã.';
+
+    // drawer
+    const recOf = (minStage, fmt) => L.filter(l => l.stage >= minStage).slice(0, 5).map(l => ({name:l.name, sub:l.campName + ' · ' + l.repName, right:fmt ? fmt(l) : l.stageLabel, open:() => { this.setState({drawer:null}); this.openLead(l.id); }}));
+    const lin = (fonte, cons, sid, extra) => { const x = src(sid); return [{k:'Fonte', v:fonte, g:'', c:''}, {k:'Consolidação', v:cons || 'Blue Database', g:'', c:''}, {k:'Período', v:'01/09/2026 → 28/09/2026', g:'', c:''}, {k:'Última atualização', v:x.label + ' · ' + x.ago + ' (' + x.last + ')', g:x.g, c:x.c}].concat(extra || []); };
+    const bars = (rows, tot) => rows.map(([label, v, t]) => ({label, v:t || NUM(v), w:(v / tot * 100) + '%'}));
+    const DR = {
+      revenue:{area:'Financeiro', title:'Receita recebida', value:BRL(sep28), delta:'↑ ' + PCT(sep28 / aug28 - 1, 1) + ' vs agosto', dc:'#2e7a5c', def:'Soma dos pagamentos confirmados no período. Valores a receber (R$ 36.450) não entram.', lineage:lin('Amigo Clinic · pagamentos confirmados', null, 'amigo'), bTitle:'Por procedimento', breakdown:bars([['LipeDefinition · 4', 174000, 'R$ 174.000'], ['Sublift · 2', 78000, 'R$ 78.000'], ['Consulta presencial · 18', 21600, 'R$ 21.600'], ['Consulta online · 11', 11000, 'R$ 11.000']], 174000), rTitle:'Transações recentes', records:TX.slice(0, 5).map(t => ({name:t.name, sub:t.d + ' · ' + t.what + ' · ' + t.m, right:BRL(t.val), open:() => { this.setState({drawer:null}); if (t.id) this.openLead(t.id); else this.go('finance'); }})), goLabel:'Abrir Financeiro', go:() => this.go('finance')},
+      leads:{area:'Comercial', title:'Leads criados', value:'147', delta:'↑ 8,9% vs agosto', dc:'#2e7a5c', def:'Leads criados no Kommo no período, incluindo formulários de anúncios e mensagens diretas. 3 possíveis duplicados em revisão.', lineage:lin('Kommo · leads criados', null, 'kommo'), bTitle:'Por origem', breakdown:bars([['Meta Ads', 123], ['Google Ads', 14], ['Instagram orgânico', 6], ['Indicação', 4]], 123), rTitle:'Leads recentes', records:recOf(0), goLabel:'Abrir Comercial', go:() => this.go('commercial')},
+      qual:{area:'Comercial', title:'Leads qualificados', value:'58', delta:'↑ 5,5% vs agosto', dc:'#2e7a5c', def:'Leads que chegaram ao estágio “Qualificado” no Kommo. 39,5% dos leads do mês.', lineage:lin('Kommo · histórico de estágios', null, 'kommo'), bTitle:'Por responsável', breakdown:bars([['Maria', 41], ['Mayra', 17]], 41), rTitle:'Qualificados recentes', records:recOf(2), goLabel:'Abrir Comercial', go:() => this.go('commercial')},
+      agend:{area:'Comercial', title:'Consultas agendadas', value:'34', delta:'↓ 2,9% vs agosto', dc:'#a8402f', def:'Consultas com data marcada no Amigo Clinic, vinculadas a um lead do Kommo. A conversão qualificado → agendado caiu 5 p.p.', lineage:lin('Amigo Clinic · agenda', 'Blue Database · vínculo Kommo', 'amigo'), bTitle:'Por modalidade', breakdown:bars([['Presencial', 21], ['Online', 13]], 21), rTitle:'Agendados', records:recOf(3), goLabel:'Ver gargalo em Comercial', go:() => this.go('commercial')},
+      pagos:{area:'Financeiro', title:'Consultas pagas', value:'29', delta:'↑ 7,4% vs agosto', dc:'#2e7a5c', def:'Consultas com sinal ou valor integral confirmado.', lineage:lin('Amigo Clinic · pagamentos', null, 'amigo'), bTitle:'Por modalidade', breakdown:bars([['Presencial', 18], ['Online', 11]], 18), rTitle:'Pagas', records:recOf(5, l => l.valueTxt), goLabel:'Abrir Financeiro', go:() => this.go('finance')},
+      real:{area:'Operação', title:'Consultas realizadas', value:'22', delta:'↑ 10% vs agosto', dc:'#2e7a5c', def:'Consultas com atendimento registrado. 7 consultas pagas ainda estão agendadas para outubro.', lineage:lin('Amigo Clinic · atendimentos', null, 'amigo'), bTitle:'Por modalidade', breakdown:bars([['Presencial', 14], ['Online', 8]], 14), rTitle:'Realizadas', records:recOf(7), goLabel:'Abrir Operação', go:() => this.go('ops')},
+      cir:{area:'Financeiro', title:'Cirurgias pagas', value:'6', delta:'↑ 20% vs agosto', dc:'#2e7a5c', def:'Procedimentos cirúrgicos com pagamento confirmado no período.', lineage:lin('Amigo Clinic · procedimentos', null, 'amigo'), bTitle:'Por procedimento', breakdown:bars([['LipeDefinition', 4], ['Sublift', 2]], 4), rTitle:'Faturadas', records:recOf(8, l => l.valueTxt), goLabel:'Abrir Financeiro', go:() => this.go('finance')}
+    };
+    const d = DR[s.drawer] || DR.revenue;
+    const dr = s.drawer ? {x:'translateX(0)', op:1, pe:'auto', hidden:'false'} : {x:'translateX(105%)', op:0, pe:'none', hidden:'true'};
+
+    const q = s.q.trim().toLowerCase();
+    const searchResults = (q ? L.filter(l => (l.name + ' ' + l.id + ' ' + l.campName).toLowerCase().includes(q)) : L.slice(0, 6)).map(l => ({...l, open:() => { this.setState({searchOpen:false, q:''}); this.openLead(l.id); }}));
+
+    const extra = this.screenVals ? this.screenVals({L, FL, lead, srcs, src, amigo, isLoading, heroErr, ds, cmp, narrow}) : {};
+
+    return {
+      sideDisplay:wide ? 'flex' : 'none', topNavDisplay:wide ? 'none' : 'flex', headPad:narrow ? '10px 16px' : wide ? '10px 36px' : '10px 20px', mainPad:narrow ? '20px 16px 64px' : wide ? '28px 36px 72px' : '24px 20px 64px',
+      navGroups, navFlat, crumbs, canBack:s.trail.length > 0, back:this.back, goHome:() => this.nav('overview'), periods,
+      filterOpen:s.filterOpen, toggleFilter:() => this.setState(st => ({filterOpen:!st.filterOpen})), filterCount:s.filters.length || '', facets,
+      hasFilters:s.filters.length > 0, appliedFilters:s.filters.map(f => ({...f, remove:() => toggleF(f.facet, f.value)})), clearFilters:() => this.setState({filters:[]}),
+      freshTxt:okCount + ' de ' + srcs.length + ' fontes em dia', freshG:okCount === srcs.length ? '●' : '▲', freshC:okCount === srcs.length ? '#2e7a5c' : '#9a6a12',
+      openSearch:() => this.setState({searchOpen:true, q:''}), searchOpen:s.searchOpen, closeSearch:() => this.setState({searchOpen:false}), q:s.q, onQ:e => this.setState({q:e.target.value}), searchResults, noResults:!!q && !searchResults.length,
+      roles:['Direção', 'Comercial', 'Marketing', 'Financeiro', 'Operação'], role:s.role, onRole:e => { this.setState({role:e.target.value}); this.flash('Visão reorganizada para ' + e.target.value); },
+      toast:s.toast,
+      bannerShow:!!banner && s.screen !== 'ds', bannerBg:banner ? banner.lvl.bg : '', bannerC:banner ? banner.lvl.c : '', bannerG:banner ? banner.lvl.g : '', bannerTitle:banner ? banner.title : '', bannerMsg:banner ? banner.msg : '',
+      goIntegrations:() => this.go('integrations'), goFinance:() => this.go('finance'), goCommercial:() => this.go('commercial'), goMarketing:() => this.go('marketing'), goOps:() => this.go('ops'),
+      isOverview:s.screen === 'overview', isCommercial:s.screen === 'commercial', isLead:s.screen === 'lead', isMarketing:s.screen === 'marketing', isFinance:s.screen === 'finance', isOps:s.screen === 'ops', isIntegrations:s.screen === 'integrations', isDS:s.screen === 'ds',
+      ovSummary, showIntel, insightCount:insights.length, insights,
+      heroSkel:isLoading, heroErr:!isLoading && heroErr, heroData:!isLoading && !heroErr, retry:() => { this.setState({retried:true}); this.flash('Amigo Clinic sincronizado · 17:24'); },
+      revTxt:BRL(sep28), revDelta:PCT(sep28 / aug28 - 1, 1), augTxt:BRL(aug28), revFresh:amigo, openRevenue:() => this.setState({drawer:'revenue'}),
+      sepPath:pathOf(SEPC), sepArea:pathOf(SEPC) + ' L' + px(28).toFixed(1) + ',200 L0,200 Z', augPath:pathOf(AUGC), augOpacity:cmp ? 1 : 0, augLegend:cmp ? 'flex' : 'none',
+      endLeft:(27 / 29 * 100) + '%', endTop:(100 - sep28 / YMAX * 100) + '%',
+      yTicks:[100000, 200000, 300000].map(v => ({label:'R$ ' + v / 1000 + ' mil', bottom:(v / YMAX * 100) + '%'})),
+      hv, chartMove:e => { const r = e.currentTarget.getBoundingClientRect(); const dd = Math.max(1, Math.min(28, Math.round((e.clientX - r.left) / r.width * 29) + 1)); if (dd !== this.state.hoverDay) this.setState({hoverDay:dd}); }, chartLeave:() => this.setState({hoverDay:null}),
+      flow, next48, channels, teamMini, sourcesMini,
+      d, dr, closeDrawer:() => this.setState({drawer:null}),
+      ...extra
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Ficha Blue no Cloudflare Pages (alternativa ao Netlify). A página é ficha/index.html; as APIs ficam em functions/.
+# Publicar: Cloudflare → Workers & Pages → Create → Pages → Connect to Git (este repositório),
+#   Build command: (vazio) · Build output directory: ficha
+name = "clinicablue"
+pages_build_output_dir = "ficha"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
