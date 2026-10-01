@@ -1,9 +1,11 @@
 // Botão "Agendamento" — use com o lead aberto no Kommo depois que a paciente pagou.
-// Monta, no estilo da equipe: o texto do grupo de comprovantes, o título e a descrição do TimeTree,
+// Monta, no estilo da equipe: a mensagem "consulta agendada" para a paciente (com o link fixo da pré-consulta), o texto do grupo de comprovantes, o título e a descrição do TimeTree,
 // e mostra o comprovante que a paciente mandou na conversa para baixar e encaminhar. Só leitura: não grava nada.
 (async () => {
   /*PARSER*/
   /*PAGAMENTO*/
+  // Endereço da Ficha Blue (troque aqui quando o subdomínio ficha.clinicablue.com.br existir)
+  const SITE = 'https://clinicablue.pages.dev';
   const CAMPO_CONSULTA = 3728948, CAMPO_MODALIDADE = 3837322, CAMPO_PRIMEIRO_NOME = 3837314, CAMPO_PAGAMENTO = 3728960, CAMPO_FONTE = 3839860;
   const id = (location.pathname.match(/leads\/detail\/(\d+)/) || [])[1];
   const box = document.createElement('div');
@@ -46,6 +48,8 @@
   if (fichaZap) ficha = parseFicha(fichaZap.texto);
   const r = (ficha && ficha._ficha && ficha._ficha.r) || {};
   const tel = String(((contato.custom_fields_values || []).find((f) => f.field_code === 'PHONE') || { values: [{}] }).values[0].value || (ficha && ficha.telefone) || '');
+  const dg = tel.replace(/\D/g, '');
+  const lang = /^\+/.test(tel.trim()) && !dg.startsWith('55') ? (/^(54|598|595|56|591|57|51|58|593|52|34|50\d)/.test(dg) ? 'es' : 'en') : 'pt';
   const nomeProprio = (s) => String(s || '').trim().toLowerCase().replace(/(^|[\s'-])(\S)/g, (x, a, b) => a + b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g, (x) => x.toLowerCase());
   const nomeCompleto = nomeProprio((ficha && ficha.nome) || contato.name || lead.name || '');
 
@@ -101,16 +105,54 @@
     '<label style="grid-column:1/3">Como encontrou<input id="ag-como" ' + inp + ' value="' + esc(como) + '"></label>' +
     '<label style="grid-column:1/3">Objetivo da consulta<input id="ag-obj" ' + inp + ' value="' + esc(objetivo) + '"></label></div>' +
     (recibos.length ? '<div style="margin-top:8px;font-size:13px">🧾 Comprovante: ' + recibos.map((x) => '<a href="' + esc(x.media) + '" target="_blank" rel="noopener" style="color:#2f6fb5;font-weight:bold">' + new Date(x.ts * 1000).toLocaleDateString('pt-BR') + ' (abrir e salvar)</a>').join(' · ') + '</div>' : '') +
-    '<div style="margin-top:10px;font-weight:bold">1. Grupo de comprovantes</div>' + ta('ag-grupo', 150) + btn('ag-c1', 'Copiar texto do grupo') +
-    '<div style="margin-top:10px;font-weight:bold">2. TimeTree</div><input id="ag-tt" ' + inp + '>' + btn('ag-c2', 'Copiar título', '#2f6fb5') + ta('ag-desc', 120) + btn('ag-c3', 'Copiar descrição', '#2f6fb5') +
+    '<div style="margin-top:10px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">1. Mensagem para a paciente <select id="ag-lang" style="padding:3px 6px;border:1px solid #dbe4f0;border-radius:8px;font:12px Arial"><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></div>' + ta('ag-msg', 210) + btn('ag-c0', 'Copiar mensagem para a paciente', '#1f7d52') +
+    '<div style="margin-top:10px;font-weight:bold">2. Grupo de comprovantes</div>' + ta('ag-grupo', 150) + btn('ag-c1', 'Copiar texto do grupo') +
+    '<div style="margin-top:10px;font-weight:bold">3. TimeTree</div><input id="ag-tt" ' + inp + '>' + btn('ag-c2', 'Copiar título', '#2f6fb5') + ta('ag-desc', 120) + btn('ag-c3', 'Copiar descrição', '#2f6fb5') +
     '<div id="ag-ok" style="font-size:12px;color:#1f7d52;margin-top:6px;min-height:16px"></div>');
   const $ = (s) => box.querySelector(s);
-  $('#ag-tipo').value = tipo; $('#ag-local').value = local; $('#ag-med').value = medico;
+  $('#ag-tipo').value = tipo; $('#ag-local').value = local; $('#ag-med').value = medico; $('#ag-lang').value = lang;
 
   const MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   const SEM = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
   const brl = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const num = (v) => Number(String(v || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.')) || 0;
+  const END = {
+    rj: 'Av. José Silva de Azevedo Neto, 200 - SL 107/108 - Bloco 7 - Barra da Tijuca, Rio de Janeiro - RJ',
+    sp: 'Alameda Campinas, 977 - 8º andar / conjunto 82 - Jardim Paulista, São Paulo - SP',
+  };
+  const SEML = { pt: SEM, es: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] };
+  const juntar = (linhas) => linhas.filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
+  // Mensagem "consulta agendada" com o link fixo da pré-consulta (ou o agradecimento, se a ficha já chegou)
+  const mensagem = ({ nome, t, l, med, dia, dd, m, h, pago, total, lg }) => {
+    const primeiro = nome.split(/\s+/)[0] || '';
+    const dr = med === 'leo' ? 'Dr. Leonardo' : 'Dr. Rafael Erthal';
+    const quando = dia ? SEML[lg][dia.getDay()] + ', ' + pad(dd) + '/' + pad(m) : '[dia]';
+    const hora = h ? (lg === 'pt' ? h : h.replace('h', ':')) : '[hora]';
+    const link = SITE + (t === 'pla' ? '/plastica' : '/lipedema') + (lg === 'pt' ? '' : '/' + lg);
+    const falta = total && pago && pago < total ? total - pago : 0;
+    const temFicha = !!(nb || fichaZap);
+    if (lg === 'es') return juntar([
+      '¡Perfecto, ' + primeiro + '! 💙', '', 'Tu ' + (l === 'tele' ? 'teleconsulta' : 'consulta') + ' con el ' + dr + ' está agendada:',
+      '🗓️ ' + quando + ', a las *' + hora + '* (hora de Brasilia)',
+      l === 'tele' ? '💻 Por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace.' : '📍 ' + END[l],
+      pago ? (falta ? '💳 Recibimos tu pago de ' + brl(pago) + ' (reserva). El saldo de ' + brl(falta) + ' se paga el día de la consulta.' : '💳 Pago recibido (' + brl(pago) + '). ¡Gracias!') : '',
+      '', temFicha ? 'Ya recibimos tu ficha de pre-consulta, ¡gracias! 🙏' : 'Para que el ' + dr + ' llegue a tu consulta conociendo tu historia, completa tu ficha de pre-consulta (toma unos 6 minutos). Es nuestro formulario oficial y seguro:\n👉 ' + link,
+      '', 'Cualquier duda, estoy aquí.']);
+    if (lg === 'en') return juntar([
+      'Perfect, ' + primeiro + '! 💙', '', 'Your ' + (l === 'tele' ? 'online consultation' : 'consultation') + ' with ' + dr + ' is booked:',
+      '🗓️ ' + quando + ' at *' + hora + '* (Brasília time)',
+      l === 'tele' ? '💻 On Google Meet. Our concierge Helen will send you the link close to the time.' : '📍 ' + END[l],
+      pago ? (falta ? '💳 We received your payment of ' + brl(pago) + ' (deposit). The remaining ' + brl(falta) + ' is paid on the day of your consultation.' : '💳 Payment received (' + brl(pago) + '). Thank you!') : '',
+      '', temFicha ? 'We have already received your pre-consultation form, thank you! 🙏' : 'So that ' + dr + ' can meet you already knowing your story, please fill in your pre-consultation form (about 6 minutes). It is our official, secure form:\n👉 ' + link,
+      '', 'Any questions, I am here to help.']);
+    return juntar([
+      'Perfeito, ' + primeiro + '! 💙', '', 'Sua ' + (l === 'tele' ? 'teleconsulta' : 'consulta') + ' com o ' + dr + ' está agendada:',
+      '🗓️ ' + quando + ', às *' + hora + '*',
+      l === 'tele' ? '💻 Pelo Google Meet. Perto do horário, a nossa concierge Helen te envia o link.' : '📍 ' + END[l] + (l === 'sp' ? ' (estacionamento no local)' : ''),
+      pago ? (falta ? '💳 Recebemos o seu pagamento de ' + brl(pago) + ' (reserva). Os ' + brl(falta) + ' restantes são pagos no dia da consulta.' : '💳 Pagamento recebido (' + brl(pago) + '). Muito obrigada!') : '',
+      '', temFicha ? 'Já recebemos a sua ficha de pré-consulta, obrigada! 🙏' : 'Para o ' + dr + ' já chegar à sua consulta conhecendo a sua história, preencha a sua ficha de pré-consulta (leva uns 6 minutos). É o nosso formulário oficial e seguro:\n👉 ' + link,
+      '', 'Qualquer dúvida, estou por aqui.']);
+  };
   const gerar = () => {
     const nome = $('#ag-nome').value.trim(), t = $('#ag-tipo').value, l = $('#ag-local').value, med = $('#ag-med').value;
     const tipoTxt = t === 'pla' ? 'Plástica' : 'Lipedema';
@@ -127,6 +169,7 @@
       dia ? 'Dia ' + pad(dd) + ' de ' + MES[m - 1] + (h ? ' às ' + h : '') : '', 'Pagamento: ' + pagTxt,
       nb || fichaZap ? 'Dados recebidos ✅' : 'Aguardando envio de dados'].filter(Boolean).join('\n');
     const curto = nome.split(/\s+/).filter(Boolean); const nomeCurto = curto.length > 1 ? curto[0] + ' ' + curto[curto.length - 1] : nome;
+    $('#ag-msg').value = mensagem({ nome, t, l, med, dia, dd, m, h, pago, total, lg: $('#ag-lang').value });
     $('#ag-tt').value = (l === 'tele' ? '(Tele) ' : l === 'sp' ? '(SP) ' : '') + (med === 'leo' ? '(Dr. Leonardo) ' : '') + nomeCurto + ' - ' + tipoTxt;
     $('#ag-desc').value = ['Nome completo: ' + nome, 'Tel: ' + $('#ag-tel').value.trim(), 'Como encontrou o ' + quem + ': ' + (como2 || '-'), 'Objetivo da consulta: ' + obj,
       'Tipo da consulta: ' + (l === 'tele' ? 'Teleconsulta' : l === 'sp' ? 'Presencial São Paulo' : 'Presencial Rio (Barra)') + ' - ' + tipoTxt + (dia ? ' · ' + pad(dd) + '/' + pad(m) + ' (' + SEM[dia.getDay()] + ')' + (h ? ' às ' + h : '') : ''),
@@ -144,6 +187,7 @@
   ['#ag-local', '#ag-med'].forEach((s2) => $(s2).addEventListener('change', revalor));
   box.querySelectorAll('input,select').forEach((el) => el.addEventListener('input', gerar));
   box.querySelectorAll('select').forEach((el) => el.addEventListener('change', gerar));
+  $('#ag-c0').onclick = () => copiar($('#ag-msg').value, 'Mensagem para a paciente');
   $('#ag-c1').onclick = () => copiar($('#ag-grupo').value, 'Texto do grupo');
   $('#ag-c2').onclick = () => copiar($('#ag-tt').value, 'Título do TimeTree');
   $('#ag-c3').onclick = () => copiar($('#ag-desc').value, 'Descrição do TimeTree');
