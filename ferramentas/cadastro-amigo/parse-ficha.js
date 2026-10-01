@@ -50,7 +50,11 @@ function parseFicha(texto) {
   if (out.instagram) out.instagram = out.instagram.replace(/^@?/, '@').replace(/^@$/, '');
   if (out.email) out.email = out.email.trim().toLowerCase();
   // "Endereço: Rua X 3713 ap 101 - bairro - cidade UF" quando rua/número vierem vazios
-  if (out.endereco && !out.rua) out.rua = out.endereco;
+  // "Rua/avenida: Rua" (só o tipo) com "Endereço: Rua General Venâncio Flores": o nome da rua está no Endereço.
+  const tipo = /^(rua|r\.?|avenida|av\.?|travessa|estrada|alameda|rodovia|pra[cç]a)$/i;
+  if (out.endereco && (!out.rua || tipo.test(out.rua.trim()))) {
+    out.rua = tipo.test((out.rua || '').trim()) && !new RegExp('^' + out.rua.trim(), 'i').test(out.endereco) ? out.rua.trim() + ' ' + out.endereco : out.endereco;
+  }
   Object.keys(out).forEach((k) => { if (!out[k]) delete out[k]; });
   return out;
 }
