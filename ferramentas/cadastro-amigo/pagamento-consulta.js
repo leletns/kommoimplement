@@ -2,7 +2,9 @@
 // Fontes, da mais confiável para a menos: nota "💳 Comprovantes" (grupo de pagamentos), valor do lead
 // e a conversa (oferta integral/reserva, comprovantes recebidos e agradecidos, pedido da segunda parte).
 // Usado pelo botão "Confirmar consulta" e testado no Node.
-function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [] } = {}) {
+// Valor da consulta por local (o da conversa só vale se bater com o local; teleconsulta usa o da conversa).
+const PRECO_CONSULTA = { rj: 1800, sp: 2200 };
+function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [], local = '' } = {}) {
   const valor = (s) => { const m = /\d[\d.]*(?:,\d{1,2})?/.exec(String(s)); return m ? Number(m[0].replace(/\./g, '').replace(',', '.')) || 0 : 0; };
   const dia = (ts) => { const d = new Date(ts * 1000); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
   const provas = [];
@@ -19,12 +21,23 @@ function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [] } = 
   if (nota) provas.push('Comprovantes (nota de ' + dia(nota.ts) + '): pago R$ ' + nota.pago.toLocaleString('pt-BR') + (nota.falta ? ' de R$ ' + nota.total.toLocaleString('pt-BR') : ''));
 
   // 2) Conversa: valor oferecido, escolha da paciente, comprovantes
-  let oferta = null, oferecidaEm = 0;
+  // Valores de consulta citados pela equipe ("pagamento integral de R$ X", "o investimento ... é de R$ X")
+  const citados = [];
   for (const m of enviadas) {
-    const i = /integral (?:de )?\*?R\$\s?([\d.,]+)/i.exec(m.texto || '') || (!/cirurgi|procedimento|plano cir/i.test(m.texto || '') && /investimento[^\n]{0,80}?R\$\s?([\d.,]+)/i.exec(m.texto || ''));
-    if (i) { oferta = valor(i[1]); oferecidaEm = m.ts; }
+    const t = m.texto || '';
+    if (/cirurgi|procedimento|plano cir|\bmil\b/i.test(t)) continue;
+    const i = /(integral|investimento|valor[^.\n]{0,40}consulta)[^\n]{0,200}?R\$\s?([\d.,]+)/i.exec(t);
+    const v = i && valor(i[2]);
+    if (v >= 300 && v <= 10000) citados.push({ v, ts: m.ts, sp: /s[aã]o paulo|\bsp\b/i.test(t), rj: /rio de janeiro|\brio\b|barra/i.test(t) });
   }
-  if (oferta) provas.push('Valor oferecido na conversa: R$ ' + oferta.toLocaleString('pt-BR') + ' (' + dia(oferecidaEm) + ')');
+  const tabela = PRECO_CONSULTA[local] || 0;
+  const doLocal = citados.filter((c) => c.v === tabela || (local && c[local])).pop();
+  const ultimo = citados[citados.length - 1];
+  const escolhido = tabela ? doLocal || null : ultimo || null;
+  const oferta = escolhido ? escolhido.v : tabela || null;
+  const oferecidaEm = escolhido ? escolhido.ts : (ultimo ? ultimo.ts : 0);
+  if (escolhido) provas.push('Valor da consulta na conversa: R$ ' + oferta.toLocaleString('pt-BR') + ' (' + dia(oferecidaEm) + ')');
+  else if (tabela) provas.push('Valor padrão da consulta ' + (local === 'sp' ? 'em São Paulo' : 'no Rio') + ': R$ ' + tabela.toLocaleString('pt-BR') + (ultimo ? ' (a conversa também cita R$ ' + ultimo.v.toLocaleString('pt-BR') + ', confira)' : ''));
   const depois = (ts) => (m) => m.ts > ts;
   let escolha = '';
   for (const m of recebidas.filter(depois(oferecidaEm))) {
@@ -87,4 +100,4 @@ function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [] } = 
   if (falta > 0) return { status: 'falta', total, pago, falta, provas, texto: 'Pagou R$ ' + Number(pago).toLocaleString('pt-BR') + ' de R$ ' + total.toLocaleString('pt-BR') + '. Falta a segunda parte: R$ ' + falta.toLocaleString('pt-BR') + '.' + (nota ? '' : ' (pela conversa: a segunda parte pode ter sido paga fora do chat, confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
   return { status: 'integral', total, pago, falta: 0, provas, texto: 'Consulta paga por completo (R$ ' + total.toLocaleString('pt-BR') + ').' + (nota ? '' : ' (pela conversa: confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
 }
-if (typeof module !== 'undefined') module.exports = { avaliarPagamento };
+if (typeof module !== 'undefined') module.exports = { avaliarPagamento, PRECO_CONSULTA };

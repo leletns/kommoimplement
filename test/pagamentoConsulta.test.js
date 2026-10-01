@@ -45,3 +45,17 @@ test('valor seguido de vírgula ou ponto final é lido certo', () => {
   const r = avaliarPagamento({ msgs: [eq(0, 'Puedes optar por el pago integral de R$ 1.800,00, o R$ 900,00 de reserva.'), pa(60, 'la reserva'), eq(120, 'https://www.userede.com.br/pagamentos/pt/x'), pa(3600, 'blob:https://www.userede.com.br/y', 'file')] });
   assert.deepStrictEqual([r.status, r.total, r.falta], ['falta', 1800, 900]);
 });
+
+test('consulta em SP: total R$ 2.200 e segunda parte R$ 1.100, mesmo se a conversa citar R$ 1.800 do Rio', () => {
+  const msgs = [eq(0, 'O valor do investimento na consulta é de R$ 1.800,00.'), eq(50, 'O valor do investimento da consulta em São Paulo é R$ 2.200,00'),
+    eq(60, 'Você pode optar pelo *pagamento integral de R$ 1.800,00*, ou realizar R$ 900,00 para a reserva'), pa(70, 'a reserva'), PIX, pa(600, '', 'picture')];
+  const sp = avaliarPagamento({ msgs, local: 'sp' });
+  assert.deepStrictEqual([sp.total, sp.falta], [2200, 1100]);
+  const rj = avaliarPagamento({ msgs, local: 'rj' });
+  assert.deepStrictEqual([rj.total, rj.falta], [1800, 900]);
+});
+
+test('nota do grupo vale mais que a tabela: SP com 1.100 de 2.200', () => {
+  const r = avaliarPagamento({ local: 'sp', notas: [{ ts: T0, text: '💳 Comprovantes: pago R$ 1.100 de R$ 2.200 · falta R$ 1.100 (pix).' }] });
+  assert.deepStrictEqual([r.status, r.falta], ['falta', 1100]);
+});

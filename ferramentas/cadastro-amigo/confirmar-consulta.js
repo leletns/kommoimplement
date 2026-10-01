@@ -49,12 +49,29 @@
       }
     } catch (e) { /* sem conversa */ }
   }
-  const pg = avaliarPagamento({ price, pagoEm, notas, msgs });
+  let pg = null;
   nome = nome ? nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase() : '';
   const pad = (n) => String(n).padStart(2, '0');
   const iso = quando ? quando.getFullYear() + '-' + pad(quando.getMonth() + 1) + '-' + pad(quando.getDate()) : '';
   const hora = quando ? pad(quando.getHours()) + ':' + pad(quando.getMinutes()) : '';
-  const local = /tele/i.test(modalidade) ? 'tele' : /paulo|sp\b/i.test(modalidade) ? 'sp' : 'rj';
+  let local = /tele/i.test(modalidade) ? 'tele' : /paulo|sp\b/i.test(modalidade) ? 'sp' : 'rj';
+  // Modalidade sem cidade no Kommo: descobre o local pela conversa. Cidade/endereço citados valem mais que o valor
+  // (a mensagem padrão de pagamento às vezes sai com R$ 1.800 mesmo para SP).
+  let localDeduzido = '';
+  if (!/tele|paulo|\bsp\b|rio|\brj\b|barra/i.test(modalidade)) {
+    let porCidade = '', porValor = '';
+    for (const m of msgs.filter((x) => x.t === 90).sort((a, b) => a.ts - b.ts)) {
+      const t = m.texto || '';
+      if (/cirurgi|\bmil\b/i.test(t)) continue;
+      if (/teleconsulta|google meet|consulta (online|on-line)/i.test(t)) porCidade = 'tele';
+      else if (/alameda campinas|jardim paulista|(consulta|investimento|atendimento|agenda)[^\n]{0,120}s[aã]o paulo/i.test(t)) porCidade = 'sp';
+      else if (/jos[eé] silva de azevedo|barra da tijuca|(consulta|investimento|atendimento|agenda)[^\n]{0,120}rio de janeiro/i.test(t)) porCidade = 'rj';
+      else if (/2\.?200/.test(t)) porValor = 'sp';
+      else if (/1\.?800/.test(t)) porValor = 'rj';
+    }
+    localDeduzido = porCidade || porValor;
+    if (localDeduzido) local = localDeduzido;
+  }
 
   const END = {
     rj: 'Av. José Silva de Azevedo Neto, 200 - SL 107/108 - Bloco 7 - Barra da Tijuca, Rio de Janeiro - RJ, 22775-056, Brasil',
@@ -138,15 +155,13 @@
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;width:400px;max-height:90vh;overflow:auto;background:#fff;color:#13294a;border:2px solid #2e9e5f;border-radius:14px;padding:16px;font:14px/1.45 Arial,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)';
   const inp = 'style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #dbe4f0;border-radius:8px;font:13px Arial"';
-  const COR = { integral: ['#e9f6ef', '#1f7d52', '✅'], falta: ['#faf1e2', '#a46d1c', '🟠'], conferir: ['#fff7d6', '#8a6d00', '⚠️'], sem_pagamento: ['#fbeceb', '#b04848', '⛔'] }[pg.status];
+  const CORES = { integral: ['#e9f6ef', '#1f7d52', '✅'], falta: ['#faf1e2', '#a46d1c', '🟠'], conferir: ['#fff7d6', '#8a6d00', '⚠️'], sem_pagamento: ['#fbeceb', '#b04848', '⛔'] };
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   box.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">✅ Confirmar consulta</div>' +
-    '<div style="background:' + COR[0] + ';color:' + COR[1] + ';border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px">' +
-    '<b>' + COR[2] + ' Pagamento:</b> ' + esc(pg.texto) +
-    (pg.provas.length ? '<details style="margin-top:6px;color:#3a4760"><summary style="cursor:pointer">Ver de onde tirei isso</summary><ul style="margin:6px 0 0;padding-left:18px">' + pg.provas.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></details>' : '') +
+    '<div id="cf-pgbox" style="border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px"><div id="cf-pginfo"></div>' +
     '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-top:8px;color:#5b6b82;font-size:12px">' +
     '<label>Na mensagem<select id="cf-pag" ' + inp + '><option value="integral">Pago integral (não falar de pagamento)</option><option value="falta">Pedir a segunda parte</option><option value="nao">Não confirmei ainda</option></select></label>' +
-    '<label>Valor que falta<input id="cf-falta" inputmode="decimal" ' + inp + ' value="' + (pg.falta ? String(pg.falta).replace('.', ',') : '') + '"></label></div></div>' +
+    '<label>Valor que falta<input id="cf-falta" inputmode="decimal" ' + inp + ' value=""></label></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#5b6b82">' +
     '<label>Primeiro nome<input id="cf-nome" ' + inp + ' value="' + nome.replace(/"/g, '') + '"></label>' +
     '<label>Idioma<select id="cf-lang" ' + inp + '><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></label>' +
@@ -165,7 +180,19 @@
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   $('#cf-lang').value = lang; $('#cf-local').value = local;
-  $('#cf-pag').value = pg.status === 'integral' ? 'integral' : pg.status === 'falta' ? 'falta' : pg.sugestao || 'nao';
+  // O valor da consulta depende do local (Rio R$ 1.800, SP R$ 2.200): recalcula quando o local muda.
+  const avaliar = () => {
+    pg = avaliarPagamento({ price, pagoEm, notas, msgs, local: $('#cf-local').value });
+    if (localDeduzido && $('#cf-local').value === localDeduzido) pg.provas.unshift('Local tirado da conversa (o campo Modalidade está sem cidade): ' + { rj: 'Rio', sp: 'São Paulo', tele: 'teleconsulta' }[localDeduzido] + '. Confira.');
+    const cor = CORES[pg.status];
+    $('#cf-pgbox').style.background = cor[0]; $('#cf-pgbox').style.color = cor[1];
+    $('#cf-pginfo').innerHTML = '<b>' + cor[2] + ' Pagamento:</b> ' + esc(pg.texto) +
+      (pg.provas.length ? '<details style="margin-top:6px;color:#3a4760"><summary style="cursor:pointer">Ver de onde tirei isso</summary><ul style="margin:6px 0 0;padding-left:18px">' + pg.provas.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></details>' : '');
+    $('#cf-pag').value = pg.status === 'integral' ? 'integral' : pg.status === 'falta' ? 'falta' : pg.sugestao || 'nao';
+    $('#cf-falta').value = pg.falta ? String(pg.falta).replace('.', ',') : '';
+  };
+  avaliar();
+  $('#cf-local').addEventListener('change', avaliar);
   const gerar = () => {
     const l = $('#cf-lang').value, loc = $('#cf-local').value;
     const pede = $('#cf-pag').value === 'falta';
