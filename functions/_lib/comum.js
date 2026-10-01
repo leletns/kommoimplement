@@ -8,13 +8,14 @@ export const json = (body, status = 200, extra = {}) =>
 
 /** Cliente Kommo mínimo com fetch (mesma interface `request(metodo, url, { data })` usada por fichaBlue.js). */
 export function kommoFetch(env) {
+  const token = String(env.KOMMO_TOKEN || '').trim().replace(/^["']|["']$/g, '').replace(/^Bearer\s+/i, '');
   const base = env.KOMMO_BASE_URL || `https://${env.KOMMO_SUBDOMAIN || 'comercialblueclinica'}.kommo.com/api/v4`;
   return {
     async request(method, url, { data } = {}) {
       for (let tentativa = 0; ; tentativa++) {
         const r = await fetch(base + url, {
           method: method.toUpperCase(),
-          headers: { authorization: `Bearer ${env.KOMMO_TOKEN}`, 'content-type': 'application/json', accept: 'application/json' },
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json' },
           body: data ? JSON.stringify(data) : undefined,
         });
         if (r.status === 204) return null;
