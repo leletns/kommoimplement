@@ -1,16 +1,22 @@
 # Ficha Blue no Cloudflare (sem Netlify)
 
-Grátis, sem cartão. A paciente vê só `https://ficha.clinicablue.com.br/f/<código>`.
+Grátis, sem cartão. A paciente vê `https://ficha.clinicablue.com.br/f/<código>` (com o CNAME no Registro.br) ou,
+enquanto isso, `https://<nome-do-projeto>.pages.dev/f/<código>`. Dê ao projeto o nome **clinicablue** (ou **blueclinica**)
+para o endereço provisório ficar `clinicablue.pages.dev`.
+
+**Sem acesso ao Registro.br, mas com acesso ao Squarespace do site:** em *Settings → Advanced → URL Mappings*, adicione
+`/f/[codigo] -> https://clinicablue.pages.dev/f/[codigo] 302` e use `FICHA_URL_BASE=https://clinicablue.com.br`.
+O link enviado fica `https://clinicablue.com.br/f/<código>` (o domínio da clínica).
 
 O que roda lá:
-- `ficha/index.html`: a página que a paciente preenche (`ficha/_redirects` faz `/f/...` abrir a ficha).
+- `ficha/index.html`: a página que a paciente preenche; `functions/f/[[codigo]].js` abre a ficha em `/f/...` com a prévia (logo `ficha/og.png`) para o WhatsApp.
 - `functions/api/ficha.js`: recebe a ficha → AmigoClinic (só se não existir) + nota, etiqueta e tarefa no Kommo.
 - `functions/api/ficha-link.js`: gera o link assinado para o botão 📝 Link da ficha.
 - A lógica é a mesma da versão Netlify (`src/services/fichaBlue.js` e `amigoClient.js`).
 
 ## Passo a passo (uma vez só, ~10 minutos)
 1. Crie a conta grátis em **dash.cloudflare.com**.
-2. **Workers & Pages → Create → Pages → Connect to Git** → escolha `leletns/kommoimplement`, branch `claude/loving-curie-mz2qi8` (ou a `main`, quando juntar).
+2. **Workers & Pages → Create → Pages → Connect to Git** (nome do projeto: **clinicablue**) → escolha `leletns/kommoimplement`, branch `claude/loving-curie-mz2qi8` (ou a `main`, quando juntar).
 3. Configuração do build: *Framework* **None** · *Build command* **vazio** · *Build output directory* **`ficha`**. Salvar e publicar.
 4. **Settings → Variables and Secrets** (tipo **Secret**, ambiente *Production*):
    | Nome | Valor |

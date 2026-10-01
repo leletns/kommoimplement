@@ -52,9 +52,9 @@
   const montar = () => {
     const l = $('#lf-lang').value, v = $('#lf-ver').value, n = $('#lf-nome').value.trim();
     const link = url + (v === 'pla' || l !== 'pt' ? '?' + [v === 'pla' ? 'v=pla' : '', l !== 'pt' ? 'l=' + l : ''].filter(Boolean).join('&') : '');
-    if (l === 'es') return '¡Hola' + (n ? ', ' + n : '') + '! 💙\nPara que el Dr. Rafael llegue a tu consulta conociendo tu historia, completa tu ficha (toma 3 minutos). Es un enlace solo tuyo y seguro:\n' + link;
-    if (l === 'en') return 'Hi' + (n ? ', ' + n : '') + '! 💙\nSo Dr. Rafael can meet you already knowing your story, please fill in your form (takes 3 minutes). It is a secure link just for you:\n' + link;
-    return 'Olá' + (n ? ', ' + n : '') + '! 💙\nPara o Dr. Rafael já chegar à sua consulta conhecendo a sua história, preencha a sua ficha (leva 3 minutos). É um link só seu e seguro:\n' + link + '\n\nAssim que você enviar, o seu cadastro fica pronto aqui na clínica.';
+    if (l === 'es') return '¡Hola' + (n ? ', ' + n : '') + '! 💙\nPara que el Dr. Rafael llegue a tu consulta conociendo tu historia, completa tu ficha (toma 3 minutos). Es un enlace solo tuyo y seguro:\n' + link + '\n\nEs nuestro formulario oficial de registro: no pedimos contraseñas ni datos de tarjeta.';
+    if (l === 'en') return 'Hi' + (n ? ', ' + n : '') + '! 💙\nSo Dr. Rafael can meet you already knowing your story, please fill in your form (takes 3 minutes). It is a secure link just for you:\n' + link + '\n\nThis is our official registration form: we never ask for passwords or card details.';
+    return 'Olá' + (n ? ', ' + n : '') + '! 💙\nPara o Dr. Rafael já chegar à sua consulta conhecendo a sua história, preencha a sua ficha (leva 3 minutos). É um link só seu e seguro:\n' + link + '\n\nÉ o nosso formulário oficial de cadastro: não pedimos senha nem dados de cartão. Assim que você enviar, o seu cadastro fica pronto aqui na clínica.';
   };
   mostrar('<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#5b6b82">' +
     '<label>Primeiro nome<input id="lf-nome" ' + inp + ' value="' + nome.replace(/"/g, '') + '"></label>' +
