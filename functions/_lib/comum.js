@@ -6,9 +6,12 @@
 export const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra } });
 
+/** Token colado com quebra de linha, espaço invisível, aspas ou "Bearer": fica só o que um token tem (letras, números, . _ -). */
+export const tokenLimpo = (t) => String(t || '').replace(/^\s*Bearer\s+/i, '').replace(/[^A-Za-z0-9._-]/g, '');
+
 /** Cliente Kommo mínimo com fetch (mesma interface `request(metodo, url, { data })` usada por fichaBlue.js). */
 export function kommoFetch(env) {
-  const token = String(env.KOMMO_TOKEN || '').trim().replace(/^["']|["']$/g, '').replace(/^Bearer\s+/i, '');
+  const token = tokenLimpo(env.KOMMO_TOKEN);
   const base = env.KOMMO_BASE_URL || `https://${env.KOMMO_SUBDOMAIN || 'comercialblueclinica'}.kommo.com/api/v4`;
   return {
     async request(method, url, { data } = {}) {
