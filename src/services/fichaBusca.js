@@ -37,4 +37,25 @@ async function buscarFichas(q, { kommo, limite = 6 }) {
   return { ok: true, fichas, semFicha };
 }
 
-module.exports = { buscarFichas };
+/** Fichas recebidas nos últimos dias (lista "Fichas recebidas" da página /equipe). */
+async function fichasRecentes({ kommo, dias = 7, agora = Date.now() }) {
+  const desde = Math.floor(agora / 1000) - dias * 86400;
+  const fichas = [];
+  for (let pagina = 1; pagina <= 4; pagina++) {
+    const r = await kommo.request('get', `/leads/notes?limit=250&page=${pagina}&filter[note_type]=common&filter[updated_at][from]=${desde}&order[updated_at]=desc`).catch(() => null);
+    const notas = lista(r, 'notes');
+    for (const n of notas) {
+      const texto = String((n.params && n.params.text) || '');
+      if (!texto.includes(MARCA_JSON)) continue;
+      try {
+        const dados = JSON.parse(texto.split(MARCA_JSON)[1].trim());
+        fichas.push({ lead: n.entity_id, nome: dados.nome || '', recebidaEm: n.created_at || null, dados });
+      } catch { /* nota antiga ou editada */ }
+    }
+    if (notas.length < 250) break;
+  }
+  const vistos = new Set();
+  return { ok: true, fichas: fichas.sort((a, b) => (b.recebidaEm || 0) - (a.recebidaEm || 0)).filter((f) => !vistos.has(f.lead) && vistos.add(f.lead)), semFicha: 0 };
+}
+
+module.exports = { buscarFichas, fichasRecentes };

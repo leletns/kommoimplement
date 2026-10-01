@@ -281,7 +281,9 @@ async function processarFicha({ codigo, lang, ver, dados }, { kommo, amigo, segr
   }
 
   const quando = agora.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' });
-  const nota = `${textoNota(d, { ver, lang, amigo: am, quando, origem })}\n\n${MARCA_JSON} ${JSON.stringify(paraBotao(d, leadId))}`;
+  // O JSON leva o cadastro (para o botão ✍️) e a ficha inteira (para o PDF do prontuário na página /equipe).
+  const json = { ...paraBotao(d, leadId), _ficha: { ver, lang, em: agora.toISOString(), r: d } };
+  const nota = `${textoNota(d, { ver, lang, amigo: am, quando, origem })}\n\n${MARCA_JSON} ${JSON.stringify(json)}`;
   await kommo.request('post', `/leads/${leadId}/notes`, { data: [{ note_type: 'common', params: { text: nota } }] });
   await kommo.request('patch', '/leads', { data: [{ id: leadId, tags_to_add: [{ name: ETIQUETA }] }] });
   await kommo.request('post', '/tasks', {

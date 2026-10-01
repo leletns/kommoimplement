@@ -34,3 +34,16 @@ test('busca pelo nome usa o texto e recusa busca curta', async () => {
   assert.ok(k.urls[0].includes('query=Ana%20Teste'));
   assert.strictEqual((await buscarFichas('an', { kommo: k })).ok, false);
 });
+
+test('fichas recentes: lê as notas dos últimos dias e mostra a mais nova de cada lead', async () => {
+  const { fichasRecentes } = require('../src/services/fichaBusca');
+  const urls = [];
+  const kommo = { request: async (m, url) => { urls.push(url); return { _embedded: { notes: [
+    { entity_id: 1, created_at: 300, params: { text: 'x\n\nFICHA_BLUE_JSON: {"nome":"Ana","_ficha":{"ver":"lip"}}' } },
+    { entity_id: 2, created_at: 200, params: { text: 'nota comum' } },
+    { entity_id: 1, created_at: 100, params: { text: 'FICHA_BLUE_JSON: {"nome":"Ana antiga"}' } },
+  ] } }; } };
+  const r = await fichasRecentes({ kommo, agora: 1790000000000 });
+  assert.deepStrictEqual(r.fichas.map((f) => [f.lead, f.nome]), [[1, 'Ana']]);
+  assert.ok(urls[0].includes('filter[updated_at][from]=1789395200'));
+});
