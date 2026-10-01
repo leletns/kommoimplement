@@ -56,7 +56,7 @@ Testes: `npm test`. Os 4 testes que falham (e2e do painel) esperam o mês de set
 - Nos relatórios não citar a queda do Google nem a demora nas respostas; o foco é nos resultados.
 
 ## Pendências abertas
-- Colocar `AMIGO_TOKEN` (e opcional `FICHA_SEGREDO`, `FICHA_URL_BASE=https://ficha.clinicablue.com.br`) no Netlify e fazer deploy; CNAME `ficha` → site do Netlify.
+- Publicar a Ficha Blue no **Cloudflare Pages** (escolha da Letícia, sem Netlify): passo a passo em `docs/ficha-blue-cloudflare.md` (`functions/`, `wrangler.toml`, `ficha/_redirects`). A versão Netlify (`netlify/functions/ficha*.mjs`) continua no código, mas não é a usada.
 - Relatório diário automático: precisa de `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID` e ID do Google Ads (Ads Script primeiro, sem aprovação).
 - Rotacionar as chaves expostas em conversas do Kommo (Anthropic, e-mail, WordPress). Nunca usar essas chaves.
 - Pendentes com a Letícia: data do pagamento da Daniela; valores de Larissa, Renata, Sandra e Helena; desfecho do cancelamento da Aline; apagar a regra de 48h no Kommo.

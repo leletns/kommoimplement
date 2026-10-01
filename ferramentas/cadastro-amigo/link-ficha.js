@@ -1,5 +1,5 @@
 // Botão "Link da ficha" — use com o lead aberto no Kommo. Gera o link pessoal da Ficha Blue e a mensagem pronta para copiar.
-// Na primeira vez pede o endereço do painel no Netlify e a senha do painel (ficam guardados só neste navegador).
+// Na primeira vez pede o endereço da Ficha Blue (ex.: https://ficha.clinicablue.com.br) e a senha do botão (ficam só neste navegador).
 (async () => {
   const id = (location.pathname.match(/leads\/detail\/(\d+)/) || [])[1];
   const box = document.createElement('div');
@@ -15,8 +15,8 @@
   try { cfg = JSON.parse(localStorage.getItem('blueFichaCfg') || '{}'); } catch (e) { cfg = {}; }
   if (!cfg.site || !cfg.senha) {
     mostrar('<div style="font-size:12px;color:#5b6b82">Só na primeira vez. Fica guardado neste navegador.</div>' +
-      '<label style="display:block;margin-top:8px;font-size:12px">Endereço do painel (Netlify)<input id="lf-site" ' + inp + ' placeholder="https://….netlify.app" value="' + (cfg.site || '') + '"></label>' +
-      '<label style="display:block;margin-top:8px;font-size:12px">Senha do painel<input id="lf-senha" type="password" ' + inp + '></label>' + btn('lf-salvar', 'Salvar e gerar link'));
+      '<label style="display:block;margin-top:8px;font-size:12px">Endereço da Ficha Blue<input id="lf-site" ' + inp + ' placeholder="https://ficha.clinicablue.com.br" value="' + (cfg.site || '') + '"></label>' +
+      '<label style="display:block;margin-top:8px;font-size:12px">Senha do botão<input id="lf-senha" type="password" ' + inp + '></label>' + btn('lf-salvar', 'Salvar e gerar link'));
     await new Promise((res) => { $('#lf-salvar').onclick = res; });
     cfg = { site: $('#lf-site').value.trim().replace(/\/+$/, ''), senha: $('#lf-senha').value };
     try { localStorage.setItem('blueFichaCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ }
@@ -40,13 +40,13 @@
   let url = '';
   try {
     const r = await fetch(cfg.site + '/api/ficha-link?lead=' + id, { headers: { 'x-painel-senha': cfg.senha } });
-    if (r.status === 401) { try { localStorage.removeItem('blueFichaCfg'); } catch (e) { /* ok */ } mostrar('Senha do painel incorreta. Clique de novo no botão e digite a senha certa.'); return; }
+    if (r.status === 401) { try { localStorage.removeItem('blueFichaCfg'); } catch (e) { /* ok */ } mostrar('Senha incorreta. Clique de novo no botão e digite a senha certa.'); return; }
     const j = await r.json();
     if (!j.ok) throw new Error(j.erro || r.status);
     url = j.url;
   } catch (e) {
     try { localStorage.removeItem('blueFichaCfg'); } catch (e2) { /* ok */ }
-    mostrar('Não consegui gerar o link (' + String(e.message || e).slice(0, 80) + '). Confira o endereço do painel e clique de novo.');
+    mostrar('Não consegui gerar o link (' + String(e.message || e).slice(0, 80) + '). Confira o endereço da Ficha Blue e clique de novo.');
     return;
   }
   const montar = () => {
