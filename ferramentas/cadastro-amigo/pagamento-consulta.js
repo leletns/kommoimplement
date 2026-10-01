@@ -68,6 +68,7 @@ function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [], loc
   if (pix.length) provas.push('Dados do Pix enviados: ' + [...new Set(pix.map((m) => dia(m.ts)))].join(', '));
   const agradeceu = (ts) => enviadas.some((m) => m.ts > ts && m.ts - ts < 2 * 86400 && /obrigad[ao] (por|pelo)|recebi|recebemos|confirmad/i.test(m.texto || ''));
   const recibos = candidatos.filter((m, i, a) => !a.slice(0, i).some((x) => m.ts - x.ts < 6 * 3600));
+  const extra = { recibos: recibos.map((m) => ({ ts: m.ts, media: m.media || '', tipo: m.tipo })) };
   if (recibos.length) provas.push('Comprovante(s) na conversa: ' + recibos.map((m) => dia(m.ts) + (agradeceu(m.ts) ? ' (equipe agradeceu)' : '')).join(', '));
   const pedidoSegunda = enviadas.filter((m) => /segunda parte|restante|valor que falta/i.test(m.texto || '') && !/integral/i.test(m.texto || '')).pop();
   const anexosDepoisDoPedido = pedidoSegunda ? recebidas.filter((m) => m.ts > pedidoSegunda.ts && (m.tipo === 'picture' || m.tipo === 'file' || /comprovante|paguei|pago|feito|pix/i.test(m.texto || ''))) : [];
@@ -93,11 +94,11 @@ function avaliarPagamento({ price = 0, pagoEm = null, notas = [], msgs = [], loc
   const novoDepoisDaNota = nota && nota.falta > 0 && (recibos.some((m) => m.ts > nota.ts + 3600) || anexosDepoisDoPedido.some((m) => m.ts > nota.ts));
   const falta = total && pago ? Math.max(0, Math.round(total - pago)) : 0;
 
-  if (!pago && !recibos.length) return { status: 'sem_pagamento', total, pago: 0, falta: total, provas, texto: 'Não achei pagamento desta consulta. Confira antes de confirmar.' };
-  if (novoDepoisDaNota) return { status: 'conferir', total, pago, falta, provas, texto: 'Faltava R$ ' + falta.toLocaleString('pt-BR') + ', mas chegou um comprovante depois. Confira se é a segunda parte.', sugestao: 'nao' };
-  if (duvida) return { status: 'conferir', sugestao: 'falta', total, pago, falta, provas, texto: duvida };
-  if (!total) return { status: 'conferir', sugestao: 'nao', total, pago, falta: 0, provas, texto: pago ? 'Achei pagamento de R$ ' + Number(pago).toLocaleString('pt-BR') + ', mas não o valor total da consulta. Confira se foi integral.' : 'Achei comprovante na conversa, mas não o valor da consulta. Confira se foi integral ou só a reserva.' };
-  if (falta > 0) return { status: 'falta', total, pago, falta, provas, texto: 'Pagou R$ ' + Number(pago).toLocaleString('pt-BR') + ' de R$ ' + total.toLocaleString('pt-BR') + '. Falta a segunda parte: R$ ' + falta.toLocaleString('pt-BR') + '.' + (nota ? '' : ' (pela conversa: a segunda parte pode ter sido paga fora do chat, confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
-  return { status: 'integral', total, pago, falta: 0, provas, texto: 'Consulta paga por completo (R$ ' + total.toLocaleString('pt-BR') + ').' + (nota ? '' : ' (pela conversa: confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
+  if (!pago && !recibos.length) return { ...extra, status: 'sem_pagamento', total, pago: 0, falta: total, provas, texto: 'Não achei pagamento desta consulta. Confira antes de confirmar.' };
+  if (novoDepoisDaNota) return { ...extra, status: 'conferir', total, pago, falta, provas, texto: 'Faltava R$ ' + falta.toLocaleString('pt-BR') + ', mas chegou um comprovante depois. Confira se é a segunda parte.', sugestao: 'nao' };
+  if (duvida) return { ...extra, status: 'conferir', sugestao: 'falta', total, pago, falta, provas, texto: duvida };
+  if (!total) return { ...extra, status: 'conferir', sugestao: 'nao', total, pago, falta: 0, provas, texto: pago ? 'Achei pagamento de R$ ' + Number(pago).toLocaleString('pt-BR') + ', mas não o valor total da consulta. Confira se foi integral.' : 'Achei comprovante na conversa, mas não o valor da consulta. Confira se foi integral ou só a reserva.' };
+  if (falta > 0) return { ...extra, status: 'falta', total, pago, falta, provas, texto: 'Pagou R$ ' + Number(pago).toLocaleString('pt-BR') + ' de R$ ' + total.toLocaleString('pt-BR') + '. Falta a segunda parte: R$ ' + falta.toLocaleString('pt-BR') + '.' + (nota ? '' : ' (pela conversa: a segunda parte pode ter sido paga fora do chat, confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
+  return { ...extra, status: 'integral', total, pago, falta: 0, provas, texto: 'Consulta paga por completo (R$ ' + total.toLocaleString('pt-BR') + ').' + (nota ? '' : ' (pela conversa: confira no grupo de pagamentos)'), certeza: nota ? 'alta' : 'media' };
 }
 if (typeof module !== 'undefined') module.exports = { avaliarPagamento, PRECO_CONSULTA };
