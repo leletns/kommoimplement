@@ -60,3 +60,20 @@ Testes: `npm test`. Os 4 testes que falham (e2e do painel) esperam o mês de set
 - Relatório diário automático: precisa de `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID` e ID do Google Ads (Ads Script primeiro, sem aprovação).
 - Rotacionar as chaves expostas em conversas do Kommo (Anthropic, e-mail, WordPress). Nunca usar essas chaves.
 - Pendentes com a Letícia: data do pagamento da Daniela; valores de Larissa, Renata, Sandra e Helena; desfecho do cancelamento da Aline; apagar a regra de 48h no Kommo.
+
+## Atualização 01/10/2026 (noite), para a sessão do Blue Intelligence OS
+- **O repositório oficial agora é `growthblueclinica-re/blue-sistemas`, branch `main`** (mesmo histórico do kommoimplement).
+  Troque o submódulo `vendor/kommoimplement` para ele (o commit `eb565fb` está bem atrasado):
+  `git submodule set-url vendor/kommoimplement https://github.com/growthblueclinica-re/blue-sistemas && git submodule set-branch -b main vendor/kommoimplement && git submodule update --remote`.
+- **Ficha Blue no Cloudflare Pages** (projeto `clinicablue`, publica sozinho a cada push na `main`):
+  links fixos `https://clinicablue.pages.dev/lipedema|plastica[/es|/en]`, página da equipe `/equipe` (fichas recebidas, PDF para o prontuário),
+  diagnóstico `/api/ficha-status`. A ficha vai para a nota do lead no Kommo (marcador `FICHA_BLUE_JSON:` com a ficha inteira em `_ficha`),
+  etiqueta `ficha_recebida` (ou lead novo `ficha_sem_lead`) e tarefa. Guia: `docs/ficha-blue-cloudflare.md`.
+- **Amigo: decisão da Letícia = cadastro pelo botão ✍️** (preenche tudo e alguém confere). `AMIGO_TOKEN` fica de fora; a API não aceita
+  nascimento, RG, "como nos conheceu" nem anamnese/arquivos.
+- **Botões novos:** 🧾 Agendamento (mensagem "consulta agendada" com o link da pré-consulta, texto do grupo de comprovantes, título/descrição
+  do TimeTree, link do comprovante) e ✅ Confirmar consulta com conferência de pagamento (`ferramentas/cadastro-amigo/pagamento-consulta.js`,
+  regra de valor: Rio R$ 1.800, SP R$ 2.200, Dr. Leonardo pelo valor da conversa).
+- **Cache das transcrições de 30/09** (44 áudios + 217 extrações): entregue à Letícia como `cache-ia-30-09.zip` para colocar em `data/` do
+  Blue OS. Nome de cada transcrição = id da mensagem no export do Kommo.
+- O `KOMMO_TOKEN` colado no Cloudflare estava com texto a mais (6 mil caracteres, não começava com `eyJ`); a Letícia está trocando.
