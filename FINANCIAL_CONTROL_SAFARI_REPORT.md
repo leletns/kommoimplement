@@ -172,12 +172,37 @@ O comprovante sozinho mostra **quem pagou**. A mensagem que a equipe manda junto
 
 **Onde fica registrado:** banco e planilha, nas colunas Paciente (mensagem), Procedimento (mensagem), Consulta (mensagem), Parcela, Total da consulta, Falta pagar, Desconto (%) e Mensagem enviada junto. A "Obs:" da mensagem vai para Observações.
 
+
+### 3.7 O que foi pago (catálogo) e AmigoApp (v3)
+
+**O botão entende o que foi pago**, em qualquer jeito de escrever, e classifica cada item pelo catálogo da clínica (`classificarItens` em `comprovante.js`):
+
+| Categoria | Itens reconhecidos |
+|---|---|
+| Consulta | Dr. Rafael, teleconsulta, Dr. Leonardo, Dra. Lorena (clínica), nutricionista, retorno, acompanhamento e especialista (angiologista, endocrinologista…) |
+| Cirurgia | cirurgia, **sinal (com %)** e parcela |
+| Estética | botox, preenchimento, bioestimulador, skinbooster, fios, laser, microagulhamento, peeling e enzimas |
+| Soroterapia | ferro, vitaminas D, B12 e C, complexo B, glutationa, NAD, magnésio, zinco e soro, **com quantidade** (ampolas, doses) |
+| Produto | meia de compressão, cinta, sutiã e compressor / bota pneumática |
+| Fisioterapia | fisioterapia (n sessões), drenagem e pressoterapia |
+| Exame | bioimpedância e exames |
+
+Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, que fica só no banco. A aba Resumo ganhou o total por categoria.
+
+**AmigoApp:**
+- O botão da página abre **amigoapp.com.br/patients** (antes abria `app.amigoapp.com.br`, que não existe).
+- Sem paciente aberta, o botão busca na **própria base do AmigoApp**, usando a sessão que a gestão já tem aberta (só leitura, rota `/api/patient/suggest`). Mostra os candidatos sem escolher sozinho e, ao escolher um, traz CPF e celular da ficha.
+- Se a busca da API não responder, o botão usa a lista da tela como antes.
+- O endereço do site salvo no botão é corrigido sozinho (https, sem caminho).
+- **Se o AmigoApp não conseguir falar com o servidor** ("Failed to fetch"), aparece "**Enviar a paciente pela página**": a página Controle financeiro abre, retoma o comprovante pendente e liga a paciente.
+- 🟡 A rota de busca do Amigo foi tirada do código do próprio AmigoApp (`api.amigoapp.com.br`, `localStorage.token`, `company-id`), mas o **formato da resposta real não foi visto**: foi testada com uma resposta simulada.
+
 ## 4. Testes realizados
 
 | Teste | Resultado |
 |---|---|
-| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem) | ✅ 14 de 14 |
-| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **47 de 48** (inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
+| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem + catálogo com 7 formatos) | ✅ 15 de 15 |
+| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **52 de 53** (inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
 | A falha (1): ID do Pix lido **exatamente** pelo OCR na imagem | ✗ O OCR trocou `0`/`O` e `1`/`l` no final do ID. O sistema **detectou e marcou para conferir** (verificação seguinte ✅). A duplicidade continua protegida pelo arquivo e por valor + data + pagador |
 | Persistência: servidor desligado e religado | ✅ os 4 lançamentos continuam no banco e na planilha, sem linha duplicada |
 | `npm test` do projeto | 87 de 89. As 2 falhas são **anteriores** a esta mudança (`test/e2e.test.js` do painel espera o mês "set" e hoje é outubro) e não têm relação com o botão |

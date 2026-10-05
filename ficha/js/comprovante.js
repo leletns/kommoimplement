@@ -171,6 +171,72 @@
   }
 
 
+
+  // ---------- o que foi pago: catálogo da clínica ----------
+  // Cada item: [categoria, nome, regex]. A mensagem pode citar vários ("ferro + vitamina D", "botox e preenchedor").
+  const CATALOGO = [
+    ['Cirurgia', 'Sinal da cirurgia', /\bsinal\b[^\n]{0,40}cirurg|cirurg[^\n]{0,40}\bsinal\b|reserva[^\n]{0,20}cirurg/],
+    ['Cirurgia', 'Parcela da cirurgia', /parcela[^\n]{0,30}cirurg|cirurg[^\n]{0,30}parcela|restante[^\n]{0,30}cirurg/],
+    ['Cirurgia', 'Cirurgia', /\bcirurgia\b|lipedefinition|lipo ?hd|lipoaspira|mastopexia|abdominoplastia|lifting de coxa|\blipo\b/],
+    ['Consulta', 'Teleconsulta', /teleconsulta|\btele\b|consulta (online|on-line|por video)/],
+    ['Consulta', 'Consulta Dr. Leonardo', /(consulta|avaliacao|atendimento)[^\n]{0,30}leonardo|leonardo[^\n]{0,20}consulta/],
+    ['Consulta', 'Consulta Dra. Lorena (clínica)', /(consulta|avaliacao|atendimento)[^\n]{0,30}lorena|lorena[^\n]{0,20}consulta/],
+    ['Consulta', 'Consulta nutricionista', /nutri(cionista|cao)?\b/],
+    ['Consulta', 'Retorno', /\bretorno\b/],
+    ['Consulta', 'Acompanhamento', /acompanhamento/],
+    ['Consulta', 'Consulta com especialista', /especialista|angiolog|endocrin|dermatolog|cardiolog|psicolog|psiquiatr|vascular/],
+    ['Consulta', 'Consulta Dr. Rafael', /\bconsulta\b|avaliacao/],
+    ['Soroterapia', 'Ferro', /\bferro\b|noripurum|ferinject|sacarato/],
+    ['Soroterapia', 'Vitamina D', /vit(amina)?\.? ?d\b|vitamina d3/],
+    ['Soroterapia', 'Vitamina B12', /b ?12|cianocobalamina/],
+    ['Soroterapia', 'Vitamina C', /vit(amina)?\.? ?c\b/],
+    ['Soroterapia', 'Complexo B', /complexo b/],
+    ['Soroterapia', 'Glutationa', /glutationa/],
+    ['Soroterapia', 'NAD', /\bnad\b/],
+    ['Soroterapia', 'Magnésio', /magnesio/],
+    ['Soroterapia', 'Zinco', /\bzinco\b/],
+    ['Soroterapia', 'Soroterapia', /soroterapia|\bsoro\b|endovenos|intravenos|\bev\b/],
+    ['Estética', 'Botox', /botox|toxina/],
+    ['Estética', 'Preenchimento', /preench|acido hialuronico|hialuronico/],
+    ['Estética', 'Bioestimulador', /bioestimul|sculptra|radiesse|ellanse/],
+    ['Estética', 'Skinbooster', /skin ?booster|profhilo/],
+    ['Estética', 'Fios de PDO', /\bfios?\b/],
+    ['Estética', 'Laser', /\blaser\b|lavieen|ultraformer|morpheus|radiofrequencia/],
+    ['Estética', 'Microagulhamento', /microagulh/],
+    ['Estética', 'Peeling', /peeling/],
+    ['Estética', 'Enzimas', /enzima/],
+    ['Produto', 'Meia de compressão', /\bmeias?\b/],
+    ['Produto', 'Cinta / modelador', /\bcinta|modelador|body pos/],
+    ['Produto', 'Sutiã pós-operatório', /sutia/],
+    ['Produto', 'Compressor / bota pneumática', /compressor|bota pneumatica|pressoterapia (aparelho|equipamento)/],
+    ['Fisioterapia', 'Fisioterapia', /fisio(terapia)?|pos[- ]?operatorio[^\n]{0,20}sess/],
+    ['Fisioterapia', 'Drenagem linfática', /drenagem/],
+    ['Fisioterapia', 'Pressoterapia', /pressoterapia/],
+    ['Exame', 'Bioimpedância', /bioimped/],
+    ['Exame', 'Exames', /\bexames?\b|laboratori/],
+  ];
+  /** Mensagem → itens pagos ([{categoria, item, detalhe}]) + categoria principal. Não depende de a mensagem seguir um formato. */
+  function classificarItens(texto) {
+    const t = normal(texto).replace(/[^a-z0-9%/,.+\- \n]/g, ' ');
+    const itens = [];
+    for (const [categoria, item, re] of CATALOGO) {
+      if (!re.test(t)) continue;
+      // "Consulta Dr. Rafael" só quando não for outra consulta já reconhecida; "Soroterapia" genérica só sem item específico.
+      if (item === 'Consulta Dr. Rafael' && itens.some((x) => x.categoria === 'Consulta')) continue;
+      if (item === 'Soroterapia' && itens.some((x) => x.categoria === 'Soroterapia')) continue;
+      if (item === 'Cirurgia' && itens.some((x) => x.categoria === 'Cirurgia')) continue;
+      if (item === 'Fisioterapia' && itens.some((x) => x.item === 'Drenagem linfática')) continue;
+      const it = { categoria, item };
+      if (categoria === 'Cirurgia') { const pc = /(\d{1,3})\s*%/.exec(t); if (pc && Number(pc[1]) < 100) it.detalhe = pc[1] + '%'; }
+      if (categoria === 'Fisioterapia' || item === 'Soroterapia' || categoria === 'Soroterapia') { const q = /(\d{1,2})\s*(sessoes|sessao|aplicac|ampolas?|doses?)/.exec(t); if (q) it.detalhe = q[1] + ' ' + ({ sessoes: 'sessões', sessao: 'sessão', aplicac: 'aplicações' }[q[2]] || q[2]); }
+      if (item === 'Consulta com especialista') { const e = /(angiolog\w*|endocrin\w*|dermatolog\w*|cardiolog\w*|psicolog\w*|psiquiatr\w*|vascular)/.exec(t); if (e) it.detalhe = e[1]; }
+      itens.push(it);
+    }
+    const ordem = ['Cirurgia', 'Consulta', 'Estética', 'Soroterapia', 'Fisioterapia', 'Produto', 'Exame'];
+    const categorias = [...new Set(itens.map((x) => x.categoria))].sort((a, b) => ordem.indexOf(a) - ordem.indexOf(b));
+    return { itens, categoria: categorias.join(' + '), resumo: itens.map((x) => x.item + (x.detalhe ? ' (' + x.detalhe + ')' : '')).join(', ') };
+  }
+
   // ---------- mensagem enviada junto com o comprovante ----------
   // Formato do grupo de comprovantes (botão 🧾 Agendamento): nome · Tel · Ind · Objetivo · "Teleconsulta com o Dr. Leonardo - Lipedema 1x" ·
   // "Dia 12 de novembro às 15h30" · "Pagamento: R$ 900,00 de R$ 1.800,00". Também lê os formatos antigos ("Nome:", "CPF:", "Restante…", "2/2", "Segue pagamento da paciente…").
@@ -208,7 +274,12 @@
     const desc = /desconto\s*(?:de\s*)?(\d{1,3})\s*%/i.exec(t);
     if (desc) m.desconto = Number(desc[1]);
     if (!m.nome) { const seg = /segue (?:o )?pagamento d[ao]s?\s+(?:paciente\s+)?(.+?)(?:\s+-\s+|\n|$)/i.exec(t); if (seg) m.nome = pareceNomeMsg(seg[1]); }
-    if (!m.nome) for (const l of linhas.slice(0, 3)) { if (ROTULO.test(l)) continue; const v = pareceNomeMsg(l.replace(/pagamento\s*\d\s*\/\s*\d|\d\s*\/\s*\d|\|/gi, ' ')); if (v) { m.nome = v; break; } }
+    if (!m.nome) for (const l of linhas.slice(0, 3)) {
+      if (ROTULO.test(l)) continue;
+      const limpa = l.replace(/pagamento\s*\d\s*\/\s*\d|\d\s*\/\s*\d|\|/gi, ' ');
+      const v = pareceNomeMsg(limpa) || pareceNomeMsg(limpa.split(/\s[-–]\s/)[0]); // "Renata Alves - 10 sessões de fisio"
+      if (v) { m.nome = v; if (!m.procedimento && /\s[-–]\s/.test(limpa)) m.procedimento = limpa.split(/\s[-–]\s/).slice(1).join(' - ').trim().slice(0, 120); break; }
+    }
     if (!m.cpf) m.cpf = (t.match(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/) || [''])[0];
     const pt = m.pagamentoTexto || (linhas.find((l) => /R\$\s*[\d.]+/.test(l)) || '');
     const vs = [...pt.matchAll(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi)].map((x) => Number(x[1].replace(/\./g, '').replace(',', '.')));
@@ -231,7 +302,11 @@
     const dn = !de && /\bdia\s*(\d{1,2})\s*\/\s*(\d{1,2})(?:[^\n]*?(\d{1,2})\s*[h:]\s*(\d{2})?)?/i.exec(t);
     if (de) m.consultaEm = String(de[1]).padStart(2, '0') + '/' + String(MES_EXT[normal(de[2]).replace('ç', 'c')]).padStart(2, '0') + (de[3] ? ' ' + de[3].padStart(2, '0') + ':' + (de[4] || '00') : '');
     else if (dn) m.consultaEm = dn[1].padStart(2, '0') + '/' + dn[2].padStart(2, '0') + (dn[3] ? ' ' + dn[3].padStart(2, '0') + ':' + (dn[4] || '00') : '');
-    const util = ['nome', 'cpf', 'telefone', 'pago', 'procedimento', 'consultaEm', 'obs'].some((k) => m[k]);
+    // O que foi pago, pelo catálogo (vale para qualquer jeito de escrever a mensagem).
+    const cl = classificarItens([m.procedimento, m.objetivo && !m.procedimento ? '' : '', t].filter(Boolean).join('\n'));
+    if (cl.itens.length) { m.itens = cl.itens; m.categoria = cl.categoria; m.resumoItens = cl.resumo; }
+    if (/\bsinal\b/i.test(t) && m.categoria && /Cirurgia/.test(m.categoria)) m.parcela = 'sinal';
+    const util = ['nome', 'cpf', 'telefone', 'pago', 'procedimento', 'consultaEm', 'obs', 'itens'].some((k) => m[k]);
     return util ? m : { texto: m.texto };
   }
 
@@ -324,7 +399,7 @@
     return { status: divergencias.length ? 'divergencia' : 'confirmada', divergencias, avisos, itens };
   }
 
-  const api = { lerComprovante, lerMensagem, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
+  const api = { lerComprovante, lerMensagem, classificarItens, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.BlueComprovante = api;
 })(typeof window !== 'undefined' ? window : globalThis);

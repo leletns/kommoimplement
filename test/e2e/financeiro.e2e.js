@@ -124,7 +124,7 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   ok('OCR: recebedor', /clinica blue/i.test(lido.recebedor), lido.recebedor);
   const msgTxt = await popup.inputValue('#msg-txt'), msgLido = await popup.textContent('#msg-lido');
   ok('Mensagem do WhatsApp chega na página (só a de quem mandou o comprovante)', /Segue pagamento da paciente Maria da Silva Santos/.test(msgTxt) && /Pagamento: R\$ 1\.800,00/.test(msgTxt) && !/Recebido, obrigada|Bom dia, equipe/.test(msgTxt), JSON.stringify(msgTxt));
-  ok('Mensagem entendida: paciente, procedimento e pagamento integral', /Paciente: Maria da Silva Santos/.test(msgLido) && /Consulta Lipedema 1x/.test(msgLido) && /integral/.test(msgLido), msgLido);
+  ok('Mensagem entendida: paciente, o que foi pago (consulta) e pagamento integral', /Paciente: Maria da Silva Santos/.test(msgLido) && /Consulta: Consulta Dr\. Rafael/.test(msgLido) && /integral/.test(msgLido), msgLido);
   const naoIdent = await popup.textContent('#pac-res');
   ok('Sem paciente: mostra PACIENTE NÃO IDENTIFICADO e não deixa lançar', /PACIENTE NÃO IDENTIFICADO/.test(naoIdent) && await popup.locator('#conc').isHidden());
 
@@ -211,7 +211,7 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   await popup.fill('#msg-txt', 'Segue pagamento da paciente Juliana Costa Mendes - Botox e preenchedor.\nObs: Desconto de 30% de familiar e amigo');
   await popup.dispatchEvent('#msg-txt', 'input');
   const lidoMsg = await popup.textContent('#msg-lido');
-  ok('Mensagem curta entendida: paciente, procedimento e desconto', /Juliana Costa Mendes/.test(lidoMsg) && /Botox e preenchedor/.test(lidoMsg) && /Desconto: 30%/.test(lidoMsg), lidoMsg);
+  ok('Mensagem curta entendida: paciente, itens (botox e preenchimento) e desconto', /Juliana Costa Mendes/.test(lidoMsg) && /Estética: Botox, Preenchimento/.test(lidoMsg) && /Desconto: 30%/.test(lidoMsg), lidoMsg);
   await popup.waitForTimeout(1500); // a página salva a mensagem na conciliação (o AmigoApp lê de lá)
   await amigo.goto('https://app.amigoapp.com.br/patients');
   await amigo.evaluate(BOOK);
@@ -219,14 +219,29 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   const lista = await amigo.textContent('#blue-fin-box');
   ok('AmigoApp → Pacientes: busca o pagador e mostra os 2 candidatos sem escolher', /2 possíveis pacientes/.test(lista) && /Juliana Costa Mendes/.test(lista) && /Juliana Mendes Costa/.test(lista), lista.replace(/\s+/g, ' ').slice(0, 220));
   ok('A busca do Amigo usa o nome da paciente que veio na mensagem', /Juliana Costa Mendes/.test(await amigo.inputValue('input[placeholder^="Buscar"]')) && /nome da mensagem/.test(lista));
-  await amigo.goto('https://app.amigoapp.com.br/patient/form/7777');
-  await amigo.evaluate(BOOK); await amigo.waitForSelector('#bf-usar'); await amigo.click('#bf-usar');
+  // Com a sessão do Amigo aberta (token no navegador), o botão busca na própria base do AmigoApp.
+  await ctx.route('https://api.amigoapp.com.br/**', (r) => {
+    const u = new URL(r.request().url()), ok = r.request().headers().authorization === 'Bearer token-da-sessao';
+    const corpo = !ok ? { erro: 'sem sessão' } : /\/api\/patient\/suggest/.test(u.pathname) ? [{ id: 7777, name: 'Juliana Costa Mendes' }, { id: 8888, name: 'Juliana Mendes Costa' }] : { id: 7777, name: 'Juliana Costa Mendes', cpf: '111.987.123-44', cellphone: '(21) 97777-1111' };
+    r.fulfill({ status: ok ? 200 : 401, contentType: 'application/json', body: JSON.stringify(corpo), headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' } });
+  });
+  await amigo.evaluate(() => { localStorage.setItem('token', 'token-da-sessao'); localStorage.setItem('log_in', '123'); });
+  await amigo.evaluate(BOOK);
+  await amigo.waitForFunction(() => /nos pacientes do AmigoApp/.test((document.getElementById('blue-fin-box') || {}).textContent || ''), null, { timeout: 10000 });
+  const apiLista = await amigo.textContent('#blue-fin-box');
+  ok('AmigoApp: busca pela API do Amigo (sessão aberta) e mostra os 2 candidatos sem escolher', /2 possíveis pacientes/.test(apiLista) && /ID 7777/.test(apiLista) && /ID 8888/.test(apiLista), apiLista.replace(/\s+/g, ' ').slice(0, 200));
+  await amigo.click('#blue-fin-box button[data-k="0"]');
+  await amigo.waitForSelector('#bf-usar');
+  const conf7777 = await amigo.textContent('#blue-fin-box');
+  ok('Ao escolher, traz CPF e celular da ficha do Amigo e confere', /CPF 111\.987\.123-44/.test(conf7777) && /CORRESPONDÊNCIA CONFIRMADA/.test(conf7777), conf7777.replace(/\s+/g, ' ').slice(0, 220));
+  await amigo.click('#bf-usar');
   await popup.waitForSelector('#conc:not(.hide)', { timeout: 15000 });
   await popup.click('#b-lancar');
   await popup.waitForFunction(() => /Lançamento #\d+ registrado/.test(document.getElementById('lanc-res').textContent));
   ok('PDF conciliado e lançado (#3)', /#3 registrado/.test(await popup.textContent('#lanc-res')));
   if (PLANILHA) {
     const pl3 = JSON.parse(fs.readFileSync(PLANILHA, 'utf8')).abas['Lançamentos'].linhas, cab3 = pl3[0], l3 = pl3[3];
+    ok('Planilha: categoria e itens pagos entendidos da mensagem', l3[cab3.indexOf('Categoria')] === 'Estética' && l3[cab3.indexOf('Itens pagos')] === 'Botox, Preenchimento', JSON.stringify([l3[cab3.indexOf('Categoria')], l3[cab3.indexOf('Itens pagos')]]));
     ok('Planilha: procedimento e desconto vindos da mensagem, e a observação dela', l3[cab3.indexOf('Procedimento (mensagem)')] === 'Botox e preenchedor' && l3[cab3.indexOf('Desconto (%)')] === 30 && /Obs\. da mensagem: Desconto de 30%/.test(l3[cab3.indexOf('Observações')]), JSON.stringify([l3[cab3.indexOf('Procedimento (mensagem)')], l3[cab3.indexOf('Desconto (%)')], l3[cab3.indexOf('Observações')]]));
   }
 
@@ -247,6 +262,20 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
     const pl = JSON.parse(fs.readFileSync(PLANILHA, 'utf8'));
     ok('Reenviar pendentes: planilha recebe o lançamento atrasado', pl.abas['Lançamentos'].linhas.length === 5, (pl.abas['Lançamentos'].linhas.length - 1) + ' linhas de lançamento');
   }
+  // ---------- AmigoApp sem conseguir chamar o servidor → paciente vai pelo endereço da página ----------
+  const nova = await popup.evaluate(async () => (await (await fetch('/api/financeiro?acao=conciliacao', { method: 'POST', headers: { 'x-financeiro-senha': 'senha-gestao-teste', 'content-type': 'application/json' }, body: JSON.stringify({ comprovante: { pagador: 'Teste Caminho Alternativo', valor: 300, data: '05/10/2026', forma: 'PIX' }, hash: 'h-alternativo', origem: 'teste' }) })).json()).id);
+  const amigo2 = await ctx.newPage();
+  await amigo2.route('**/api/financeiro**', (r) => r.abort()); // simula o Amigo/navegador bloqueando a chamada
+  await amigo2.goto('https://app.amigoapp.com.br/patient/form/4321');
+  await amigo2.evaluate((site) => localStorage.setItem('blueFinCfg', JSON.stringify({ site: site + '/financeiro/', senha: 'senha-gestao-teste' })), SITE);
+  await amigo2.evaluate(BOOK);
+  await amigo2.waitForSelector('#bf-pag', { timeout: 10000 });
+  ok('Endereço do site com caminho é corrigido e a falha de comunicação mostra o caminho alternativo', /Não consegui falar com o Controle financeiro/.test(await amigo2.textContent('#blue-fin-box')));
+  const [pag] = await Promise.all([ctx.waitForEvent('page'), amigo2.click('#bf-pag')]);
+  await pag.waitForLoadState();
+  await pag.waitForFunction(() => /Maria da Silva Santos/.test(document.getElementById('pac-res').textContent), null, { timeout: 15000 });
+  ok('Caminho alternativo: a página retoma o comprovante pendente e liga a paciente do Amigo', (await pag.inputValue('#c-pagador')) === 'Teste Caminho Alternativo' && !/paciente=/.test(pag.url()), nova + ' · ' + pag.url());
+  await pag.click('#b-desc').catch(() => {});
   const tot = await popup.textContent('#tot');
   ok('Lista de lançamentos na página', /4 lançamento\(s\)/.test(tot), tot);
   await browser.close();

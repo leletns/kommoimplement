@@ -51,7 +51,7 @@ const TABELAS = [
   'CREATE INDEX IF NOT EXISTS fin_lanc_data ON fin_lancamentos (data_pagamento)',
 ];
 // Dados da mensagem enviada junto com o comprovante (WhatsApp): quem é a paciente, o que foi pago e de quê.
-const COLUNAS_MENSAGEM = ['paciente_mensagem TEXT', 'procedimento TEXT', 'consulta_em TEXT', 'parcela TEXT', 'total_centavos INTEGER', 'falta_centavos INTEGER', 'desconto INTEGER', 'mensagem TEXT'];
+const COLUNAS_MENSAGEM = ['paciente_mensagem TEXT', 'procedimento TEXT', 'consulta_em TEXT', 'parcela TEXT', 'total_centavos INTEGER', 'falta_centavos INTEGER', 'desconto INTEGER', 'mensagem TEXT', 'categoria TEXT', 'itens TEXT'];
 let pronto = false;
 async function preparar(db) {
   if (pronto) return;
@@ -119,6 +119,7 @@ const lanc = (x) => x && ({
   observacoes: x.observacoes, origem: x.origem, confianca: x.confianca, planilha: x.planilha, planilhaErro: x.planilha_erro, referencia: x.referencia_comprovante,
   pacienteMensagem: x.paciente_mensagem, procedimento: x.procedimento, consultaEm: x.consulta_em, parcela: x.parcela,
   total: x.total_centavos == null ? null : x.total_centavos / 100, falta: x.falta_centavos == null ? null : x.falta_centavos / 100, desconto: x.desconto, mensagem: x.mensagem,
+  categoria: x.categoria, itens: x.itens,
 });
 
 /**
@@ -158,8 +159,8 @@ export async function lancar(db, e) {
     const r = await db.prepare(`INSERT INTO fin_lancamentos (data_pagamento, data_comprovante, hora, paciente, paciente_id_amigo, paciente_cpf, pagador, pagador_doc,
       valor_centavos, moeda, forma, banco, instituicao_recebedora, recebedor, id_transacao, tipo_id, hash_comprovante, referencia_comprovante, status, divergencias,
       confirmado_em, responsavel, observacoes, origem, confianca, corrigidos,
-      paciente_mensagem, procedimento, consulta_em, parcela, total_centavos, falta_centavos, desconto, mensagem)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(
+      paciente_mensagem, procedimento, consulta_em, parcela, total_centavos, falta_centavos, desconto, mensagem, categoria, itens)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`).bind(
       iso(e.data), limpo(e.data, 20), limpo(e.hora, 10), limpo(e.paciente), limpo(e.pacienteIdAmigo, 60), digitos(e.pacienteCpf) || null, limpo(e.pagador), limpo(e.pagadorDoc, 30),
       Math.round(valor * 100), e.moeda === 'USD' ? 'USD' : 'BRL', limpo(e.forma, 40), limpo(e.banco, 60), limpo(e.bancoRecebedor, 60), limpo(e.recebedor), limpo(e.idTransacao, 80), limpo(e.tipoId, 40),
       limpo(e.hash, 100), limpo(e.referencia, 300), status, divergencias.length ? JSON.stringify(divergencias) : null,
@@ -169,7 +170,8 @@ export async function lancar(db, e) {
         const m = e.mensagem || {};
         const cent = (v) => (Number(v) > 0 ? Math.round(Number(v) * 100) : null);
         return [limpo(m.nome), limpo(m.procedimento, 120), limpo(m.consultaEm, 20), limpo(m.parcela, 20), cent(m.total), m.falta === 0 ? 0 : cent(m.falta),
-          Number.isFinite(Number(m.desconto)) && m.desconto !== undefined && m.desconto !== null ? Number(m.desconto) : null, limpo(m.texto, 1500)];
+          Number.isFinite(Number(m.desconto)) && m.desconto !== undefined && m.desconto !== null ? Number(m.desconto) : null, limpo(m.texto, 1500),
+          limpo(m.categoria, 120), limpo(m.resumoItens, 400)];
       })()).first();
     if (e.conciliacaoId) await db.prepare("UPDATE fin_conciliacoes SET status = 'lancada', lancamento_id = ?, atualizado_em = ? WHERE id = ?").bind(r.id, agora(), e.conciliacaoId).run();
     return r.id;
@@ -205,7 +207,7 @@ export async function candidatosPorHistorico(db, { pagador, cpfMeio, pacienteMen
 export const COLUNAS = ['Lançamento', 'Data do pagamento', 'Data do comprovante', 'Hora', 'Paciente', 'ID AmigoApp', 'Pagador', 'Doc. pagador', 'Valor', 'Moeda',
   'Forma', 'Banco', 'Instituição recebedora', 'Recebedor', 'ID da transação / Pix', 'Tipo do ID', 'Referência do comprovante', 'Status', 'Divergências',
   'Confirmado em', 'Responsável', 'Observações', 'Origem', 'Confiança da leitura',
-  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total da consulta', 'Falta pagar', 'Desconto (%)', 'Mensagem enviada junto'];
+  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total', 'Falta pagar', 'Desconto (%)', 'Categoria', 'Itens pagos'];
 
 export function linhaPlanilha(l) {
   const br = (isoD) => (isoD ? isoD.slice(8, 10) + '/' + isoD.slice(5, 7) + '/' + isoD.slice(0, 4) : '');
@@ -214,8 +216,8 @@ export function linhaPlanilha(l) {
     l.forma || '', l.banco || '', l.instituicaoRecebedora || '', l.recebedor || '', l.idTransacao || '', l.tipoId || '', l.referencia || '',
     { conferido: 'Conferido', conferido_com_divergencia: 'Conferido com divergência' }[l.status] || l.status, (l.divergencias || []).join(' | '),
     conf.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }), l.responsavel, l.observacoes || '', l.origem || '', l.confianca == null ? '' : Math.round(l.confianca * 100) + '%',
-    l.pacienteMensagem || '', l.procedimento || '', l.consultaEm || '', { reserva: 'Reserva (1ª parte)', restante: 'Restante (2ª parte)', integral: 'Integral' }[l.parcela] || '',
-    l.total == null ? '' : l.total, l.falta == null ? '' : l.falta, l.desconto == null ? '' : l.desconto, l.mensagem || ''];
+    l.pacienteMensagem || '', l.procedimento || '', l.consultaEm || '', { reserva: 'Reserva (1ª parte)', restante: 'Restante (2ª parte)', integral: 'Integral', sinal: 'Sinal' }[l.parcela] || '',
+    l.total == null ? '' : l.total, l.falta == null ? '' : l.falta, l.desconto == null ? '' : l.desconto, l.categoria || '', l.itens || ''];
 }
 
 /** Envia o lançamento para a planilha. Nunca derruba o lançamento: se falhar, fica 'pendente' para reenviar. */

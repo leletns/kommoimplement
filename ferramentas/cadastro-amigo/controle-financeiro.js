@@ -12,18 +12,21 @@
   const caixa = (html) => {
     let c = document.getElementById('blue-fin-box');
     if (!c) { c = document.createElement('div'); c.id = 'blue-fin-box'; c.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;width:360px;max-height:86vh;overflow:auto;background:#fff;color:#13294a;border:2px solid #1f7d52;border-radius:14px;padding:16px;font:14px/1.45 Arial,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)'; document.body.appendChild(c); }
-    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v2</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
+    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v3</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
     c.querySelector('#bf-x').onclick = () => c.remove();
     return c;
   };
   const inp = 'style="width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid #dbe4f0;border-radius:8px;font:13px Arial;margin-top:4px"';
   const btn = (id, t, cor) => '<button id="' + id + '" style="margin-top:8px;border:0;background:' + (cor || '#13294a') + ';color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold">' + t + '</button>';
   // Endereço do site (e, no AmigoApp, a senha da gestão): pedido só na primeira vez, guardado neste navegador.
+  // "clinicablue.pages.dev", "http://…/financeiro" → "https://clinicablue.pages.dev"
+  const endereco = (v) => { let x = String(v || '').trim(); if (!x) return ''; if (!/^https?:\/\//i.test(x)) x = 'https://' + x; if (!/^http:\/\/(localhost|127\.)/i.test(x)) x = x.replace(/^http:\/\//i, 'https://'); try { return new URL(x).origin; } catch (e) { return x.replace(/\/+$/, ''); } };
+  if (cfg.site) cfg.site = endereco(cfg.site);
   const pedirCfg = (precisaSenha) => new Promise((ok) => {
     const c = caixa('<div style="font-size:12px;color:#5b6b82">Só na primeira vez (fica salvo neste navegador):</div><input id="bf-site" ' + inp + ' placeholder="Endereço do site (https://…)" value="' + esc(cfg.site || '') + '">' +
       (precisaSenha ? '<input id="bf-senha" type="password" ' + inp + ' placeholder="Senha da gestão">' : '') + btn('bf-ok', 'Continuar'));
     c.querySelector('#bf-ok').onclick = () => {
-      cfg.site = c.querySelector('#bf-site').value.trim().replace(/\/+$/, '');
+      cfg.site = endereco(c.querySelector('#bf-site').value);
       if (precisaSenha) cfg.senha = c.querySelector('#bf-senha').value;
       try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ }
       ok();
@@ -130,18 +133,71 @@
       if (r.status === 401) { cfg.senha = ''; try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ } throw new Error('Senha da gestão incorreta. Clique de novo no botão.'); }
       return r.json();
     };
-    let pend;
+    const p0 = lerPaciente();
+    let pend = null, falhou = '';
     try { pend = (await api('pendente')).conciliacao; } catch (e) {
-      caixa('<div style="color:#b04848">' + esc(/senha/i.test(e.message) ? e.message : 'Este site não deixou falar com o Controle financeiro (' + e.message + ').') + '</div>'); return;
+      if (/senha/i.test(e.message)) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); return; }
+      falhou = e.message;
+    }
+    if (falhou) {
+      // Sem comunicação com o servidor daqui: a paciente vai pelo endereço da página Controle financeiro (lá a chamada é do próprio site).
+      const c0 = caixa('<div style="color:#b04848;font-size:13px">Não consegui falar com o Controle financeiro em <b>' + esc(cfg.site) + '</b> (' + esc(falhou) + ').</div>' +
+        (p0 ? '<div style="font-size:13px;margin-top:8px">Paciente aberta: <b>' + esc(p0.nome) + '</b></div>' + btn('bf-pag', 'Enviar a paciente pela página', '#1f7d52') : '<div style="font-size:13px;margin-top:8px">Abra a ficha da paciente e clique de novo no 💰.</div>') +
+        btn('bf-end', 'Corrigir o endereço do site', '#2f6fb5'));
+      if (p0) c0.querySelector('#bf-pag').onclick = () => window.open(cfg.site + '/financeiro#paciente=' + encodeURIComponent(JSON.stringify(p0)), 'blueFinanceiroAmigo');
+      c0.querySelector('#bf-end').onclick = () => { delete cfg.site; try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ } caixa('<div style="font-size:13px">Clique de novo no botão 💰 e digite <b>https://clinicablue.pages.dev</b>.</div>'); };
+      return;
     }
     if (!pend) { caixa('<div style="font-size:13px">Nenhum comprovante esperando conferência. Primeiro leia o comprovante no <b>WhatsApp Web</b> (botão 💰) ou na página <a href="' + esc(cfg.site) + '/financeiro" target="_blank" style="color:#2f6fb5">Controle financeiro</a>.</div>'); return; }
     const cp = pend.comprovante || {};
     const mg = cp.mensagem || {};
     const resumo = '<div style="font-size:12.5px;background:#f4f8fd;border-radius:8px;padding:8px;margin-bottom:8px"><b>Comprovante em conferência</b><br>' + esc([cp.pagador ? 'pago por ' + cp.pagador : 'pagador não lido', cp.valor ? C.brl(cp.valor, cp.moeda) : '', cp.data, cp.forma].filter(Boolean).join(' · ')) +
-      (mg.nome || mg.procedimento ? '<br>💬 Mensagem: ' + esc([mg.nome ? 'paciente ' + mg.nome : '', mg.procedimento, mg.desconto ? 'desconto ' + mg.desconto + '%' : ''].filter(Boolean).join(' · ')) : '') + '</div>';
+      (mg.nome || mg.resumoItens || mg.procedimento ? '<br>💬 Mensagem: ' + esc([mg.nome ? 'paciente ' + mg.nome : '', mg.resumoItens || mg.procedimento, mg.desconto ? 'desconto ' + mg.desconto + '%' : ''].filter(Boolean).join(' · ')) : '') + '</div>';
     const quemBuscar = mg.nome || cp.pagador || '';
-    const p = lerPaciente();
-    if (!p) {
+    const conferir = (p) => {
+      const val = C.validar(cp, p);
+      const c = caixa(resumo + '<div style="font-size:13px"><b>Paciente no AmigoApp:</b><br>' + esc(p.nome) + '<span style="color:#5b6b82">' + esc([p.idAmigo ? ' · ID ' + p.idAmigo : '', p.cpf ? ' · CPF ' + p.cpf : '', p.celular ? ' · ' + p.celular : ''].join('')) + '</span></div>' +
+        (val.status === 'confirmada' ? '<div style="margin-top:8px;color:#1f7d52;font-weight:bold">✓ CORRESPONDÊNCIA CONFIRMADA</div>' : '<div style="margin-top:8px;color:#b04848;font-weight:bold">⚠ DIVERGÊNCIA ENCONTRADA</div><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px">' + val.divergencias.map((d) => '<li>' + esc(d) + '</li>').join('') + '</ul>') +
+        (val.avisos.length ? '<div style="font-size:12px;color:#a46d1c;margin-top:6px">' + val.avisos.map(esc).join('<br>') + '</div>' : '') +
+        btn('bf-usar', val.status === 'confirmada' ? 'Usar esta paciente' : 'Usar esta paciente mesmo assim', val.status === 'confirmada' ? '#1f7d52' : '#a46d1c') +
+        '<div style="font-size:12px;color:#5b6b82;margin-top:6px">O lançamento é confirmado na janela <b>Controle financeiro</b>.</div>');
+      c.querySelector('#bf-usar').onclick = async () => {
+        try {
+          const j = await api('paciente', { id: pend.id, paciente: p });
+          caixa(j.ok ? '<div style="color:#1f7d52;font-weight:bold">✅ Paciente enviada para a conciliação</div><div style="font-size:13px;margin-top:6px">Volte à janela <b>Controle financeiro</b> para conferir e <b>confirmar o lançamento</b>.</div>' : '<div style="color:#b04848">' + esc(j.erro) + '</div>');
+        } catch (e) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); }
+      };
+    };
+    if (p0) { conferir(p0); return; }
+    // Sem paciente aberta: busca na própria base do AmigoApp, com a sessão que a gestão já tem aberta (só leitura).
+    const amigoApi = async (caminho) => {
+      const tok = localStorage.getItem('token');
+      if (!tok) throw new Error('sem sessão do Amigo');
+      const r = await fetch('https://api.amigoapp.com.br' + caminho, { headers: { Authorization: 'Bearer ' + tok, 'company-id': localStorage.getItem('log_in') || '', Accept: 'application/json' } });
+      if (!r.ok) throw new Error('Amigo ' + r.status);
+      return r.json();
+    };
+    const listaDe = (j) => { const a = Array.isArray(j) ? j : (j && (j.data || j.patients || j.items || j.results || j.rows)) || []; return Array.isArray(a) ? a : (Array.isArray(a.data) ? a.data : []); };
+    const paraPaciente = (x) => ({ nome: String(x.name || x.nome || x.full_name || x.label || '').trim(), idAmigo: String(x.id || x._id || x.value || ''), cpf: x.cpf || x.document || '', celular: x.cellphone || x.contact_cellphone || x.phone || x.mobile || '', nascimento: x.born || x.birthdate || '', fonte: 'AmigoApp (busca)' });
+    let achados = null;
+    if (quemBuscar) {
+      try { achados = listaDe(await amigoApi('/api/patient/suggest?name=' + encodeURIComponent(quemBuscar) + '&reduce=true')).map(paraPaciente).filter((x) => x.nome).slice(0, 10); } catch (e) { achados = null; }
+    }
+    if (achados) {
+      const c = caixa(resumo + '<div style="font-size:13px">Busquei <b>' + esc(quemBuscar) + '</b> nos pacientes do AmigoApp' + (mg.nome ? ' (nome da mensagem)' : ' (nome de quem pagou)') + '.</div>' +
+        (achados.length ? '<div style="font-size:13px;margin-top:6px">' + (achados.length > 1 ? '<b>' + achados.length + ' possíveis pacientes</b>: escolha a correta (nada é escolhido sozinho).' : '1 paciente encontrada: confira e escolha.') + '</div>' +
+          achados.map((x, k) => { const v = C.validar(cp, x); return '<button data-k="' + k + '" style="display:block;width:100%;text-align:left;margin-top:6px;border:1px solid #dbe4f0;background:#f4f8fd;border-radius:8px;padding:8px;cursor:pointer"><b>' + esc(x.nome) + '</b> ' + (v.status === 'confirmada' ? '<span style="color:#1f7d52">✓</span>' : '<span style="color:#a46d1c">⚠</span>') + '<br><span style="font-size:12px;color:#5b6b82">' + esc([x.idAmigo ? 'ID ' + x.idAmigo : '', x.cpf, x.celular].filter(Boolean).join(' · ')) + '</span></button>'; }).join('')
+          : '<div style="font-size:13px;margin-top:6px;color:#b04848"><b>PACIENTE NÃO IDENTIFICADO</b> no AmigoApp com esse nome. Busque pelo CPF ou celular, abra a ficha da paciente e clique de novo no 💰.</div>'));
+      c.querySelectorAll('button[data-k]').forEach((b) => {
+        b.onclick = async () => {
+          const x = achados[Number(b.dataset.k)];
+          try { const d = await amigoApi('/api/patient/' + encodeURIComponent(x.idAmigo)); const dd = paraPaciente(d && (d.data || d)); x.cpf = x.cpf || dd.cpf; x.celular = x.celular || dd.celular; x.nascimento = x.nascimento || dd.nascimento; } catch (e) { /* segue com o que a busca trouxe */ }
+          conferir(x);
+        };
+      });
+      return;
+    }
+    {
       // Lista de pacientes: preenche a busca do Amigo com o nome do pagador e mostra quem aparece na lista (sem escolher).
       const busca = [...document.querySelectorAll('input[type="search"], input[type="text"]')].find((i) => visivel(i) && /busc|pesquis|procur|nome|cpf|search/i.test((i.placeholder || '') + ' ' + (i.getAttribute('aria-label') || '')));
       if (busca && quemBuscar && !busca.value) {
@@ -160,17 +216,6 @@
           : '<div style="font-size:13px;margin-top:6px;color:#b04848"><b>PACIENTE NÃO IDENTIFICADO</b> nesta tela. Busque pelo nome, CPF ou celular, abra a ficha da paciente e clique de novo no 💰.</div>'));
       return;
     }
-    const val = C.validar(cp, p);
-    const c = caixa(resumo + '<div style="font-size:13px"><b>Paciente aberta no AmigoApp:</b><br>' + esc(p.nome) + '<span style="color:#5b6b82">' + esc([p.idAmigo ? ' · ID ' + p.idAmigo : '', p.cpf ? ' · CPF ' + p.cpf : '', p.celular ? ' · ' + p.celular : ''].join('')) + '</span></div>' +
-      (val.status === 'confirmada' ? '<div style="margin-top:8px;color:#1f7d52;font-weight:bold">✓ CORRESPONDÊNCIA CONFIRMADA</div>' : '<div style="margin-top:8px;color:#b04848;font-weight:bold">⚠ DIVERGÊNCIA ENCONTRADA</div><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px">' + val.divergencias.map((d) => '<li>' + esc(d) + '</li>').join('') + '</ul>') +
-      btn('bf-usar', val.status === 'confirmada' ? 'Usar esta paciente' : 'Usar esta paciente mesmo assim', val.status === 'confirmada' ? '#1f7d52' : '#a46d1c') +
-      '<div style="font-size:12px;color:#5b6b82;margin-top:6px">O lançamento é confirmado na janela <b>Controle financeiro</b>.</div>');
-    c.querySelector('#bf-usar').onclick = async () => {
-      try {
-        const j = await api('paciente', { id: pend.id, paciente: p });
-        caixa(j.ok ? '<div style="color:#1f7d52;font-weight:bold">✅ Paciente enviada para a conciliação</div><div style="font-size:13px;margin-top:6px">Volte à janela <b>Controle financeiro</b> para conferir e <b>confirmar o lançamento</b>.</div>' : '<div style="color:#b04848">' + esc(j.erro) + '</div>');
-      } catch (e) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); }
-    };
     return;
   }
 

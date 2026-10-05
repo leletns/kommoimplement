@@ -55,7 +55,7 @@ const finJs = bookmarklet(FIN.arq);
 fs.writeFileSync(path.join(DIR, FIN.txt), finJs);
 links[FIN.rotulo] = finJs.replace(/"/g, '%22');
 const htmlFin = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Botão da Gestão</title><body style="font:16px/1.5 Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;color:#13294a;background:#f4f8fd">
-<h1 style="font-size:24px">Botão da Gestão · Controle financeiro <small style="font-size:13px;color:#8a97a8">versão 2 (lê a mensagem junto)</small></h1>
+<h1 style="font-size:24px">Botão da Gestão · Controle financeiro <small style="font-size:13px;color:#8a97a8">versão 3 (entende o que foi pago e busca no AmigoApp)</small></h1>
 <p>Só para a <b>gestão</b>. Não tem relação com os botões da Comercial (Copiar ficha, Preencher cadastro…), que continuam iguais.</p>
 <p><b>1. Mostre a barra de favoritos</b><br>Safari no Mac: menu <b>Visualizar → Mostrar Barra de Favoritos</b> (<b>⌘+Shift+B</b>). Chrome: <b>⌘+Shift+B</b> / <b>Ctrl+Shift+B</b>.</p>
 <p><b>2. Arraste</b> o botão abaixo até a barra de favoritos:</p>

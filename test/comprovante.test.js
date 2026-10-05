@@ -148,3 +148,23 @@ test('Validação com mensagem: paciente da mensagem ≠ paciente escolhida e va
   assert.ok(v.divergencias.some((d) => /mensagem enviada com o comprovante fala de "Juliana Costa Mendes"/.test(d)));
   assert.ok(v.divergencias.some((d) => /mensagem diz que foi pago R\$ 900,00/.test(d)));
 });
+
+// ---------- o que foi pago (catálogo) ----------
+test('Catálogo: entende o que foi pago em qualquer formato de mensagem', () => {
+  const casos = [
+    ['Segue pagamento da paciente Juliana Paranhos - Botox e preenchedor.', 'Estética', 'Botox, Preenchimento'],
+    ['Segue pagamento da paciente Carla Souza - ferro + vitamina D (soroterapia)', 'Soroterapia', 'Ferro, Vitamina D'],
+    ['Fabiana Lima\nSinal de 50% da cirurgia', 'Cirurgia', 'Sinal da cirurgia (50%)'],
+    ['Segue pagamento da paciente Ana Reis - meia de compressão e compressor', 'Produto', 'Meia de compressão, Compressor / bota pneumática'],
+    ['Renata Alves - 10 sessões de fisio pós-operatório', 'Fisioterapia', 'Fisioterapia (10 sessões)'],
+    ['Paula Dias\nConsulta com angiologista', 'Consulta', 'Consulta com especialista (angiologista)'],
+    ['Bia Melo\nConsulta de acompanhamento Dra. Lorena', 'Consulta', 'Consulta Dra. Lorena (clínica), Acompanhamento'],
+  ];
+  for (const [txt, cat, resumo] of casos) {
+    const m = C.lerMensagem(txt);
+    assert.strictEqual(m.categoria, cat, txt);
+    assert.strictEqual(m.resumoItens, resumo, txt);
+  }
+  assert.strictEqual(C.lerMensagem('Fabiana Lima\nSinal de 50% da cirurgia').parcela, 'sinal');
+  assert.strictEqual(C.lerMensagem('Renata Alves - 10 sessões de fisio pós-operatório').nome, 'Renata Alves');
+});

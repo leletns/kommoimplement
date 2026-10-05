@@ -147,9 +147,9 @@
   function lerMsg() {
     S.mensagem = C.lerMensagem($('msg-txt').value);
     const m = S.mensagem || {};
-    const pedacos = [m.nome ? 'Paciente: <b>' + esc(m.nome) + '</b>' : '', m.procedimento ? 'Procedimento: <b>' + esc(m.procedimento) + '</b>' : '',
+    const pedacos = [m.nome ? 'Paciente: <b>' + esc(m.nome) + '</b>' : '', m.categoria ? esc(m.categoria) + ': <b>' + esc(m.resumoItens) + '</b>' : m.procedimento ? 'Procedimento: <b>' + esc(m.procedimento) + '</b>' : '',
       m.pago ? 'Pago: <b>' + C.brl(m.pago) + (m.total && m.total !== m.pago ? ' de ' + C.brl(m.total) : '') + '</b>' : '',
-      m.parcela ? { reserva: 'reserva (1ª parte)', restante: '2ª parte / restante', integral: 'integral' }[m.parcela] : '',
+      m.parcela ? { reserva: 'reserva (1ª parte)', restante: '2ª parte / restante', integral: 'integral', sinal: 'sinal' }[m.parcela] : '',
       m.consultaEm ? 'Consulta: ' + esc(m.consultaEm) : '', m.desconto ? 'Desconto: ' + m.desconto + '%' : '', m.obs ? 'Obs.: ' + esc(m.obs) : ''].filter(Boolean);
     $('msg-lido').innerHTML = $('msg-txt').value.trim() ? (pedacos.length ? 'Entendi: ' + pedacos.join(' · ') : 'Não achei nome de paciente nem valor nesta mensagem.') : '';
   }
@@ -223,7 +223,7 @@
     if (j.ok && j.conciliacao.paciente && JSON.stringify(j.conciliacao.paciente) !== JSON.stringify(S.paciente)) { S.paciente = j.conciliacao.paciente; mostrarPaciente(); checarDup(); }
     if (j.ok && j.conciliacao.status === 'lancada') { S.lancado = true; clearInterval(S.poll); }
   }
-  $('b-amigo').onclick = () => window.open('https://app.amigoapp.com.br/patients', 'amigoPacientes');
+  $('b-amigo').onclick = () => window.open('https://amigoapp.com.br/patients', 'amigoPacientes');
 
   // ---------- 4. conciliação ----------
   function correspondencia(c, p, val) {
@@ -241,7 +241,7 @@
     S.val = val;
     const pct = correspondencia(c, S.paciente, val);
     const linhas = '<table style="margin-top:6px"><tbody>' + [['Paciente', S.paciente.nome], ['Valor', c.valor > 0 ? C.brl(c.valor, c.moeda) : '—'], ['Data', c.data || '—'], ['Pagamento', c.forma || '—'], ['Banco', c.banco || '—'], ['ID', c.idTransacao || '—'], ['Pagador', c.pagador || '—'],
-      ...(c.mensagem ? [['Mensagem', [c.mensagem.nome, c.mensagem.procedimento, c.mensagem.pago ? C.brl(c.mensagem.pago) + (c.mensagem.total && c.mensagem.total !== c.mensagem.pago ? ' de ' + C.brl(c.mensagem.total) : '') : '', c.mensagem.desconto ? 'desconto ' + c.mensagem.desconto + '%' : ''].filter(Boolean).join(' · ') || '—']] : [])]
+      ...(c.mensagem ? [['Mensagem', [c.mensagem.nome, c.mensagem.resumoItens || c.mensagem.procedimento, c.mensagem.pago ? C.brl(c.mensagem.pago) + (c.mensagem.total && c.mensagem.total !== c.mensagem.pago ? ' de ' + C.brl(c.mensagem.total) : '') : '', c.mensagem.desconto ? 'desconto ' + c.mensagem.desconto + '%' : ''].filter(Boolean).join(' · ') || '—']] : [])]
       .map(([a, b]) => '<tr><th style="width:120px">' + a + '</th><td style="color:var(--ink)">' + esc(b) + '</td></tr>').join('') + '</tbody></table>';
     const avisos = val.avisos.length ? '<div class="muted" style="margin-top:6px">' + val.avisos.map(esc).join('<br>') + '</div>' : '';
     const dupCerta = S.dup && S.dup.tipo === 'certa';
@@ -300,6 +300,25 @@
   }
   $('b-sync').onclick = async () => { const j = await api('sincronizar', {}); alert(j.ok ? (j.resultado.length ? j.resultado.filter((r) => r.ok).length + ' de ' + j.resultado.length + ' enviados à planilha.' + (j.resultado.some((r) => !r.ok) ? ' Erro: ' + j.resultado.find((r) => !r.ok).erro : '') : 'Nada pendente.') : j.erro); listar(); };
 
+  // Paciente enviada pelo botão no AmigoApp pelo endereço (quando o Amigo não deixa chamar o servidor):
+  // retoma a conciliação em andamento e liga a paciente a ela.
+  let PAC_HASH = null;
+  try { const v = new URLSearchParams(location.hash.slice(1)).get('paciente'); if (v) PAC_HASH = JSON.parse(v); } catch (e) { PAC_HASH = null; }
+  if (PAC_HASH) history.replaceState(null, '', location.pathname);
+  async function retomar() {
+    if (!PAC_HASH || !$('senha').value) return;
+    const j = await api('pendente', null, 'GET');
+    if (!j.ok || !j.conciliacao) { $('st').innerHTML = '<span style="color:var(--bad)">Recebi a paciente ' + esc(PAC_HASH.nome) + ', mas não há comprovante esperando conferência.</span>'; return; }
+    const cc = j.conciliacao;
+    Object.assign(S, { concId: cc.id, hash: cc.hash, lido: cc.comprovante, texto: cc.comprovante.texto || '', arquivo: { name: 'comprovante da conciliação' } });
+    if (cc.comprovante.mensagem && cc.comprovante.mensagem.texto) MSG_WHATS = cc.comprovante.mensagem.texto;
+    mostrarDados();
+    const r = await api('paciente', { id: cc.id, paciente: PAC_HASH });
+    if (r.ok) { S.paciente = r.paciente; $('pac').classList.remove('hide'); mostrarPaciente(); checarDup(); }
+    PAC_HASH = null;
+  }
+  $('senha').addEventListener('change', retomar);
   if (/colar/.test(location.hash)) drop.querySelector('b').textContent = 'Comprovante copiado do WhatsApp: aperte ⌘V (ou Ctrl+V) para colar';
   status();
+  retomar();
 })();
