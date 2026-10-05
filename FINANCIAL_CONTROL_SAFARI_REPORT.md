@@ -137,12 +137,47 @@ Por isso, o botão **não tenta** chamar o servidor de dentro do WhatsApp. Ele f
 | Mesmo **valor + data + pagador/paciente** | ⚠ "Possível pagamento já registrado": só lança se a gestão marcar "não é o mesmo pagamento" (ex.: casal pagando duas consultas iguais) |
 | Mesma linha na planilha | o Apps Script ignora a repetição |
 
+
+### 3.6 Mensagem enviada junto com o comprovante
+
+O comprovante sozinho mostra **quem pagou**. A mensagem que a equipe manda junto mostra **de quem é a consulta e do que é o pagamento**.
+
+**Como a mensagem é capturada:**
+- No WhatsApp, o botão pega a **legenda da foto e as mensagens vizinhas da mesma pessoa**, até 15 minutos antes e depois.
+- Para no próximo comprovante e ignora respostas de outras pessoas.
+- No painel, cada comprovante aparece com um trecho da mensagem ("💬 …").
+- A mensagem vai para a página e **sai do endereço logo depois de lida**.
+- Se não veio mensagem, ela pode ser colada à mão.
+
+**Formatos lidos:**
+- o padrão do botão 🧾 Agendamento: nome, `Tel:`, `Objetivo:`, "Teleconsulta com o Dr. Leonardo - Lipedema 1x", "Dia 12 de novembro às 15h30", `Pagamento: R$ 900 de R$ 1.800`;
+- o curto: "Segue pagamento da paciente Juliana Paranhos - Botox e preenchedor. Obs: Desconto de 30% de familiar e amigo";
+- os antigos: `Nome:`, `CPF:`, "Restante…", "Pagamento 2/2 | Nome".
+
+**O que vira dado:**
+- paciente;
+- telefone e CPF;
+- procedimento;
+- data da consulta;
+- pago, total e falta;
+- parcela: reserva, 2ª parte ou integral;
+- desconto (%);
+- observação.
+
+**Como a mensagem entra na conferência:**
+- A **paciente da mensagem** é comparada com a do AmigoApp. Se for outra pessoa → ⚠ divergência.
+- Se **quem pagou** é um familiar e a mensagem confirma a paciente, vira só um aviso.
+- O **valor da mensagem** diferente do valor do comprovante → ⚠ divergência.
+- A busca no AmigoApp usa o **nome da paciente da mensagem** (e não o de quem pagou).
+
+**Onde fica registrado:** banco e planilha, nas colunas Paciente (mensagem), Procedimento (mensagem), Consulta (mensagem), Parcela, Total da consulta, Falta pagar, Desconto (%) e Mensagem enviada junto. A "Obs:" da mensagem vai para Observações.
+
 ## 4. Testes realizados
 
 | Teste | Resultado |
 |---|---|
-| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes) | ✅ 9 de 9 |
-| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **40 de 41** |
+| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem) | ✅ 14 de 14 |
+| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **47 de 48** (inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
 | A falha (1): ID do Pix lido **exatamente** pelo OCR na imagem | ✗ O OCR trocou `0`/`O` e `1`/`l` no final do ID. O sistema **detectou e marcou para conferir** (verificação seguinte ✅). A duplicidade continua protegida pelo arquivo e por valor + data + pagador |
 | Persistência: servidor desligado e religado | ✅ os 4 lançamentos continuam no banco e na planilha, sem linha duplicada |
 | `npm test` do projeto | 87 de 89. As 2 falhas são **anteriores** a esta mudança (`test/e2e.test.js` do painel espera o mês "set" e hoje é outubro) e não têm relação com o botão |

@@ -91,6 +91,9 @@ progress{width:100%}
       <label for="c-bancoRecebedor">Instituição recebedora</label><input id="c-bancoRecebedor" data-k="bancoRecebedor">
       <label for="c-idTransacao">ID da transação / Pix</label><input id="c-idTransacao" data-k="idTransacao">
     </div>
+    <div style="margin-top:12px"><label class="muted" for="msg-txt"><b>Mensagem enviada junto com o comprovante</b> (vem sozinha do WhatsApp; se não veio, cole aqui)</label>
+      <textarea id="msg-txt" placeholder="Ex.: Segue pagamento da paciente Juliana Paranhos - Botox e preenchedor. Obs: desconto de 30%"></textarea>
+      <div id="msg-lido" class="muted" style="margin-top:4px"></div></div>
     <details style="margin-top:8px"><summary class="muted">Texto lido do comprovante</summary><pre id="bruto"></pre></details>
     <div id="dup"></div>
   </div>

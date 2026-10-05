@@ -170,6 +170,71 @@
     return d;
   }
 
+
+  // ---------- mensagem enviada junto com o comprovante ----------
+  // Formato do grupo de comprovantes (botão 🧾 Agendamento): nome · Tel · Ind · Objetivo · "Teleconsulta com o Dr. Leonardo - Lipedema 1x" ·
+  // "Dia 12 de novembro às 15h30" · "Pagamento: R$ 900,00 de R$ 1.800,00". Também lê os formatos antigos ("Nome:", "CPF:", "Restante…", "2/2", "Segue pagamento da paciente…").
+  const MES_EXT = { janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12 };
+  const ROTULO = /^\s*\*?(nome(?: completo)?|nombre|name|paciente|tel(?:efone)?|cel(?:ular)?|whats(?:app)?|ind(?:ica[cç][aã]o)?|objetivo|cpf|e-?mail|pagamento|valor|pago|dia|data|restante[^:]*|obs[^:]*)\*?\s*:\s*(.*)$/i;
+  function lerMensagem(texto) {
+    const t = String(texto || '').replace(/\r/g, '').replace(/<[^>]+>/g, ' ').trim();
+    if (!t) return null;
+    const linhas = t.split('\n').map((l) => l.replace(/^[-•·*_\s]+|[*_\s]+$/g, '').trim()).filter(Boolean);
+    const m = { texto: t.slice(0, 1500) };
+    // Nome de pessoa: 2+ palavras com inicial maiúscula (ou tudo maiúsculo), sem palavras de conversa ("ok obrigada", "segue pagamento").
+    const pareceNomeMsg = (x) => {
+      const v = String(x || '').replace(/\([^)]*\)/g, ' ').replace(/[.,;:!]+$/, '').replace(/\s+/g, ' ').trim();
+      const ps = v.split(' ');
+      if (ps.length < 2 || ps.length > 7 || !/^[A-Za-zÀ-ÿ'´. ]{5,}$/.test(v)) return '';
+      if (/^(restante|pagamento|consulta|teleconsulta|cirurgia|dados|aguardando|segue|comprovante|dia|tel|ok|obrigad|bom|boa|oi|ola|segunda|primeira|valor|pix)\b/i.test(normal(v))) return '';
+      const maiusc = v === v.toUpperCase();
+      const titulo = ps.every((w) => /^(d[aeo]s?|e)$/i.test(w) || /^[A-ZÀ-Ý]/.test(w));
+      return maiusc || titulo ? v : '';
+    };
+    for (const l of linhas) {
+      const r = ROTULO.exec(l);
+      if (!r) continue;
+      const k = normal(r[1]), v = r[2].trim();
+      if (/^(nome|nombre|name|paciente)/.test(k) && !m.nome) m.nome = pareceNomeMsg(v);
+      else if (/^(tel|cel|whats)/.test(k) && !m.telefone) m.telefone = digitos(v) || '';
+      else if (k === 'cpf' && !m.cpf) m.cpf = (v.match(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/) || [''])[0];
+      else if (/^e-?mail/.test(k) && !m.email) m.email = v.toLowerCase();
+      else if (/^ind/.test(k) && !m.indicacao) m.indicacao = v;
+      else if (k === 'objetivo' && !m.objetivo) m.objetivo = v;
+      else if (/^restante/.test(k)) { m.parcela = 'restante'; if (!m.nome) m.nome = pareceNomeMsg(v); }
+      else if (/^(pagamento|valor|pago)/.test(k) && !m.pagamentoTexto) m.pagamentoTexto = v;
+      else if (/^obs/.test(k)) m.obs = (m.obs ? m.obs + ' · ' : '') + v;
+    }
+    const desc = /desconto\s*(?:de\s*)?(\d{1,3})\s*%/i.exec(t);
+    if (desc) m.desconto = Number(desc[1]);
+    if (!m.nome) { const seg = /segue (?:o )?pagamento d[ao]s?\s+(?:paciente\s+)?(.+?)(?:\s+-\s+|\n|$)/i.exec(t); if (seg) m.nome = pareceNomeMsg(seg[1]); }
+    if (!m.nome) for (const l of linhas.slice(0, 3)) { if (ROTULO.test(l)) continue; const v = pareceNomeMsg(l.replace(/pagamento\s*\d\s*\/\s*\d|\d\s*\/\s*\d|\|/gi, ' ')); if (v) { m.nome = v; break; } }
+    if (!m.cpf) m.cpf = (t.match(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/) || [''])[0];
+    const pt = m.pagamentoTexto || (linhas.find((l) => /R\$\s*[\d.]+/.test(l)) || '');
+    const vs = [...pt.matchAll(/R\$\s*([\d.]+(?:,\d{1,2})?)/gi)].map((x) => Number(x[1].replace(/\./g, '').replace(',', '.')));
+    const frac = /(\d)\s*\/\s*(\d)\s*de\s*R\$/i.exec(pt);
+    if (frac && vs.length) { m.total = vs[0]; m.pago = vs[1] || Math.round(vs[0] * Number(frac[1]) / Number(frac[2])); }
+    else if (/\bde\s*R\$/i.test(pt) && vs.length >= 2) { m.pago = vs[0]; m.total = vs[1]; }
+    else if (vs.length) { m.pago = vs[0]; if (/integral|total/i.test(pt)) m.total = vs[0]; }
+    if (m.pago && m.total) m.falta = Math.max(0, Math.round((m.total - m.pago) * 100) / 100);
+    if (/\b2\s*\/\s*2\b|restante|segunda parte/i.test(t)) m.parcela = 'restante';
+    else if (m.pago && m.total && m.pago < m.total) m.parcela = 'reserva';
+    else if (m.pago && m.total) m.parcela = 'integral';
+    const sg = /segue (?:o )?pagamento[^\n]*?\s[-–]\s(.+)$/im.exec(t);
+    const lp = linhas.find((l) => /teleconsulta|consulta|cirurgia|retorno|procedimento|botox|preench|bioimped|sculptra|bioestimul/i.test(l) && !ROTULO.test(l) && !/segue pagamento/i.test(l));
+    if (sg) m.procedimento = sg[1].replace(/[.\s]+$/, '').slice(0, 120);
+    else if (lp) m.procedimento = lp.slice(0, 120);
+    const tl = normal(t);
+    m.local = /teleconsulta|tele\b|online|google meet/.test(tl) ? 'tele' : /\(sp\)|sao paulo|\bsp\b/.test(tl) ? 'sp' : /barra|rio de janeiro|\(rj\)/.test(tl) ? 'rj' : '';
+    m.medico = /leonardo/.test(tl) ? 'Dr. Leonardo' : /lorena/.test(tl) ? 'Dra. Lorena' : /rafael/.test(tl) ? 'Dr. Rafael' : '';
+    const de = /\bdia\s*(\d{1,2})\s*de\s*(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:[^\n]*?(\d{1,2})\s*[h:]\s*(\d{2})?)?/i.exec(t);
+    const dn = !de && /\bdia\s*(\d{1,2})\s*\/\s*(\d{1,2})(?:[^\n]*?(\d{1,2})\s*[h:]\s*(\d{2})?)?/i.exec(t);
+    if (de) m.consultaEm = String(de[1]).padStart(2, '0') + '/' + String(MES_EXT[normal(de[2]).replace('ç', 'c')]).padStart(2, '0') + (de[3] ? ' ' + de[3].padStart(2, '0') + ':' + (de[4] || '00') : '');
+    else if (dn) m.consultaEm = dn[1].padStart(2, '0') + '/' + dn[2].padStart(2, '0') + (dn[3] ? ' ' + dn[3].padStart(2, '0') + ':' + (dn[4] || '00') : '');
+    const util = ['nome', 'cpf', 'telefone', 'pago', 'procedimento', 'consultaEm', 'obs'].some((k) => m[k]);
+    return util ? m : { texto: m.texto };
+  }
+
   // ---------- comparação com a paciente ----------
   const PARTICULAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
   const tokens = (s) => normal(s).replace(/[^a-z ]/g, ' ').split(/\s+/).filter((x) => x && !PARTICULAS.has(x));
@@ -208,13 +273,30 @@
     if (!paciente || !paciente.nome) {
       return { status: 'nao_identificado', divergencias: ['Paciente não identificada: escolha a paciente antes de lançar.'], avisos, itens };
     }
-    // Paciente × pagador
+    // Paciente: a mensagem enviada junto (quando diz o nome) é a melhor prova; o pagador pode ser um familiar.
+    const msg = c.mensagem && c.mensagem.nome ? c.mensagem : null;
     const nomes = compararNomes(c.pagador, paciente.nome);
     const cpf = compararCpf(c.pagadorDoc, paciente.cpf);
-    if (!c.pagador) divergencias.push('O comprovante não mostra o nome de quem pagou. Confira se é da paciente ' + paciente.nome + '.');
-    else if (cpf === 'diverge') divergencias.push('CPF do pagador (' + c.pagadorDoc + ') é diferente do CPF da paciente.');
-    else if (nomes.nivel === 'diferente' || nomes.nivel === 'fraca') divergencias.push('Pagador "' + c.pagador + '" × paciente "' + paciente.nome + '": ' + nomes.detalhe + '. Se foi um familiar que pagou, confirme e explique na observação.');
-    itens.push({ campo: 'Paciente', ok: !!c.pagador && cpf !== 'diverge' && (nomes.nivel === 'igual' || nomes.nivel === 'forte'), valor: paciente.nome, detalhe: c.pagador ? 'pagador: ' + c.pagador + (cpf === 'confere' ? ' · CPF confere' : '') : 'sem pagador no comprovante' });
+    const forte = (n) => n.nivel === 'igual' || n.nivel === 'forte';
+    let pacienteOk = false, detalhe = '';
+    if (msg) {
+      const nm = compararNomes(msg.nome, paciente.nome);
+      if (!forte(nm)) divergencias.push('A mensagem enviada com o comprovante fala de "' + msg.nome + '", mas a paciente escolhida é "' + paciente.nome + '" (' + nm.detalhe + ').');
+      else { pacienteOk = true; detalhe = 'a mensagem confirma a paciente'; }
+      if (msg.cpf && paciente.cpf && digitos(msg.cpf) !== digitos(paciente.cpf)) { divergencias.push('CPF da mensagem (' + msg.cpf + ') é diferente do CPF da paciente.'); pacienteOk = false; }
+      if (msg.telefone && paciente.celular && digitos(msg.telefone).slice(-8) !== digitos(paciente.celular).slice(-8)) avisos.push('Telefone da mensagem (' + msg.telefone + ') é diferente do celular da paciente no AmigoApp: confira.');
+      if (c.pagador && !forte(nomes)) avisos.push('Quem pagou foi "' + c.pagador + '" (não é a paciente). A mensagem identifica a paciente; confirme se foi um familiar.');
+      if (cpf === 'diverge' && forte(nomes)) { divergencias.push('CPF do pagador (' + c.pagadorDoc + ') é diferente do CPF da paciente.'); pacienteOk = false; }
+    } else {
+      if (!c.pagador) divergencias.push('O comprovante não mostra o nome de quem pagou e não veio mensagem com o nome da paciente. Confira se é da paciente ' + paciente.nome + '.');
+      else if (cpf === 'diverge') divergencias.push('CPF do pagador (' + c.pagadorDoc + ') é diferente do CPF da paciente.');
+      else if (!forte(nomes)) divergencias.push('Pagador "' + c.pagador + '" × paciente "' + paciente.nome + '": ' + nomes.detalhe + '. Se foi um familiar que pagou, confirme e explique na observação.');
+      pacienteOk = !!c.pagador && cpf !== 'diverge' && forte(nomes);
+      detalhe = c.pagador ? 'pagador: ' + c.pagador + (cpf === 'confere' ? ' · CPF confere' : '') : 'sem pagador no comprovante';
+    }
+    itens.push({ campo: 'Paciente', ok: pacienteOk, valor: paciente.nome, detalhe });
+    // Valor informado na mensagem ("Pagamento: R$ 900 de R$ 1.800") × valor do comprovante
+    if (c.mensagem && c.mensagem.pago && c.valor > 0 && Math.abs(c.mensagem.pago - c.valor) > 0.009) divergencias.push('A mensagem diz que foi pago ' + brl(c.mensagem.pago) + ', mas o comprovante mostra ' + brl(c.valor, c.moeda) + '.');
     // Valor
     if (!(c.valor > 0)) divergencias.push('Valor não encontrado no comprovante.');
     else if (esperado && esperado.valor && Math.abs(Number(esperado.valor) - c.valor) > 0.009) divergencias.push('Valor do comprovante ' + brl(c.valor, c.moeda) + ' é diferente do esperado ' + brl(esperado.valor, c.moeda) + '.');
@@ -242,7 +324,7 @@
     return { status: divergencias.length ? 'divergencia' : 'confirmada', divergencias, avisos, itens };
   }
 
-  const api = { lerComprovante, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
+  const api = { lerComprovante, lerMensagem, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.BlueComprovante = api;
 })(typeof window !== 'undefined' ? window : globalThis);

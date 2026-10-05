@@ -44,13 +44,16 @@ export async function onRequest({ request, env }) {
         const id = await fin.criarConciliacao(db, { comprovante: c, hash: b.hash, origem: b.origem });
         const duplicidade = await fin.duplicidade(db, { idTransacao: c.idTransacao, hash: b.hash, valor: c.valor, data: c.data, pagador: c.pagador });
         const cpfMeio = String(c.pagadorDoc || '').replace(/[^\d]/g, '');
-        const candidatos = await fin.candidatosPorHistorico(db, { pagador: c.pagador, cpfMeio: cpfMeio.length >= 6 ? cpfMeio : '' });
+        const candidatos = await fin.candidatosPorHistorico(db, { pagador: c.pagador, cpfMeio: cpfMeio.length >= 6 ? cpfMeio : '', pacienteMensagem: c.mensagem && c.mensagem.nome });
         return json({ ok: true, id, duplicidade, candidatos }, 200, h);
       }
       case 'pendente':
         return json({ ok: true, conciliacao: await fin.conciliacaoPendente(db) }, 200, h);
       case 'paciente':
         return json({ ok: true, paciente: await fin.definirPaciente(db, b.id, b.paciente || {}) }, 200, h);
+      case 'comprovante':
+        await fin.atualizarComprovante(db, b.id, b.comprovante);
+        return json({ ok: true }, 200, h);
       case 'descartar':
         await fin.descartar(db, b.id);
         return json({ ok: true }, 200, h);

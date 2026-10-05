@@ -72,7 +72,7 @@ function criarResumo(ss) {
   r.getRange('B5').setFormula('=COUNTIF(' + L + 'R:R,A5)'); r.getRange('C5').setFormula('=SUMIFS(' + L + 'I:I,' + L + 'R:R,A5,' + L + 'J:J,"BRL")');
   r.getRange('A6').setValue('Total'); r.getRange('B6').setFormula('=SUM(B4:B5)'); r.getRange('C6').setFormula('=SUM(C4:C5)');
   r.getRange('A8').setValue('Por forma de pagamento (R$)').setFontWeight('bold');
-  r.getRange('A9').setFormula('=QUERY(' + L + 'A:X,"select K, count(A), sum(I) where A is not null and J = \'BRL\' group by K label count(A) \'Lançamentos\', sum(I) \'Valor (R$)\'",1)');
+  r.getRange('A9').setFormula('=QUERY(' + L + 'A:AF,"select K, count(A), sum(I) where A is not null and J = \'BRL\' group by K label count(A) \'Lançamentos\', sum(I) \'Valor (R$)\'",1)');
   r.getRange('E8').setValue('Por mês do pagamento (R$)').setFontWeight('bold');
   r.getRange('E9').setFormula('=QUERY({ARRAYFORMULA(IFERROR(RIGHT(' + L + 'B2:B,7))),' + L + 'I2:I,' + L + 'J2:J},"select Col1, sum(Col2) where Col1 <> \'\' and Col3 = \'BRL\' group by Col1 label Col1 \'Mês\', sum(Col2) \'Valor (R$)\'",0)');
   r.getRange('C4:C6').setNumberFormat('#,##0.00');

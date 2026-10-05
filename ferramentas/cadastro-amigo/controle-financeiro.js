@@ -34,21 +34,47 @@
   // ================= WhatsApp Web =================
   if (/(^|\.)whatsapp\.com$/.test(host)) {
     if (!cfg.site) await pedirCfg(false);
-    const pagina = cfg.site + '/financeiro#whatsapp-colar';
+    // Mensagem enviada junto com o comprovante: legenda da foto + mensagens vizinhas da mesma pessoa (até 15 min antes/depois).
+    // É ela que diz de quem é o pagamento ("Segue pagamento da paciente…", "Pagamento: R$ 900 de R$ 1.800").
+    const linhaDe = (el) => el.closest('[role="row"]') || el.closest('[data-id]') || el.parentElement;
+    const todasLinhas = () => { const r = [...document.querySelectorAll('#main [role="row"]')]; return r.length ? r : [...document.querySelectorAll('#main [data-id]')].filter((x) => !x.parentElement.closest('[data-id]')); };
+    const infoLinha = (row) => {
+      const pre = row.querySelector('[data-pre-plain-text]');
+      const meta = /\[(\d{1,2}):(\d{2}),\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})\]\s*([^:]+):/.exec(pre ? pre.getAttribute('data-pre-plain-text') : '');
+      const quando = meta ? new Date(+(meta[5].length === 2 ? '20' + meta[5] : meta[5]), +meta[4] - 1, +meta[3], +meta[1], +meta[2]).getTime() : null;
+      const partes = [...row.querySelectorAll('span.selectable-text, .copyable-text span[dir]')].map((x) => x.innerText.trim()).filter(Boolean);
+      const texto = [...new Set(partes)].join('\n') || (pre ? pre.innerText.trim() : '');
+      return { autor: meta ? meta[6].trim() : '', quando, texto, temImagem: !!row.querySelector('img[src^="blob:"]') };
+    };
+    const contexto = (img) => {
+      const rows = todasLinhas(), row = linhaDe(img), i = rows.indexOf(row);
+      const base = infoLinha(row);
+      if (i < 0) return base.texto;
+      // Foto sem legenda não traz autor/hora: usa os da primeira mensagem de texto logo depois (quem mandou o comprovante).
+      if (!base.autor) { const prox = rows.slice(i + 1, i + 3).map(infoLinha).find((x) => x.autor && !x.temImagem); if (prox) { base.autor = prox.autor; base.quando = prox.quando; } }
+      const perto = (x) => (!base.autor || !x.autor || x.autor === base.autor) && (!base.quando || !x.quando || Math.abs(x.quando - base.quando) <= 15 * 60e3);
+      const antes = [], depois = [];
+      for (let k = i - 1; k >= Math.max(0, i - 2); k--) { const x = infoLinha(rows[k]); if (x.temImagem || !perto(x)) break; if (x.texto) antes.unshift(x.texto); }
+      for (let k = i + 1; k < Math.min(rows.length, i + 4); k++) { const x = infoLinha(rows[k]); if (x.temImagem || !perto(x)) break; if (x.texto) depois.push(x.texto); }
+      return [...antes, base.texto, ...depois].filter(Boolean).join('\n').slice(0, 1500);
+    };
+    const pagina = (msg) => cfg.site + '/financeiro#whatsapp-colar' + (msg ? '&m=' + encodeURIComponent(msg) : '');
     // Imagens de mensagens (blob:) — o visualizador aberto primeiro; ícones, figurinhas e fotos de perfil ficam de fora.
     const imgs = [...document.querySelectorAll('img[src^="blob:"]')].filter((i) => i.naturalWidth >= 200 && i.naturalHeight >= 200 && !i.closest('header') && !i.closest('#blue-fin-box'));
     const grande = imgs.slice().sort((a, b) => b.getBoundingClientRect().width * b.getBoundingClientRect().height - a.getBoundingClientRect().width * a.getBoundingClientRect().height)[0];
     const naConversa = imgs.filter((i) => i.closest('#main') || i.closest('[data-id]'));
     const lista = [...new Set([...(grande && !naConversa.includes(grande) ? [grande] : []), ...naConversa.reverse()])].slice(0, 8);
+    const msgs = lista.map((i) => { try { return naConversa.includes(i) ? contexto(i) : ''; } catch (e) { return ''; } });
     const c = caixa(lista.length
       ? '<div style="font-size:13px">Clique no comprovante (o mais recente primeiro):</div><div id="bf-l" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">' +
-        lista.map((i, k) => '<button data-k="' + k + '" style="border:2px solid #dbe4f0;background:#f4f8fd;border-radius:10px;padding:4px;cursor:pointer"><img src="' + i.src + '" style="width:100%;height:120px;object-fit:cover;border-radius:6px"><div style="font-size:11px;color:#5b6b82">' + (i === grande && !naConversa.includes(i) ? 'imagem aberta' : 'na conversa') + '</div></button>').join('') + '</div>' +
-        '<div style="font-size:12px;color:#5b6b82;margin-top:8px">Comprovante em PDF: baixe pelo WhatsApp e arraste na página.</div>' + btn('bf-abrir', 'Abrir sem comprovante', '#2f6fb5')
+        lista.map((i, k) => '<button data-k="' + k + '" style="border:2px solid #dbe4f0;background:#f4f8fd;border-radius:10px;padding:4px;cursor:pointer;text-align:left"><img src="' + i.src + '" style="width:100%;height:110px;object-fit:cover;border-radius:6px"><div style="font-size:11px;color:#5b6b82;max-height:44px;overflow:hidden">' +
+          (msgs[k] ? '💬 ' + esc(msgs[k].replace(/\s+/g, ' ').slice(0, 80)) : (i === grande && !naConversa.includes(i) ? 'imagem aberta' : 'sem mensagem junto')) + '</div></button>').join('') + '</div>' +
+        '<div style="font-size:12px;color:#5b6b82;margin-top:8px">A mensagem enviada junto vai para a página e ajuda a identificar a paciente. Comprovante em PDF: baixe pelo WhatsApp e arraste na página.</div>' + btn('bf-abrir', 'Abrir sem comprovante', '#2f6fb5')
       : '<div style="font-size:13px">Não achei imagem nesta conversa. Abra a conversa com o comprovante (ou clique na imagem para ampliar) e clique de novo no botão. PDF: baixe e arraste na página.</div>' + btn('bf-abrir', 'Abrir Controle financeiro', '#2f6fb5'));
     c.querySelector('#bf-abrir').onclick = () => window.open(cfg.site + '/financeiro#whatsapp', 'blueFinanceiro');
     c.querySelectorAll('#bf-l button').forEach((b) => {
       b.onclick = () => {
-        const img = lista[Number(b.dataset.k)];
+        const img = lista[Number(b.dataset.k)], destino = pagina(msgs[Number(b.dataset.k)]);
         // PNG para a área de transferência (o Safari só aceita PNG). A Promise mantém o "clique" válido no Safari.
         const png = (async () => {
           const blob = await (await fetch(img.src)).blob();
@@ -58,14 +84,14 @@
         })();
         let copiou = Promise.reject(new Error('sem suporte'));
         try { copiou = navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]); } catch (e) { /* cai no download */ }
-        const janela = window.open(pagina, 'blueFinanceiro');
+        const janela = window.open(destino, 'blueFinanceiro');
         copiou.then(() => {
-          caixa('<div style="font-weight:bold;color:#1f7d52">✅ Comprovante copiado</div><div style="font-size:13px;margin-top:6px">Na janela <b>Controle financeiro</b>, aperte <b>⌘V</b> (Mac) ou <b>Ctrl+V</b>.' + (janela ? '' : ' Se a janela não abriu: <a href="' + esc(pagina) + '" target="_blank" style="color:#2f6fb5;font-weight:bold">abrir Controle financeiro</a>.') + '</div>');
+          caixa('<div style="font-weight:bold;color:#1f7d52">✅ Comprovante copiado</div><div style="font-size:13px;margin-top:6px">Na janela <b>Controle financeiro</b>, aperte <b>⌘V</b> (Mac) ou <b>Ctrl+V</b>.' + (janela ? '' : ' Se a janela não abriu: <a href="' + esc(destino) + '" target="_blank" style="color:#2f6fb5;font-weight:bold">abrir Controle financeiro</a>.') + '</div>');
         }).catch(async () => {
           // Sem permissão de copiar: baixa o arquivo para arrastar na página.
           const blob = await png; const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'comprovante-' + new Date().toISOString().slice(0, 19).replace(/\D/g, '') + '.png';
           document.body.appendChild(a); a.click(); a.remove();
-          caixa('<div style="font-weight:bold">⬇️ Comprovante baixado</div><div style="font-size:13px;margin-top:6px">O navegador não deixou copiar. Arraste o arquivo baixado para a página <b>Controle financeiro</b>.' + (janela ? '' : ' <a href="' + esc(pagina) + '" target="_blank" style="color:#2f6fb5;font-weight:bold">Abrir Controle financeiro</a>') + '</div>');
+          caixa('<div style="font-weight:bold">⬇️ Comprovante baixado</div><div style="font-size:13px;margin-top:6px">O navegador não deixou copiar. Arraste o arquivo baixado para a página <b>Controle financeiro</b>.' + (janela ? '' : ' <a href="' + esc(destino) + '" target="_blank" style="color:#2f6fb5;font-weight:bold">Abrir Controle financeiro</a>') + '</div>');
         });
       };
     });
@@ -110,23 +136,26 @@
     }
     if (!pend) { caixa('<div style="font-size:13px">Nenhum comprovante esperando conferência. Primeiro leia o comprovante no <b>WhatsApp Web</b> (botão 💰) ou na página <a href="' + esc(cfg.site) + '/financeiro" target="_blank" style="color:#2f6fb5">Controle financeiro</a>.</div>'); return; }
     const cp = pend.comprovante || {};
-    const resumo = '<div style="font-size:12.5px;background:#f4f8fd;border-radius:8px;padding:8px;margin-bottom:8px"><b>Comprovante em conferência</b><br>' + esc([cp.pagador || 'pagador não lido', cp.valor ? C.brl(cp.valor, cp.moeda) : '', cp.data, cp.forma].filter(Boolean).join(' · ')) + '</div>';
+    const mg = cp.mensagem || {};
+    const resumo = '<div style="font-size:12.5px;background:#f4f8fd;border-radius:8px;padding:8px;margin-bottom:8px"><b>Comprovante em conferência</b><br>' + esc([cp.pagador ? 'pago por ' + cp.pagador : 'pagador não lido', cp.valor ? C.brl(cp.valor, cp.moeda) : '', cp.data, cp.forma].filter(Boolean).join(' · ')) +
+      (mg.nome || mg.procedimento ? '<br>💬 Mensagem: ' + esc([mg.nome ? 'paciente ' + mg.nome : '', mg.procedimento, mg.desconto ? 'desconto ' + mg.desconto + '%' : ''].filter(Boolean).join(' · ')) : '') + '</div>';
+    const quemBuscar = mg.nome || cp.pagador || '';
     const p = lerPaciente();
     if (!p) {
       // Lista de pacientes: preenche a busca do Amigo com o nome do pagador e mostra quem aparece na lista (sem escolher).
       const busca = [...document.querySelectorAll('input[type="search"], input[type="text"]')].find((i) => visivel(i) && /busc|pesquis|procur|nome|cpf|search/i.test((i.placeholder || '') + ' ' + (i.getAttribute('aria-label') || '')));
-      if (busca && cp.pagador && !busca.value) {
-        busca.focus(); busca.select && busca.select(); document.execCommand('insertText', false, cp.pagador);
-        if (busca.value !== cp.pagador) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(busca, cp.pagador); }
+      if (busca && quemBuscar && !busca.value) {
+        busca.focus(); busca.select && busca.select(); document.execCommand('insertText', false, quemBuscar);
+        if (busca.value !== quemBuscar) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(busca, quemBuscar); }
         ['input', 'change', 'keyup'].forEach((ev) => busca.dispatchEvent(new Event(ev, { bubbles: true })));
         busca.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', keyCode: 13 }));
         busca.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter', keyCode: 13 }));
       }
       await new Promise((r) => setTimeout(r, 1500));
-      const toks = norm(cp.pagador).split(' ').filter((t) => t.length > 2);
+      const toks = norm(quemBuscar).split(' ').filter((t) => t.length > 2);
       const linhas = [...document.querySelectorAll('tr, li, [class*="list-item"], [class*="card"], a')].filter((n) => visivel(n) && n.textContent.length < 300 && toks.length && toks.filter((t) => norm(n.textContent).includes(t)).length >= Math.min(2, toks.length) && !n.querySelector('tr, li'));
       const unicas = [...new Set(linhas)].slice(0, 8);
-      caixa(resumo + (busca ? '<div style="font-size:13px">Busquei <b>' + esc(cp.pagador || '') + '</b> na lista de pacientes.</div>' : '<div style="font-size:13px">Abra <b>Pacientes</b> e busque a paciente.</div>') +
+      caixa(resumo + (busca ? '<div style="font-size:13px">Busquei <b>' + esc(quemBuscar) + '</b> na lista de pacientes' + (mg.nome ? ' (nome da mensagem)' : ' (nome de quem pagou)') + '.</div>' : '<div style="font-size:13px">Abra <b>Pacientes</b> e busque a paciente.</div>') +
         (unicas.length ? '<div style="font-size:13px;margin-top:6px">' + (unicas.length > 1 ? '<b>' + unicas.length + ' possíveis pacientes</b>: abra a correta (nada é escolhido sozinho) e clique de novo no 💰.' : '1 paciente encontrada: abra a ficha dela e clique de novo no 💰.') + '<ul style="margin:6px 0 0;padding-left:18px">' + unicas.map((n) => '<li>' + esc(n.textContent.replace(/\s+/g, ' ').trim().slice(0, 90)) + '</li>').join('') + '</ul></div>'
           : '<div style="font-size:13px;margin-top:6px;color:#b04848"><b>PACIENTE NÃO IDENTIFICADO</b> nesta tela. Busque pelo nome, CPF ou celular, abra a ficha da paciente e clique de novo no 💰.</div>'));
       return;

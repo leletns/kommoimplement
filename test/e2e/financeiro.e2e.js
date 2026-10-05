@@ -72,8 +72,14 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
     localStorage.setItem('blueFinCfg', JSON.stringify({ site }));
     const blob = await (await fetch('data:image/png;base64,' + b64)).blob(); // o WhatsApp mostra as fotos como blob:
     const img = document.createElement('img'); img.src = URL.createObjectURL(blob); img.style.width = '330px';
-    const msg = document.createElement('div'); msg.setAttribute('data-id', 'false_5521999@c.us_ABC'); msg.appendChild(img);
-    document.querySelector('#main .msgs').appendChild(msg);
+    // Como no WhatsApp: a foto do comprovante, a mensagem da equipe logo depois e uma resposta de outra pessoa (que não pode entrar).
+    const linha = (id, pre, texto) => { const r = document.createElement('div'); r.setAttribute('role', 'row'); const m = document.createElement('div'); m.setAttribute('data-id', id);
+      if (pre) { const c = document.createElement('div'); c.className = 'copyable-text'; c.setAttribute('data-pre-plain-text', pre); const sp = document.createElement('span'); sp.className = 'selectable-text'; sp.innerText = texto; c.appendChild(sp); m.appendChild(c); }
+      r.appendChild(m); document.querySelector('#main .msgs').appendChild(r); return m; };
+    linha('false_grupo@g.us_A0', '[14:20, 05/10/2026] Helen: ', 'Bom dia, equipe');
+    linha('false_grupo@g.us_A1', '', '').appendChild(img);
+    linha('false_grupo@g.us_A2', '[14:33, 05/10/2026] Maria Gabi: ', 'Segue pagamento da paciente Maria da Silva Santos - Consulta Lipedema 1x\nPagamento: R$ 1.800,00 (integral)');
+    linha('false_grupo@g.us_A3', '[16:05, 05/10/2026] Helen: ', 'Recebido, obrigada');
     await img.decode();
   }, { b64: png, site: SITE });
   const bloqueado = await wa.evaluate(async (site) => { try { await fetch(site + '/api/financeiro?acao=status'); return 'passou'; } catch (e) { return 'bloqueado'; } }, SITE);
@@ -82,9 +88,11 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   await wa.waitForSelector('#blue-fin-box #bf-l button');
   const nThumbs = await wa.locator('#bf-l button').count();
   ok('Botão no WhatsApp abre o painel e acha o comprovante da conversa', nThumbs === 1, nThumbs + ' imagem(ns)');
+  const thumb = await wa.textContent('#bf-l button');
+  ok('Painel mostra a mensagem enviada junto com o comprovante', /💬 Segue pagamento da paciente Maria da Silva Santos/.test(thumb), thumb.trim().slice(0, 90));
   const [popup] = await Promise.all([ctx.waitForEvent('page'), wa.click('#bf-l button')]);
   await popup.waitForLoadState();
-  ok('Clique no comprovante abre a página Controle financeiro', /\/financeiro#whatsapp-colar/.test(popup.url()), popup.url());
+  ok('Clique no comprovante abre a página Controle financeiro', /\/financeiro#whatsapp-colar/.test(popup.url()), popup.url().slice(0, 80));
   await wa.waitForFunction(() => /copiado/.test(document.getElementById('blue-fin-box').textContent));
   ok('Comprovante copiado para a área de transferência (PNG)', true);
   popup.on('pageerror', (e) => console.log('[erro no popup]', e.message));
@@ -100,6 +108,7 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
     return itens[0].types.join(',');
   });
   ok('Colar (⌘V) na página entrega a imagem', /image\/png/.test(tipos), tipos);
+  ok('A mensagem sai do endereço da página depois de lida', !/[&]m=/.test(popup.url()), popup.url());
   await popup.waitForSelector('#dados:not(.hide)', { timeout: 180000 });
   const lido = await popup.evaluate(() => Object.fromEntries(['pagador', 'pagadorDoc', 'valor', 'data', 'hora', 'forma', 'banco', 'recebedor', 'idTransacao'].map((k) => [k, document.getElementById('c-' + k).value])));
   console.log('   lido:', JSON.stringify(lido));
@@ -113,6 +122,9 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   ok('OCR: ID da transação exato', lido.idTransacao.toUpperCase() === 'E18236120202610051732S0A1B2C3D4E', lido.idTransacao);
   ok('OCR: se o ID vier com erro, ele fica marcado para conferir', lido.idTransacao.toUpperCase() === 'E18236120202610051732S0A1B2C3D4E' || /confira/.test(idTitulo || ''), idTitulo || '');
   ok('OCR: recebedor', /clinica blue/i.test(lido.recebedor), lido.recebedor);
+  const msgTxt = await popup.inputValue('#msg-txt'), msgLido = await popup.textContent('#msg-lido');
+  ok('Mensagem do WhatsApp chega na página (só a de quem mandou o comprovante)', /Segue pagamento da paciente Maria da Silva Santos/.test(msgTxt) && /Pagamento: R\$ 1\.800,00/.test(msgTxt) && !/Recebido, obrigada|Bom dia, equipe/.test(msgTxt), JSON.stringify(msgTxt));
+  ok('Mensagem entendida: paciente, procedimento e pagamento integral', /Paciente: Maria da Silva Santos/.test(msgLido) && /Consulta Lipedema 1x/.test(msgLido) && /integral/.test(msgLido), msgLido);
   const naoIdent = await popup.textContent('#pac-res');
   ok('Sem paciente: mostra PACIENTE NÃO IDENTIFICADO e não deixa lançar', /PACIENTE NÃO IDENTIFICADO/.test(naoIdent) && await popup.locator('#conc').isHidden());
 
@@ -141,6 +153,8 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
     const linhas = pl.abas['Lançamentos'].linhas;
     ok('Linha na planilha com paciente, ID Amigo, valor, Pix, ID da transação e responsável', linhas.length === 2 && linhas[1][4] === 'Maria da Silva Santos' && linhas[1][5] === '4321' && linhas[1][8] === 1800 && linhas[1][10] === 'PIX' && /^E18236120/.test(linhas[1][14]) && linhas[1][20] === 'Gestão Teste', JSON.stringify(linhas[1]).slice(0, 220));
     ok('Planilha tem aba Resumo com fórmulas', !!pl.abas['Resumo']);
+    const cab = pl.abas['Lançamentos'].linhas[0], l1 = pl.abas['Lançamentos'].linhas[1];
+    ok('Planilha guarda a mensagem: paciente, procedimento e parcela', l1[cab.indexOf('Paciente (mensagem)')] === 'Maria da Silva Santos' && l1[cab.indexOf('Procedimento (mensagem)')] === 'Consulta Lipedema 1x' && l1[cab.indexOf('Parcela')] === 'Integral', JSON.stringify(l1.slice(24, 31)));
   }
 
   // ---------- duplicidade: o mesmo comprovante de novo ----------
@@ -193,18 +207,28 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   const lido3 = await popup.evaluate(() => Object.fromEntries(['pagador', 'valor', 'data', 'hora', 'forma', 'banco', 'idTransacao'].map((k) => [k, document.getElementById('c-' + k).value])));
   console.log('   lido:', JSON.stringify(lido3));
   ok('PDF (texto): Juliana, 900,00, 04/10/2026 18:47, Pix, Banco Inter, ID', /Juliana Costa Mendes/.test(lido3.pagador) && lido3.valor === '900,00' && lido3.data === '04/10/2026' && lido3.hora === '18:47' && lido3.forma === 'PIX' && lido3.banco === 'Banco Inter' && /^E00416968/.test(lido3.idTransacao), JSON.stringify(lido3));
+  // Mensagem curta, como a gestão recebe às vezes: só paciente, procedimento e observação de desconto.
+  await popup.fill('#msg-txt', 'Segue pagamento da paciente Juliana Costa Mendes - Botox e preenchedor.\nObs: Desconto de 30% de familiar e amigo');
+  await popup.dispatchEvent('#msg-txt', 'input');
+  const lidoMsg = await popup.textContent('#msg-lido');
+  ok('Mensagem curta entendida: paciente, procedimento e desconto', /Juliana Costa Mendes/.test(lidoMsg) && /Botox e preenchedor/.test(lidoMsg) && /Desconto: 30%/.test(lidoMsg), lidoMsg);
+  await popup.waitForTimeout(1500); // a página salva a mensagem na conciliação (o AmigoApp lê de lá)
   await amigo.goto('https://app.amigoapp.com.br/patients');
   await amigo.evaluate(BOOK);
   await amigo.waitForFunction(() => /possíveis pacientes|paciente encontrada|NÃO IDENTIFICADO/.test((document.getElementById('blue-fin-box') || {}).textContent || ''), null, { timeout: 10000 });
   const lista = await amigo.textContent('#blue-fin-box');
   ok('AmigoApp → Pacientes: busca o pagador e mostra os 2 candidatos sem escolher', /2 possíveis pacientes/.test(lista) && /Juliana Costa Mendes/.test(lista) && /Juliana Mendes Costa/.test(lista), lista.replace(/\s+/g, ' ').slice(0, 220));
-  ok('A busca do Amigo foi preenchida com o nome do pagador', /Juliana Costa Mendes/.test(await amigo.inputValue('input[placeholder^="Buscar"]')));
+  ok('A busca do Amigo usa o nome da paciente que veio na mensagem', /Juliana Costa Mendes/.test(await amigo.inputValue('input[placeholder^="Buscar"]')) && /nome da mensagem/.test(lista));
   await amigo.goto('https://app.amigoapp.com.br/patient/form/7777');
   await amigo.evaluate(BOOK); await amigo.waitForSelector('#bf-usar'); await amigo.click('#bf-usar');
   await popup.waitForSelector('#conc:not(.hide)', { timeout: 15000 });
   await popup.click('#b-lancar');
   await popup.waitForFunction(() => /Lançamento #\d+ registrado/.test(document.getElementById('lanc-res').textContent));
   ok('PDF conciliado e lançado (#3)', /#3 registrado/.test(await popup.textContent('#lanc-res')));
+  if (PLANILHA) {
+    const pl3 = JSON.parse(fs.readFileSync(PLANILHA, 'utf8')).abas['Lançamentos'].linhas, cab3 = pl3[0], l3 = pl3[3];
+    ok('Planilha: procedimento e desconto vindos da mensagem, e a observação dela', l3[cab3.indexOf('Procedimento (mensagem)')] === 'Botox e preenchedor' && l3[cab3.indexOf('Desconto (%)')] === 30 && /Obs\. da mensagem: Desconto de 30%/.test(l3[cab3.indexOf('Observações')]), JSON.stringify([l3[cab3.indexOf('Procedimento (mensagem)')], l3[cab3.indexOf('Desconto (%)')], l3[cab3.indexOf('Observações')]]));
+  }
 
   // ---------- planilha fora do ar → lançamento salvo como pendente → reenvio ----------
   if (PLANILHA) {

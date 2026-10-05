@@ -109,3 +109,42 @@ test('Nomes: abreviação conta como forte; só o primeiro nome igual é fraco',
   assert.strictEqual(C.compararNomes('Maria Oliveira', 'Maria da Silva Santos').nivel, 'fraca');
   assert.strictEqual(C.compararNomes('Carlos Pereira', 'Ana Paula Pereira').nivel, 'diferente');
 });
+
+// ---------- mensagem enviada junto com o comprovante ----------
+test('Mensagem do grupo (formato do botão Agendamento): paciente, telefone, procedimento, data e pagamento parcial', () => {
+  const m = C.lerMensagem('Ana Paula Pereira\nTel: (11) 98888-7777\nObjetivo: lipedema\nTeleconsulta com o Dr. Leonardo - Lipedema 1x\nDia 12 de novembro às 15h30\nPagamento: R$ 900,00 de R$ 1.800,00\nDados recebidos ✅');
+  assert.strictEqual(m.nome, 'Ana Paula Pereira');
+  assert.strictEqual(m.telefone, '11988887777');
+  assert.strictEqual(m.procedimento, 'Teleconsulta com o Dr. Leonardo - Lipedema 1x');
+  assert.strictEqual(m.consultaEm, '12/11 15:30');
+  assert.deepStrictEqual([m.pago, m.total, m.falta, m.parcela, m.local, m.medico], [900, 1800, 900, 'reserva', 'tele', 'Dr. Leonardo']);
+});
+
+test('Mensagem curta "Segue pagamento da paciente … - procedimento" com observação de desconto', () => {
+  const m = C.lerMensagem('Segue pagamento da paciente Juliana Paranhos - Botox e preenchedor.\nObs: Desconto de 30% de familiar e amigo');
+  assert.strictEqual(m.nome, 'Juliana Paranhos');
+  assert.strictEqual(m.procedimento, 'Botox e preenchedor');
+  assert.strictEqual(m.obs, 'Desconto de 30% de familiar e amigo');
+  assert.strictEqual(m.desconto, 30);
+  assert.strictEqual(m.pago, undefined);
+});
+
+test('Mensagem de segunda parte ("Pagamento 2/2 | Nome") e conversa solta não vira paciente', () => {
+  assert.deepStrictEqual([C.lerMensagem('Pagamento 2/2 | Marcela Lisboa Dias').nome, C.lerMensagem('Pagamento 2/2 | Marcela Lisboa Dias').parcela], ['Marcela Lisboa Dias', 'restante']);
+  assert.strictEqual(C.lerMensagem('ok obrigada').nome, undefined);
+});
+
+test('Validação com mensagem: familiar pagou, mas a mensagem confirma a paciente → confirmada com aviso', () => {
+  const c = { ...C.lerComprovante(ITAU), mensagem: C.lerMensagem('Ana Paula Pereira\nPagamento: R$ 2.200,00 (integral)') };
+  const v = C.validar(c, { nome: 'Ana Paula Pereira' }, { hoje: new Date('2026-10-05T12:00:00-03:00') });
+  assert.strictEqual(v.status, 'confirmada');
+  assert.ok(v.avisos.some((a) => /CARLOS EDUARDO PEREIRA/.test(a)));
+});
+
+test('Validação com mensagem: paciente da mensagem ≠ paciente escolhida e valor da mensagem ≠ comprovante → divergências', () => {
+  const c = { ...C.lerComprovante(NUBANK), mensagem: C.lerMensagem('Juliana Costa Mendes\nPagamento: R$ 900,00 de R$ 1.800,00') };
+  const v = C.validar(c, { nome: 'Maria da Silva Santos' }, { hoje: new Date('2026-10-05T18:00:00-03:00') });
+  assert.strictEqual(v.status, 'divergencia');
+  assert.ok(v.divergencias.some((d) => /mensagem enviada com o comprovante fala de "Juliana Costa Mendes"/.test(d)));
+  assert.ok(v.divergencias.some((d) => /mensagem diz que foi pago R\$ 900,00/.test(d)));
+});

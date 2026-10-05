@@ -8,6 +8,10 @@
   const lerLS = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
   const S = { arquivo: null, hash: '', texto: '', lido: null, concId: null, paciente: null, dup: null, candidatos: [], val: null, poll: null, lancado: false };
   const ORIGEM = /whatsapp/.test(location.hash) ? 'WhatsApp Web (botão Controle financeiro)' : 'Página Controle financeiro';
+  // Mensagem que veio junto com o comprovante no WhatsApp (o botão manda no endereço). Sai do endereço logo depois de lida.
+  let MSG_WHATS = '';
+  try { MSG_WHATS = new URLSearchParams(location.hash.slice(1)).get('m') || ''; } catch (e) { MSG_WHATS = ''; }
+  if (MSG_WHATS) history.replaceState(null, '', location.pathname + (/colar/.test(location.hash) ? '#whatsapp-colar' : '#whatsapp'));
 
   $('senha').value = lerLS('blueFinSenha');
   $('resp').value = lerLS('blueFinResp');
@@ -103,7 +107,7 @@
     Object.assign(S, { arquivo: file, paciente: null, concId: null, lancado: false, val: null });
     clearInterval(S.poll);
     ['dados', 'pac', 'conc'].forEach((id) => $(id).classList.add('hide'));
-    $('lanc-res').innerHTML = ''; $('dup').innerHTML = ''; $('obs').value = ''; $('esperado').value = '';
+    $('lanc-res').innerHTML = ''; $('dup').innerHTML = ''; $('obs').value = ''; $('esperado').value = ''; $('msg-txt').value = ''; S.mensagem = null;
     try {
       S.hash = await sha256(file);
       let r;
@@ -132,11 +136,26 @@
   function mostrarDados() {
     for (const k of CAMPOS) { const el = $('c-' + k); el.value = mostra(k, S.lido[k]); el.classList.remove('mudou'); }
     $('bruto').textContent = S.texto;
+    if (MSG_WHATS && !$('msg-txt').value) $('msg-txt').value = MSG_WHATS;
+    lerMsg();
     // ID do Pix lido com erro: o campo fica marcado para a gestão conferir na imagem.
     $('c-idTransacao').classList.toggle('mudou', !!S.lido.idDuvida);
     $('c-idTransacao').title = S.lido.idDuvida || '';
     $('dados').classList.remove('hide');
   }
+  // Mensagem enviada junto: diz de quem é o pagamento, o que foi pago (1ª/2ª parte) e de quê.
+  function lerMsg() {
+    S.mensagem = C.lerMensagem($('msg-txt').value);
+    const m = S.mensagem || {};
+    const pedacos = [m.nome ? 'Paciente: <b>' + esc(m.nome) + '</b>' : '', m.procedimento ? 'Procedimento: <b>' + esc(m.procedimento) + '</b>' : '',
+      m.pago ? 'Pago: <b>' + C.brl(m.pago) + (m.total && m.total !== m.pago ? ' de ' + C.brl(m.total) : '') + '</b>' : '',
+      m.parcela ? { reserva: 'reserva (1ª parte)', restante: '2ª parte / restante', integral: 'integral' }[m.parcela] : '',
+      m.consultaEm ? 'Consulta: ' + esc(m.consultaEm) : '', m.desconto ? 'Desconto: ' + m.desconto + '%' : '', m.obs ? 'Obs.: ' + esc(m.obs) : ''].filter(Boolean);
+    $('msg-lido').innerHTML = $('msg-txt').value.trim() ? (pedacos.length ? 'Entendi: ' + pedacos.join(' · ') : 'Não achei nome de paciente nem valor nesta mensagem.') : '';
+  }
+  let tMsg = null;
+  const salvarComprovante = () => { clearTimeout(tMsg); tMsg = setTimeout(() => { if (S.concId && !S.lancado) api('comprovante', { id: S.concId, comprovante: atual() }); }, 700); };
+  $('msg-txt').addEventListener('input', () => { lerMsg(); conciliar(); salvarComprovante(); });
   const numero = (s) => { const t = String(s || '').replace(/[^\d,.-]/g, ''); if (!t) return null; const n = /,\d{1,2}$/.test(t) ? Number(t.replace(/\./g, '').replace(',', '.')) : Number(t.replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
   function atual() {
     const c = {};
@@ -144,11 +163,12 @@
     c.valor = numero(c.valor);
     c.tipoId = S.lido.tipoId;
     c.idDuvida = c.idTransacao === S.lido.idTransacao ? S.lido.idDuvida : '';
+    c.mensagem = S.mensagem && Object.keys(S.mensagem).length > 1 ? S.mensagem : null;
     c.confianca = S.lido.confianca;
     return c;
   }
   const corrigidos = () => CAMPOS.filter((k) => { const a = $('c-' + k).value.trim(), b = mostra(k, S.lido[k]); return a !== b; });
-  CAMPOS.forEach((k) => $('c-' + k).addEventListener('input', () => { $('c-' + k).classList.toggle('mudou', corrigidos().includes(k)); conciliar(); checarDup(); }));
+  CAMPOS.forEach((k) => $('c-' + k).addEventListener('input', () => { $('c-' + k).classList.toggle('mudou', corrigidos().includes(k)); conciliar(); checarDup(); salvarComprovante(); }));
 
   function mostrarDup(d) {
     S.dup = d;
@@ -188,7 +208,8 @@
       $('pac-res').innerHTML = '<div class="res ok"><b>Paciente: ' + esc(p.nome) + '</b><div style="font-size:13px;color:var(--ink)">' + [p.idAmigo ? 'ID AmigoApp ' + p.idAmigo : '', p.cpf ? 'CPF ' + p.cpf : '', p.celular, 'fonte: ' + (p.fonte || '')].filter(Boolean).map(esc).join(' · ') + '</div></div>';
       $('cands').innerHTML = '';
     } else {
-      $('pac-res').innerHTML = '<div class="res bad"><h3>PACIENTE NÃO IDENTIFICADO</h3>Confira a paciente no AmigoApp antes de lançar. Nada é lançado sem paciente.</div>';
+      const pm = S.mensagem && S.mensagem.nome;
+      $('pac-res').innerHTML = '<div class="res bad"><h3>PACIENTE NÃO IDENTIFICADO</h3>' + (pm ? 'A mensagem indica a paciente <b>' + esc(pm) + '</b>. Abra a ficha dela no AmigoApp para conferir.' : 'Confira a paciente no AmigoApp antes de lançar.') + ' Nada é lançado sem paciente.</div>';
       $('cands').innerHTML = S.candidatos.length ? '<div class="muted" style="margin-top:8px">' + (S.candidatos.length > 1 ? 'Mais de uma paciente possível. Escolha a correta (nada é escolhido sozinho):' : 'Possível paciente (pelo histórico deste pagador). Confirme clicando:') + '</div>' +
         S.candidatos.map((c, i) => '<button type="button" class="cand" data-i="' + i + '"><b>' + esc(c.nome) + '</b> <span class="muted">' + esc([c.idAmigo ? 'ID ' + c.idAmigo : '', c.fonte].filter(Boolean).join(' · ')) + '</span></button>').join('') : '';
       $('cands').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const c = S.candidatos[+b.dataset.i]; const j = await api('paciente', { id: S.concId, paciente: { ...c, fonte: c.fonte } }); if (j.ok) { S.paciente = j.paciente; mostrarPaciente(); conciliar(); } }; });
@@ -219,7 +240,8 @@
     const val = C.validar(c, S.paciente, { esperado: esperado ? { valor: esperado } : null });
     S.val = val;
     const pct = correspondencia(c, S.paciente, val);
-    const linhas = '<table style="margin-top:6px"><tbody>' + [['Paciente', S.paciente.nome], ['Valor', c.valor > 0 ? C.brl(c.valor, c.moeda) : '—'], ['Data', c.data || '—'], ['Pagamento', c.forma || '—'], ['Banco', c.banco || '—'], ['ID', c.idTransacao || '—'], ['Pagador', c.pagador || '—']]
+    const linhas = '<table style="margin-top:6px"><tbody>' + [['Paciente', S.paciente.nome], ['Valor', c.valor > 0 ? C.brl(c.valor, c.moeda) : '—'], ['Data', c.data || '—'], ['Pagamento', c.forma || '—'], ['Banco', c.banco || '—'], ['ID', c.idTransacao || '—'], ['Pagador', c.pagador || '—'],
+      ...(c.mensagem ? [['Mensagem', [c.mensagem.nome, c.mensagem.procedimento, c.mensagem.pago ? C.brl(c.mensagem.pago) + (c.mensagem.total && c.mensagem.total !== c.mensagem.pago ? ' de ' + C.brl(c.mensagem.total) : '') : '', c.mensagem.desconto ? 'desconto ' + c.mensagem.desconto + '%' : ''].filter(Boolean).join(' · ') || '—']] : [])]
       .map(([a, b]) => '<tr><th style="width:120px">' + a + '</th><td style="color:var(--ink)">' + esc(b) + '</td></tr>').join('') + '</tbody></table>';
     const avisos = val.avisos.length ? '<div class="muted" style="margin-top:6px">' + val.avisos.map(esc).join('<br>') + '</div>' : '';
     const dupCerta = S.dup && S.dup.tipo === 'certa';
@@ -244,7 +266,7 @@
     if (!$('resp').value.trim()) { alert('Informe quem está conferindo.'); return; }
     $('b-lancar').disabled = true;
     const c = atual(), p = S.paciente, corr = corrigidos();
-    const obs = [$('obs').value.trim(), corr.length ? 'Corrigido à mão: ' + corr.join(', ') : ''].filter(Boolean).join(' · ');
+    const obs = [$('obs').value.trim(), c.mensagem && c.mensagem.obs ? 'Obs. da mensagem: ' + c.mensagem.obs : '', corr.length ? 'Corrigido à mão: ' + corr.join(', ') : ''].filter(Boolean).join(' · ');
     const j = await api('lancar', {
       ...c, paciente: p.nome, pacienteIdAmigo: p.idAmigo, pacienteCpf: p.cpf, hash: S.hash,
       referencia: (S.arquivo && S.arquivo.name ? S.arquivo.name : 'comprovante colado') + ' · sha256 ' + S.hash.slice(0, 12),
