@@ -12,7 +12,7 @@
   const caixa = (html) => {
     let c = document.getElementById('blue-fin-box');
     if (!c) { c = document.createElement('div'); c.id = 'blue-fin-box'; c.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;width:360px;max-height:86vh;overflow:auto;background:#fff;color:#13294a;border:2px solid #1f7d52;border-radius:14px;padding:16px;font:14px/1.45 Arial,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)'; document.body.appendChild(c); }
-    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v1</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
+    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v2</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
     c.querySelector('#bf-x').onclick = () => c.remove();
     return c;
   };
