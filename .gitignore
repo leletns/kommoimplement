@@ -8,3 +8,4 @@ site/
 .dev.vars
 .wrangler/
 test/e2e/resultado-financeiro.json
+entregas/
