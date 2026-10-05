@@ -71,6 +71,10 @@ progress{width:100%}
       <div class="muted">Imagem (PNG, JPG, HEIC convertido) ou PDF. A leitura (OCR) acontece neste computador: a imagem não é enviada para fora.</div>
       <input id="arq" type="file" accept="image/*,application/pdf" class="hide">
     </div>
+    <div id="colar-box" class="hide" style="margin-top:10px;text-align:center">
+      <button type="button" id="b-colar" class="go" style="width:100%">📋 Colar o comprovante copiado do WhatsApp</button>
+      <div class="muted" style="margin-top:4px">Ou aperte <b>Ctrl+V</b> (no Mac, <b>⌘V</b>). Se o navegador perguntar, clique em <b>Permitir</b>.</div>
+    </div>
     <img id="prev" alt="Comprovante">
     <div id="ocr" class="hide" style="margin-top:10px"><div class="muted" id="ocr-t">Lendo o comprovante…</div><progress id="ocr-p" max="1" value="0"></progress></div>
   </div>
@@ -124,7 +128,9 @@ progress{width:100%}
   <div class="card" id="lista">
     <div class="row" style="justify-content:space-between"><h2 style="flex:1 1 auto">Lançamentos (últimos 60 dias)</h2>
       <a id="l-planilha" class="hide" target="_blank" rel="noopener" style="flex:0 0 auto;color:var(--accent);font-weight:600">Abrir planilha ↗</a>
-      <button class="sec" id="b-sync" type="button" style="flex:0 0 auto">Reenviar pendentes à planilha</button></div>
+      <button class="sec" id="b-plan" type="button" style="flex:0 0 auto">🔗 Ligar a planilha</button>
+      <button class="sec hide" id="b-sync" type="button" style="flex:0 0 auto">Reenviar pendentes à planilha</button></div>
+    <div id="plan-box" class="hide res ok" style="color:var(--ink)"></div>
     <div id="tot" class="muted"></div>
     <div style="overflow:auto"><table id="tab"><thead><tr><th>#</th><th>Pagamento</th><th>Paciente</th><th>Pagador</th><th>Valor</th><th>Forma</th><th>Status</th><th>Planilha</th></tr></thead><tbody></tbody></table></div>
   </div>

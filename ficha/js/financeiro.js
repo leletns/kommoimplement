@@ -35,7 +35,8 @@
     if (!$('senha').value) { $('st').textContent = 'Digite a senha da gestão.'; return; }
     const j = await api('status', null, 'GET');
     if (!j.ok) { if (j.status !== 401) $('st').innerHTML = '<span style="color:var(--bad)">' + esc(j.erro) + '</span>'; return; }
-    $('st').innerHTML = 'Conectado. Planilha: ' + (j.planilha ? '<b style="color:var(--ok)">ligada</b>' : '<b style="color:var(--warn)">não configurada</b> (os lançamentos ficam guardados e vão para a planilha quando ela for ligada)');
+    $('st').innerHTML = 'Conectado ✓ · Os lançamentos aparecem sozinhos na planilha do Google (botão <b>🔗 Ligar a planilha</b>, uma vez só).';
+    $('b-sync').classList.toggle('hide', !j.planilha);
     if (j.planilhaLink) { $('l-planilha').href = j.planilhaLink; $('l-planilha').classList.remove('hide'); }
     listar();
   }
@@ -55,6 +56,18 @@
     if (it) { e.preventDefault(); receber(it.getAsFile()); }
   });
 
+  // Botão grande de colar (o comprovante veio copiado do WhatsApp). Usa a área de transferência com a permissão do navegador.
+  if (/colar/.test(location.hash)) $('colar-box').classList.remove('hide');
+  $('b-colar').onclick = async () => {
+    try {
+      const itens = await navigator.clipboard.read();
+      for (const it of itens) {
+        const tipo = it.types.find((t) => /^image\//.test(t) || t === 'application/pdf');
+        if (tipo) { const blob = await it.getType(tipo); $('colar-box').classList.add('hide'); return receber(new File([blob], 'comprovante-whatsapp.' + (tipo.split('/')[1] || 'png'), { type: tipo })); }
+      }
+      alert('Não achei imagem copiada. Volte ao WhatsApp e clique de novo no comprovante no painel 💰.');
+    } catch (e) { alert('O navegador não deixou ler a área de transferência. Clique na página e aperte Ctrl+V (⌘V no Mac).'); }
+  };
   const carregarScript = (src) => new Promise((ok, erro) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => erro(new Error('Não consegui carregar ' + src)); document.head.appendChild(s); });
   const progresso = (t, v) => { $('ocr').classList.remove('hide'); $('ocr-t').textContent = t; if (v != null) $('ocr-p').value = v; };
 
@@ -298,6 +311,15 @@
     const pend = j.lancamentos.filter((l) => !/^ok/.test(l.planilha)).length;
     $('tot').textContent = j.lancamentos.length + ' lançamento(s) · ' + C.brl(total, 'BRL') + (pend ? ' · ' + pend + ' ainda não estão na planilha' : '');
   }
+  $('b-plan').onclick = async () => {
+    const j = await api('planilha-link', null, 'GET');
+    if (!j.ok) { alert(j.erro || 'Não consegui gerar o link.'); return; }
+    $('plan-box').classList.remove('hide');
+    $('plan-box').innerHTML = '<b>Link da planilha</b> (é como uma senha: não compartilhe fora da gestão)<br>' +
+      '<input id="plan-url" readonly style="margin-top:6px" value="' + esc(j.url) + '"><div class="row" style="margin-top:8px"><button type="button" id="plan-copiar" style="flex:0 0 auto">Copiar link</button></div>' +
+      '<ol style="margin:8px 0 0;padding-left:20px"><li>Primeira vez: baixe o <a href="/planilha-controle-financeiro.xlsx" download>modelo da planilha</a>, suba no Google Drive (Novo → Upload de arquivo) e abra com <b>Planilhas Google</b> (Arquivo → Salvar como Planilhas Google).</li><li>Na aba <b>Configuração</b>, cole o link na célula amarela <b>B3</b>.</li><li>Pronto: as abas Lançamentos e Resumo se preenchem sozinhas (o Google atualiza cerca de 1 vez por hora e sempre que a planilha é aberta).</li></ol>';
+    $('plan-copiar').onclick = async () => { try { await navigator.clipboard.writeText(j.url); $('plan-copiar').textContent = 'Copiado ✓'; } catch (e) { $('plan-url').select(); document.execCommand('copy'); $('plan-copiar').textContent = 'Copiado ✓'; } };
+  };
   $('b-sync').onclick = async () => { const j = await api('sincronizar', {}); alert(j.ok ? (j.resultado.length ? j.resultado.filter((r) => r.ok).length + ' de ' + j.resultado.length + ' enviados à planilha.' + (j.resultado.some((r) => !r.ok) ? ' Erro: ' + j.resultado.find((r) => !r.ok).erro : '') : 'Nada pendente.') : j.erro); listar(); };
 
   // Paciente enviada pelo botão no AmigoApp pelo endereço (quando o Amigo não deixa chamar o servidor):

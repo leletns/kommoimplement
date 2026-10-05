@@ -250,3 +250,20 @@ export async function sincronizarPlanilha(db, env, fetchImpl = fetch) {
   for (const r of results) out.push({ id: r.id, ...(await enviarParaPlanilha(db, env, r.id, fetchImpl)) });
   return out;
 }
+
+/** Todos os lançamentos em CSV (formato brasileiro: data dd/mm/aaaa, número 1800,50) para a planilha (IMPORTDATA com locale pt_BR). */
+export async function csvPlanilha(db) {
+  await preparar(db);
+  const { results } = await db.prepare('SELECT * FROM fin_lancamentos ORDER BY id').all();
+  const num = (v) => (v === '' || v == null ? '' : String(Number(v).toFixed(2)).replace('.', ','));
+  const campo = (v) => { const x = v == null ? '' : String(v); return /[",\n;]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+  const linhas = [COLUNAS.map(campo).join(',')];
+  for (const r of results) {
+    const l = { ...lanc(r), pagadorDoc: r.pagador_doc, tipoId: r.tipo_id, instituicaoRecebedora: r.instituicao_recebedora };
+    const v = linhaPlanilha(l);
+    // valores numéricos no formato brasileiro (a planilha lê com locale pt_BR)
+    for (const i of [COLUNAS.indexOf('Valor'), COLUNAS.indexOf('Total'), COLUNAS.indexOf('Falta pagar')]) v[i] = num(v[i]);
+    linhas.push(v.map(campo).join(','));
+  }
+  return '\ufeff' + linhas.join('\n') + '\n';
+}

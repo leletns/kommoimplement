@@ -2,23 +2,25 @@
 
 O botão **💰 Controle financeiro** é só da gestão. Ele não faz parte do fluxo da Comercial, não usa a Ficha Blue e tem senha própria.
 
-## 1. Planilha (Google Sheets), cerca de 5 minutos
+## 1. Planilha (Google Sheets), cerca de 2 minutos, uma vez só
 
-1. Crie uma planilha nova no Google Drive da gestão, por exemplo "Controle financeiro · Blue".
-2. **Extensões → Apps Script**: apague o conteúdo e cole o arquivo `planilha-apps-script.gs`.
-3. **Configurações do projeto (engrenagem) → Propriedades do script → Adicionar**:
-   - nome `CHAVE`;
-   - valor: um texto longo e aleatório (é o mesmo do passo 2.3).
-4. **Implantar → Nova implantação → tipo "App da Web"**:
-   - Executar como: **Eu**;
-   - Quem pode acessar: **Qualquer pessoa**.
-5. Autorize quando o Google pedir e copie a **URL do app da Web** (termina em `/exec`).
+A planilha já vem pronta, com layout, e se preenche sozinha. Não precisa de Apps Script.
 
-A chave impede que outra pessoa escreva na planilha. O script só **acrescenta** linhas: nunca apaga nem altera o que já está lá.
+1. Baixe o modelo: https://clinicablue.pages.dev/planilha-controle-financeiro.xlsx
+   (gerado por `gerar_planilha.py`).
+2. No Google Drive da gestão: **Novo → Upload de arquivo**. Abra o arquivo e escolha **Arquivo → Salvar como Planilhas Google**.
+3. Na página https://clinicablue.pages.dev/financeiro, entre com a senha e clique em **🔗 Ligar a planilha → Copiar link**.
+4. Na planilha, aba **Configuração**, cole o link na célula amarela **B3**.
 
-As abas são criadas sozinhas no primeiro lançamento:
-- **Lançamentos**: uma linha por pagamento conferido;
-- **Resumo**: totais por status, por forma de pagamento e por mês, com fórmulas.
+Pronto: a aba **Dados** puxa os lançamentos do site (`IMPORTDATA`), e as abas formatadas se preenchem sozinhas:
+- **Lançamentos** (mais novo primeiro, divergências em destaque);
+- **Resumo** (recebido no mês e no total, por categoria, forma de pagamento, responsável e mês).
+
+O Google atualiza cerca de 1 vez por hora e sempre que a planilha é aberta.
+
+O link tem uma chave derivada da senha da gestão. Quem tiver o link vê os lançamentos. Trocar a senha (`FINANCEIRO_SENHA`) troca o link.
+
+**Opcional (envio na hora):** `planilha-apps-script.gs` continua disponível. Ele envia cada lançamento no momento da confirmação, mas exige implantar como App da Web e configurar `FINANCEIRO_PLANILHA_URL` e `FINANCEIRO_PLANILHA_CHAVE`.
 
 ## 2. Cloudflare Pages (projeto `clinicablue`)
 

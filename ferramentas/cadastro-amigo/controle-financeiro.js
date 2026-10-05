@@ -142,6 +142,7 @@
     if (falhou) {
       // Sem comunicação com o servidor daqui: a paciente vai pelo endereço da página Controle financeiro (lá a chamada é do próprio site).
       const c0 = caixa('<div style="color:#b04848;font-size:13px">Não consegui falar com o Controle financeiro em <b>' + esc(cfg.site) + '</b> (' + esc(falhou) + ').</div>' +
+        '<div style="font-size:12px;color:#5b6b82;margin-top:4px">O endereço certo é <b>https://clinicablue.pages.dev</b>. Se estiver diferente, clique em "Corrigir o endereço". Bloqueador de anúncios também pode impedir: libere o site.</div>' +
         (p0 ? '<div style="font-size:13px;margin-top:8px">Paciente aberta: <b>' + esc(p0.nome) + '</b></div>' + btn('bf-pag', 'Enviar a paciente pela página', '#1f7d52') : '<div style="font-size:13px;margin-top:8px">Abra a ficha da paciente e clique de novo no 💰.</div>') +
         btn('bf-end', 'Corrigir o endereço do site', '#2f6fb5'));
       if (p0) c0.querySelector('#bf-pag').onclick = () => window.open(cfg.site + '/financeiro#paciente=' + encodeURIComponent(JSON.stringify(p0)), 'blueFinanceiroAmigo');
@@ -181,12 +182,25 @@
     const paraPaciente = (x) => ({ nome: String(x.name || x.nome || x.full_name || x.label || '').trim(), idAmigo: String(x.id || x._id || x.value || ''), cpf: x.cpf || x.document || '', celular: x.cellphone || x.contact_cellphone || x.phone || x.mobile || '', nascimento: x.born || x.birthdate || '', fonte: 'AmigoApp (busca)' });
     let achados = null;
     if (quemBuscar) {
-      try { achados = listaDe(await amigoApi('/api/patient/suggest?name=' + encodeURIComponent(quemBuscar) + '&reduce=true')).map(paraPaciente).filter((x) => x.nome).slice(0, 10); } catch (e) { achados = null; }
+      // Nomes parecidos: busca com o nome completo, primeiro + último, só o último sobrenome e o primeiro nome; junta e ordena pela semelhança.
+      const ps = quemBuscar.trim().split(/\s+/).filter((w) => !/^(d[aeo]s?|e)$/i.test(w));
+      const buscas = [...new Set([quemBuscar, ps.length > 2 ? ps[0] + ' ' + ps[ps.length - 1] : '', ps.length > 1 ? ps[ps.length - 1] : '', ps[0]].filter((q) => q && q.length >= 3))];
+      const vistos = new Map();
+      try {
+        for (const q of buscas) {
+          for (const x of listaDe(await amigoApi('/api/patient/suggest?name=' + encodeURIComponent(q) + '&reduce=true')).map(paraPaciente)) if (x.nome && !vistos.has(x.idAmigo || x.nome)) vistos.set(x.idAmigo || x.nome, x);
+          const bons = [...vistos.values()].filter((x) => C.compararNomes(quemBuscar, x.nome).nivel !== 'diferente');
+          if (bons.length && q !== buscas[0]) break; // achou parecidos: não precisa buscar mais
+          if (bons.some((x) => /igual|forte/.test(C.compararNomes(quemBuscar, x.nome).nivel))) break;
+        }
+        achados = [...vistos.values()].map((x) => ({ ...x, sem: C.compararNomes(quemBuscar, x.nome) })).filter((x) => x.sem.nivel !== 'diferente')
+          .sort((a, b) => b.sem.nota - a.sem.nota).slice(0, 10);
+      } catch (e) { achados = null; }
     }
     if (achados) {
       const c = caixa(resumo + '<div style="font-size:13px">Busquei <b>' + esc(quemBuscar) + '</b> nos pacientes do AmigoApp' + (mg.nome ? ' (nome da mensagem)' : ' (nome de quem pagou)') + '.</div>' +
         (achados.length ? '<div style="font-size:13px;margin-top:6px">' + (achados.length > 1 ? '<b>' + achados.length + ' possíveis pacientes</b>: escolha a correta (nada é escolhido sozinho).' : '1 paciente encontrada: confira e escolha.') + '</div>' +
-          achados.map((x, k) => { const v = C.validar(cp, x); return '<button data-k="' + k + '" style="display:block;width:100%;text-align:left;margin-top:6px;border:1px solid #dbe4f0;background:#f4f8fd;border-radius:8px;padding:8px;cursor:pointer"><b>' + esc(x.nome) + '</b> ' + (v.status === 'confirmada' ? '<span style="color:#1f7d52">✓</span>' : '<span style="color:#a46d1c">⚠</span>') + '<br><span style="font-size:12px;color:#5b6b82">' + esc([x.idAmigo ? 'ID ' + x.idAmigo : '', x.cpf, x.celular].filter(Boolean).join(' · ')) + '</span></button>'; }).join('')
+          achados.map((x, k) => { const v = C.validar(cp, x); return '<button data-k="' + k + '" style="display:block;width:100%;text-align:left;margin-top:6px;border:1px solid #dbe4f0;background:#f4f8fd;border-radius:8px;padding:8px;cursor:pointer"><b>' + esc(x.nome) + '</b> ' + (v.status === 'confirmada' ? '<span style="color:#1f7d52">✓</span>' : '<span style="color:#a46d1c">⚠</span>') + '<br><span style="font-size:12px;color:#5b6b82">' + esc([x.idAmigo ? 'ID ' + x.idAmigo : '', x.cpf, x.celular, x.sem ? 'nome ' + x.sem.nota + '% parecido' : ''].filter(Boolean).join(' · ')) + '</span></button>'; }).join('')
           : '<div style="font-size:13px;margin-top:6px;color:#b04848"><b>PACIENTE NÃO IDENTIFICADO</b> no AmigoApp com esse nome. Busque pelo CPF ou celular, abra a ficha da paciente e clique de novo no 💰.</div>'));
       c.querySelectorAll('button[data-k]').forEach((b) => {
         b.onclick = async () => {

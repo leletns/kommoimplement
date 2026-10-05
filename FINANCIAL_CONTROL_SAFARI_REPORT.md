@@ -197,12 +197,30 @@ Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, q
 - **Se o AmigoApp não conseguir falar com o servidor** ("Failed to fetch"), aparece "**Enviar a paciente pela página**": a página Controle financeiro abre, retoma o comprovante pendente e liga a paciente.
 - 🟡 A rota de busca do Amigo foi tirada do código do próprio AmigoApp (`api.amigoapp.com.br`, `localStorage.token`, `company-id`), mas o **formato da resposta real não foi visto**: foi testada com uma resposta simulada.
 
+### 3.8 Correções de 05/10 (v3): colar, nomes parecidos e planilha automática
+
+- **"Me redireciona para a lista":**
+  - o clique no comprovante abre a página `/financeiro` **de propósito**: o WhatsApp não deixa o botão falar com o servidor, então a imagem vai pela área de transferência;
+  - agora a página mostra um botão grande **📋 Colar o comprovante copiado do WhatsApp** (ou ⌘V).
+- **Nomes parecidos:** a comparação aceita:
+  - apelido (Gabi × Gabriela);
+  - erro de digitação (Juliana × Juliano não; Julianna × Juliana sim);
+  - nome incompleto ou com iniciais;
+  - nomes fora de ordem.
+
+  A comparação mostra "nome X% parecido". A busca no Amigo tenta o nome completo, o primeiro + último nome, só o sobrenome e só o primeiro nome. Depois ordena por semelhança.
+- **Planilha automática:** modelo pronto (`/planilha-controle-financeiro.xlsx`) com as abas Resumo, Lançamentos, Dados e Configuração.
+  - A aba Dados usa `IMPORTDATA` no link `/api/financeiro-planilha?k=…`. A chave é um HMAC da senha da gestão.
+  - Não precisa de Apps Script.
+  - 🟡 Não consegui criar a planilha direto no seu Google Drive: o conector respondeu "sem permissão". O passo de subir o modelo é seu (2 minutos).
+  - 🟡 As fórmulas `QUERY`/`IMPORTDATA` foram geradas, mas não executadas num Google Sheets real.
+
 ## 4. Testes realizados
 
 | Teste | Resultado |
 |---|---|
-| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem + catálogo com 7 formatos) | ✅ 15 de 15 |
-| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **52 de 53** (inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
+| `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem + catálogo com 7 formatos) | ✅ 16 de 16 (inclui nomes parecidos: apelido, erro de digitação, nome incompleto; e Bruna × Bruno continua "diferente") |
+| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **55 de 56** (inclui a planilha automática: link → CSV com os 4 lançamentos, chave errada recusada (401), modelo .xlsx disponível; inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
 | A falha (1): ID do Pix lido **exatamente** pelo OCR na imagem | ✗ O OCR trocou `0`/`O` e `1`/`l` no final do ID. O sistema **detectou e marcou para conferir** (verificação seguinte ✅). A duplicidade continua protegida pelo arquivo e por valor + data + pagador |
 | Persistência: servidor desligado e religado | ✅ os 4 lançamentos continuam no banco e na planilha, sem linha duplicada |
 | `npm test` do projeto | 87 de 89. As 2 falhas são **anteriores** a esta mudança (`test/e2e.test.js` do painel espera o mês "set" e hoje é outubro) e não têm relação com o botão |
@@ -250,7 +268,7 @@ Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, q
 
 ## 6. ⛔ O que precisa da sua autorização/ação
 
-1. **Planilha:** criar a planilha, colar `planilha-apps-script.gs`, definir `CHAVE` e implantar como App da Web. São cerca de 5 minutos e o passo a passo está em `ferramentas/financeiro/LEIA-ME.md`.
+1. **Planilha:** baixar o modelo, subir no Google Drive como Planilha Google e colar o link de "🔗 Ligar a planilha" em Configuração!B3. São cerca de 2 minutos; veja `ferramentas/financeiro/LEIA-ME.md`.
 2. **Cloudflare (projeto clinicablue):**
    - binding **D1 `DB`** (ainda pendente desde a Ficha Blue);
    - secrets `FINANCEIRO_SENHA`, `FINANCEIRO_PLANILHA_URL`, `FINANCEIRO_PLANILHA_CHAVE` e, opcional, `FINANCEIRO_PLANILHA_LINK`;

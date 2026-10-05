@@ -278,6 +278,16 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   await pag.click('#b-desc').catch(() => {});
   const tot = await popup.textContent('#tot');
   ok('Lista de lançamentos na página', /4 lançamento\(s\)/.test(tot), tot);
+  // Planilha automática (IMPORTDATA): botão gera o link; o link devolve CSV com os lançamentos; sem a chave, recusa.
+  await popup.click('#b-plan');
+  await popup.waitForSelector('#plan-url', { timeout: 10000 });
+  const linkPlan = await popup.inputValue('#plan-url');
+  const csv = await popup.evaluate(async (u) => { const r = await fetch(u); return [r.status, await r.text()]; }, linkPlan);
+  const semChave = await popup.evaluate(async () => (await fetch('/api/financeiro-planilha?k=errada')).status);
+  const linhasCsv = csv[1].replace(/^﻿/, '').trim().split('\n');
+  ok('Planilha automática: link gera CSV com cabeçalho e os 4 lançamentos', csv[0] === 200 && /^"?Lançamento/.test(linhasCsv[0]) && linhasCsv.length === 5 && /1800,00/.test(csv[1]), csv[0] + ' · ' + linhasCsv.length + ' linhas');
+  ok('Planilha automática: link com chave errada é recusado', semChave === 401, String(semChave));
+  ok('Página oferece o modelo da planilha para baixar', (await popup.evaluate(async () => (await fetch('/planilha-controle-financeiro.xlsx')).status)) === 200);
   await browser.close();
   const falhas = resultados.filter((r) => !r.ok);
   fs.writeFileSync(path.join(__dirname, 'resultado-financeiro.json'), JSON.stringify({ quando: new Date().toISOString(), resultados }, null, 1));

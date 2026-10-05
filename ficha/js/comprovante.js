@@ -313,19 +313,44 @@
   // ---------- comparação com a paciente ----------
   const PARTICULAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
   const tokens = (s) => normal(s).replace(/[^a-z ]/g, ' ').split(/\s+/).filter((x) => x && !PARTICULAS.has(x));
-  /** Semelhança de nomes: 'igual' | 'forte' | 'fraca' | 'diferente' (+ detalhe). */
+  // Distância de edição (erros de digitação: Paranhos × Paranho, Luiza × Luisa).
+  const lev = (a, b) => { const m = a.length, n = b.length; if (!m || !n) return m + n; let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; } return prev[n]; };
+  /** Duas palavras de nome "batem": iguais, uma é abreviação/início da outra, ou diferem por erro de digitação. */
+  const mesmaPalavra = (a, b) => {
+    if (a === b) return true;
+    if (a.length === 1 || b.length === 1) return a[0] === b[0]; // inicial: "S." × "Silva"
+    // Feminino × masculino não é erro de digitação (Bruna × Bruno, Gabriela × Gabriel).
+    const fim = (w) => w.slice(-1);
+    if (a.slice(0, -1) === b.slice(0, -1) && /^[ao]$/.test(fim(a)) && /^[ao]$/.test(fim(b))) return false;
+    if ((a + 'a' === b) || (b + 'a' === a)) return false;
+    const curta = Math.min(a.length, b.length), longa = Math.max(a.length, b.length);
+    if (curta >= 4 && (a.startsWith(b) || b.startsWith(a))) return true;
+    if (curta >= 4 && longa - curta >= 2 && lev(a.length < b.length ? a : b, (a.length < b.length ? b : a).slice(0, curta)) <= 1 && a[0] === b[0]) return true; // "Gabi" × "Gabriela"
+    return lev(a, b) <= (longa >= 8 ? 2 : longa >= 4 ? 1 : 0);
+  };
+  /** Semelhança de nomes: 'igual' | 'forte' | 'fraca' | 'diferente' (+ detalhe e nota 0–100). Tolera erro de digitação, sobrenome a mais/a menos e abreviação. */
   function compararNomes(a, b) {
     const x = tokens(a), y = tokens(b);
-    if (!x.length || !y.length) return { nivel: 'diferente', detalhe: 'nome ausente' };
-    if (x.join(' ') === y.join(' ')) return { nivel: 'igual', detalhe: 'nome idêntico' };
+    if (!x.length || !y.length) return { nivel: 'diferente', detalhe: 'nome ausente', nota: 0 };
+    if (x.join(' ') === y.join(' ')) return { nivel: 'igual', detalhe: 'nome idêntico', nota: 100 };
     const [curto, longo] = x.length <= y.length ? [x, y] : [y, x];
-    const todos = curto.every((t) => longo.includes(t) || (t.length === 1 && longo.some((l) => l[0] === t)));
-    if (todos && curto[0] === longo[0] && curto.length >= 2) return { nivel: 'forte', detalhe: 'mesmo nome, com sobrenome abreviado ou a mais' };
-    if (x[0] === y[0] && x[x.length - 1] === y[y.length - 1]) return { nivel: 'forte', detalhe: 'primeiro e último nome iguais' };
-    if (x[0] === y[0]) return { nivel: 'fraca', detalhe: 'só o primeiro nome é igual' };
-    const comuns = curto.filter((t) => t.length > 2 && longo.includes(t));
-    if (comuns.length >= 2) return { nivel: 'fraca', detalhe: 'sobrenomes em comum (' + comuns.join(', ') + '), primeiro nome diferente' };
-    return { nivel: 'diferente', detalhe: 'nomes diferentes' };
+    const genero = (a, b) => a + 'a' === b || b + 'a' === a || (a.slice(0, -1) === b.slice(0, -1) && /[ao]$/.test(a) && /[ao]$/.test(b) && a !== b);
+    const apelido = (a, b) => !genero(a, b) && Math.min(a.length, b.length) >= 2 && (a.startsWith(b) || b.startsWith(a));
+    let achouApelido = false;
+    const achou = curto.filter((t, i) => longo.some((l) => mesmaPalavra(t, l)) || (i === 0 && apelido(t, longo[0])));
+    // Primeiro nome: igual, com erro de digitação ou apelido ("Ju" × "Juliana", "Gabi" × "Gabriela").
+    const primeiro = mesmaPalavra(x[0], y[0]) || apelido(x[0], y[0]);
+    if (!mesmaPalavra(x[0], y[0]) && primeiro) achouApelido = true;
+    const ultimo = mesmaPalavra(x[x.length - 1], y[y.length - 1]) || longo.some((l) => mesmaPalavra(curto[curto.length - 1], l));
+    const nota = Math.round(100 * (achou.length / curto.length) * (primeiro ? 1 : 0.6) * (curto.length >= 2 ? 1 : 0.7));
+    const exato = curto.every((t) => longo.includes(t));
+    if (primeiro && achou.length === curto.length && curto.length >= 2) return { nivel: 'forte', detalhe: achouApelido ? 'mesmo sobrenome, primeiro nome abreviado/apelido' : exato ? 'mesmo nome, com sobrenome a mais ou abreviado' : 'mesmo nome com pequena diferença de escrita', nota: Math.max(nota, achouApelido ? 80 : exato ? 92 : 85) };
+    if (primeiro && ultimo && curto.length >= 2) return { nivel: 'forte', detalhe: 'primeiro e último nome iguais', nota: Math.max(nota, 85) };
+    if (primeiro) return { nivel: 'fraca', detalhe: 'só o primeiro nome é igual', nota: Math.min(nota, 55) };
+    const sob = achou.filter((t) => t.length > 2);
+    if (sob.length >= 2) return { nivel: 'fraca', detalhe: 'sobrenomes em comum (' + sob.join(', ') + '), primeiro nome diferente', nota: Math.min(nota, 50) };
+    return { nivel: 'diferente', detalhe: 'nomes diferentes', nota: Math.min(nota, 20) };
   }
   /** CPF mascarado do comprovante (•••.456.789-••) × CPF da paciente: 'confere' | 'diverge' | '' (sem como comparar). */
   function compararCpf(mascarado, cpf) {

@@ -168,3 +168,14 @@ test('Catálogo: entende o que foi pago em qualquer formato de mensagem', () => 
   assert.strictEqual(C.lerMensagem('Fabiana Lima\nSinal de 50% da cirurgia').parcela, 'sinal');
   assert.strictEqual(C.lerMensagem('Renata Alves - 10 sessões de fisio pós-operatório').nome, 'Renata Alves');
 });
+
+test('Nomes parecidos: erro de digitação, sobrenome a mais e apelido batem; Bruna × Bruno não', () => {
+  const nivel = (a, b) => C.compararNomes(a, b).nivel;
+  assert.strictEqual(nivel('Juliana Paranho', 'Juliana Paranhos'), 'forte');
+  assert.strictEqual(nivel('Juliana Paranhos', 'Juliana Paranhos de Souza'), 'forte');
+  assert.strictEqual(nivel('Luiza Mendes', 'Luisa Mendes Costa'), 'forte');
+  assert.strictEqual(nivel('Ju Paranhos', 'Juliana Paranhos'), 'forte');
+  assert.notStrictEqual(nivel('Bruna Costa', 'Bruno Costa'), 'forte');
+  assert.notStrictEqual(nivel('Gabriel Lima', 'Gabriela Lima'), 'forte');
+  assert.strictEqual(nivel('Carlos Pereira', 'Ana Paula Pereira'), 'diferente');
+});

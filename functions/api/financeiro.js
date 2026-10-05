@@ -10,6 +10,7 @@
 //   POST descartar {id} · GET lancamentos · POST sincronizar (reenvia à planilha o que falhou)
 import { json, igual } from '../_lib/comum.js';
 import * as fin from '../_lib/financeiro.js';
+import { chavePlanilha } from './financeiro-planilha.js';
 
 function cors(request) {
   const o = request.headers.get('origin') || '';
@@ -33,7 +34,7 @@ export async function onRequest({ request, env }) {
   try {
     switch (acao) {
       case 'status':
-        return json({ ok: true, banco: true, planilha: !!(env.FINANCEIRO_PLANILHA_URL && env.FINANCEIRO_PLANILHA_CHAVE), planilhaLink: env.FINANCEIRO_PLANILHA_LINK || null }, 200, h);
+        return json({ ok: true, banco: true, planilha: !!(env.FINANCEIRO_PLANILHA_URL && env.FINANCEIRO_PLANILHA_CHAVE), planilhaLink: env.FINANCEIRO_PLANILHA_LINK || null, planilhaPorLink: true }, 200, h);
       case 'conciliacao': {
         if (request.method === 'GET') {
           const c = await fin.conciliacao(db, u.searchParams.get('id') || '');
@@ -54,6 +55,11 @@ export async function onRequest({ request, env }) {
       case 'comprovante':
         await fin.atualizarComprovante(db, b.id, b.comprovante);
         return json({ ok: true }, 200, h);
+      case 'planilha-link': {
+        const base = new URL(request.url).origin;
+        const url = base + '/api/financeiro-planilha?k=' + (await chavePlanilha(senha));
+        return json({ ok: true, url, formula: '=IMPORTDATA("' + url + '";",";"pt_BR")' }, 200, h);
+      }
       case 'descartar':
         await fin.descartar(db, b.id);
         return json({ ok: true }, 200, h);
