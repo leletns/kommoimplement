@@ -6,6 +6,13 @@ O botão **💰 Controle financeiro** é só da gestão. Ele não faz parte do f
 
 A planilha já vem pronta, com layout, e se preenche sozinha. Não precisa de Apps Script.
 
+**Jeito mais fácil (só navegador, sem Office):**
+1. Na página `/financeiro`, clique em **🔗 Ligar a planilha → ✨ Criar a planilha no Google**.
+2. Entre na conta Google se pedir.
+3. Na planilha nova, aperte ⌘V na célula A1. Pronto.
+
+**Ou com o modelo de 4 abas:**
+
 1. Baixe o modelo: https://clinicablue.pages.dev/planilha-controle-financeiro.xlsx
    (gerado por `gerar_planilha.py`).
 2. No Google Drive da gestão: **Novo → Upload de arquivo**. Abra o arquivo e escolha **Arquivo → Salvar como Planilhas Google**.

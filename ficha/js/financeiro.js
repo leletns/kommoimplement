@@ -316,10 +316,55 @@
     if (!j.ok) { alert(j.erro || 'Não consegui gerar o link.'); return; }
     $('plan-box').classList.remove('hide');
     $('plan-box').innerHTML = '<b>Link da planilha</b> (é como uma senha: não compartilhe fora da gestão)<br>' +
-      '<input id="plan-url" readonly style="margin-top:6px" value="' + esc(j.url) + '"><div class="row" style="margin-top:8px"><button type="button" id="plan-copiar" style="flex:0 0 auto">Copiar link</button></div>' +
-      '<ol style="margin:8px 0 0;padding-left:20px"><li>Primeira vez: baixe o <a href="/planilha-controle-financeiro.xlsx" download>modelo da planilha</a>, suba no Google Drive (Novo → Upload de arquivo) e abra com <b>Planilhas Google</b> (Arquivo → Salvar como Planilhas Google).</li><li>Na aba <b>Configuração</b>, cole o link na célula amarela <b>B3</b>.</li><li>Pronto: as abas Lançamentos e Resumo se preenchem sozinhas (o Google atualiza cerca de 1 vez por hora e sempre que a planilha é aberta).</li></ol>';
+      '<input id="plan-url" readonly style="margin-top:6px" value="' + esc(j.url) + '">' +
+      '<div class="row" style="margin-top:8px"><button type="button" id="plan-criar" style="flex:0 0 auto">✨ Criar a planilha no Google</button><button type="button" class="sec" id="plan-copiar" style="flex:0 0 auto">Copiar só o link</button></div>' +
+      '<p style="margin:8px 0 0"><b>Criar a planilha (tudo no navegador, sem Office):</b> clique em ✨, entre na sua conta Google se pedir e, na planilha nova, aperte <b>⌘V</b> (ou Ctrl+V) na célula A1. Pronto: ela já vem ligada ao site e se preenche sozinha.</p>' +
+      '<p class="hint" style="margin:6px 0 0">Se preferir a planilha modelo com abas (<a href="/planilha-controle-financeiro.xlsx" download>.xlsx</a>, precisa subir no Google Drive), use Copiar só o link e:</p>' +
+      '<ol style="margin:8px 0 0;padding-left:20px"><li>Na aba <b>Configuração</b>, cole o link na célula amarela <b>B3</b>.</li><li>Pronto: as abas Lançamentos e Resumo se preenchem sozinhas (o Google atualiza cerca de 1 vez por hora e sempre que a planilha é aberta).</li></ol>';
+    $('plan-criar').onclick = () => criarPlanilhaGoogle(j.url);
     $('plan-copiar').onclick = async () => { try { await navigator.clipboard.writeText(j.url); $('plan-copiar').textContent = 'Copiado ✓'; } catch (e) { $('plan-url').select(); document.execCommand('copy'); $('plan-copiar').textContent = 'Copiado ✓'; } };
   };
+  // Planilha nova no Google sem arquivo: copia uma tabela já formatada (com IMPORTDATA do link) e abre sheets.new; a pessoa só cola em A1.
+  // Fórmulas sem separador de argumentos (; ou ,) para funcionar em planilha em português ou em inglês.
+  function planilhaHtml(url) {
+    const N = 33, navy = '#13294A', claro = '#EAF2FB', cinza = '#6B7890';
+    const td = (conteudo, estilo) => '<td style="font-family:Arial;' + (estilo || '') + '">' + conteudo + '</td>';
+    const vazio = (n, estilo) => Array.from({ length: n }, () => td('', estilo)).join('');
+    const kpi = 'background:' + claro + ';color:' + navy + ';font-weight:bold;font-size:16pt';
+    const rot = 'background:' + claro + ';color:' + cinza + ';font-weight:bold;font-size:9pt';
+    const cab = 'background:' + navy + ';color:#FFFFFF;font-weight:bold';
+    const linhas = [
+      td('Controle financeiro · Blue Clínica', 'font-size:18pt;font-weight:bold;color:' + navy) + vazio(N - 1),
+      td('Pagamentos conferidos pela gestão. Atualiza sozinha (cerca de 1 vez por hora e sempre que a planilha é aberta). Não edite da linha 6 para baixo.', 'font-size:10pt;color:' + cinza) + vazio(N - 1),
+      td('Total recebido (R$)', rot) + td('Lançamentos', rot) + td('Com divergência', rot) + vazio(N - 3),
+      td('=SUM(I7:I)', kpi) + td('=COUNT(A7:A)', kpi) + td('=COUNTA(S7:S)', kpi) + vazio(N - 3),
+      vazio(N),
+      td(esc('=IMPORTDATA("' + url + '")'), cab) + vazio(N - 1, cab),
+    ];
+    return '<meta charset="utf-8"><table><tbody>' + linhas.map((l) => '<tr>' + l + '</tr>').join('') + '</tbody></table>';
+  }
+  function planilhaTexto(url) {
+    return ['Controle financeiro · Blue Clínica', '', 'Total recebido (R$)\tLançamentos\tCom divergência', '=SUM(I7:I)\t=COUNT(A7:A)\t=COUNTA(S7:S)', '', '=IMPORTDATA("' + url + '")'].join('\n');
+  }
+  async function criarPlanilhaGoogle(url) {
+    const html = planilhaHtml(url), texto = planilhaTexto(url);
+    // A cópia começa antes de abrir a aba (o navegador só deixa copiar com a página em foco) e a aba abre ainda no clique (Safari bloqueia depois de esperar).
+    let copia;
+    try { copia = navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })]); } catch (e) { copia = Promise.reject(e); }
+    const aba = window.open('https://sheets.new', '_blank');
+    let copiou = false;
+    try {
+      await copia;
+      copiou = true;
+    } catch (e) {
+      const div = document.createElement('div'); div.contentEditable = 'true'; div.innerHTML = html; div.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(div); const r = document.createRange(); r.selectNodeContents(div); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { copiou = document.execCommand('copy'); } catch (e2) { /* sem cópia */ }
+      sel.removeAllRanges(); div.remove();
+    }
+    $('plan-criar').textContent = copiou ? 'Copiado ✓ cole (⌘V) na célula A1 da planilha nova' : 'Não consegui copiar: use Copiar só o link';
+    if (!aba) alert('O navegador bloqueou a nova aba. Abra sheets.new e cole (⌘V) na célula A1.');
+  }
   $('b-sync').onclick = async () => { const j = await api('sincronizar', {}); alert(j.ok ? (j.resultado.length ? j.resultado.filter((r) => r.ok).length + ' de ' + j.resultado.length + ' enviados à planilha.' + (j.resultado.some((r) => !r.ok) ? ' Erro: ' + j.resultado.find((r) => !r.ok).erro : '') : 'Nada pendente.') : j.erro); listar(); };
 
   // Paciente enviada pelo botão no AmigoApp pelo endereço (quando o Amigo não deixa chamar o servidor):

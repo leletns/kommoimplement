@@ -212,7 +212,12 @@ Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, q
 - **Planilha automática:** modelo pronto (`/planilha-controle-financeiro.xlsx`) com as abas Resumo, Lançamentos, Dados e Configuração.
   - A aba Dados usa `IMPORTDATA` no link `/api/financeiro-planilha?k=…`. A chave é um HMAC da senha da gestão.
   - Não precisa de Apps Script.
-  - 🟡 Não consegui criar a planilha direto no seu Google Drive: o conector respondeu "sem permissão". O passo de subir o modelo é seu (2 minutos).
+  - 🟡 Não consegui criar a planilha direto no seu Google Drive: o conector respondeu "sem permissão".
+  - **✨ Criar a planilha no Google** (dentro de 🔗 Ligar a planilha) resolve sem Office nem arquivo:
+    - copia uma tabela já formatada (título, totais, cabeçalho e `=IMPORTDATA("link")` na linha 6);
+    - abre `sheets.new`;
+    - a pessoa entra na conta Google e cola em A1.
+  - 🟡 Testado até a cópia e a abertura da aba. **A colagem dentro do Google Sheets real não foi testada.** Se a fórmula aparecer como texto, apague a célula A6 e digite a fórmula de novo.
   - 🟡 As fórmulas `QUERY`/`IMPORTDATA` foram geradas, mas não executadas num Google Sheets real.
 
 ## 4. Testes realizados
@@ -220,7 +225,7 @@ Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, q
 | Teste | Resultado |
 |---|---|
 | `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem + catálogo com 7 formatos) | ✅ 16 de 16 (inclui nomes parecidos: apelido, erro de digitação, nome incompleto; e Bruna × Bruno continua "diferente") |
-| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **55 de 56** (inclui a planilha automática: link → CSV com os 4 lançamentos, chave errada recusada (401), modelo .xlsx disponível; inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
+| `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **56 de 57** (inclui a planilha automática: link → CSV com os 4 lançamentos, chave errada recusada (401), botão ✨ Criar a planilha no Google (abre sheets.new e copia a planilha formatada com o link), modelo .xlsx disponível; inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
 | A falha (1): ID do Pix lido **exatamente** pelo OCR na imagem | ✗ O OCR trocou `0`/`O` e `1`/`l` no final do ID. O sistema **detectou e marcou para conferir** (verificação seguinte ✅). A duplicidade continua protegida pelo arquivo e por valor + data + pagador |
 | Persistência: servidor desligado e religado | ✅ os 4 lançamentos continuam no banco e na planilha, sem linha duplicada |
 | `npm test` do projeto | 87 de 89. As 2 falhas são **anteriores** a esta mudança (`test/e2e.test.js` do painel espera o mês "set" e hoje é outubro) e não têm relação com o botão |

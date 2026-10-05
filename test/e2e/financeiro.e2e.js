@@ -287,6 +287,12 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   const linhasCsv = csv[1].replace(/^﻿/, '').trim().split('\n');
   ok('Planilha automática: link gera CSV com cabeçalho e os 4 lançamentos', csv[0] === 200 && /^"?Lançamento/.test(linhasCsv[0]) && linhasCsv.length === 5 && /1800,00/.test(csv[1]), csv[0] + ' · ' + linhasCsv.length + ' linhas');
   ok('Planilha automática: link com chave errada é recusado', semChave === 401, String(semChave));
+  await ctx.route('https://sheets.new/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<title>Planilha nova</title>' }));
+  const [abaSheets] = await Promise.all([ctx.waitForEvent('page'), popup.click('#plan-criar')]);
+  await popup.waitForFunction(() => /Copiado/.test(document.getElementById('plan-criar').textContent), null, { timeout: 10000 });
+  const copiada = await popup.evaluate(async () => { const it = (await navigator.clipboard.read())[0]; return [it.types.join(','), await (await it.getType('text/html')).text(), await (await it.getType('text/plain')).text()]; });
+  ok('✨ Criar a planilha: abre sheets.new e copia a planilha formatada já ligada ao link', /sheets\.new/.test(abaSheets.url()) && /text\/html/.test(copiada[0]) && copiada[1].includes('=IMPORTDATA("' + linkPlan + '")') && /background:#13294A/.test(copiada[1]) && copiada[2].includes('=IMPORTDATA("' + linkPlan + '")') && /=SUM\(I7:I\)/.test(copiada[2]), abaSheets.url() + " · " + copiada[0]);
+  await abaSheets.close();
   ok('Página oferece o modelo da planilha para baixar', (await popup.evaluate(async () => (await fetch('/planilha-controle-financeiro.xlsx')).status)) === 200);
   await browser.close();
   const falhas = resultados.filter((r) => !r.ok);
