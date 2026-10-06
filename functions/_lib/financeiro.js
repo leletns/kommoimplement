@@ -122,6 +122,12 @@ export async function definirPaciente(db, id, paciente) {
   return p;
 }
 
+/** A gestão trocou a paciente (a ligada estava errada): volta a esperar a conferência. */
+export async function limparPaciente(db, id) {
+  await preparar(db);
+  await db.prepare("UPDATE fin_conciliacoes SET paciente_json = NULL, status = 'aguardando_paciente', atualizado_em = ? WHERE id = ? AND status <> 'lancada'").bind(agora(), id).run();
+}
+
 /** A gestão corrigiu os dados ou a mensagem: atualiza o que o botão do AmigoApp vai comparar. */
 export async function atualizarComprovante(db, id, comprovante) {
   await preparar(db);

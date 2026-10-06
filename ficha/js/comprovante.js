@@ -342,6 +342,8 @@
     const desc = /desconto\s*(?:de\s*)?(\d{1,3})\s*%/i.exec(t);
     if (desc) m.desconto = Number(desc[1]);
     if (!m.nome) { const seg = /segue (?:o )?pagamento d[ao]s?\s+(?:paciente\s+)?(.+?)(?:\s+-\s+|\n|$)/i.exec(t); if (seg) m.nome = pareceNomeMsg(seg[1]); }
+    // "Nota da paciente X", "Comprovante do paciente X", "Pix da paciente X", "Pagamento referente à paciente X"
+    if (!m.nome) { const seg = /\b(?:nota(?: fiscal)?|comprovante|pix|recibo|pagamento|transfer[eê]ncia|cart[aã]o)\s+(?:referente\s+)?(?:d[ao]s?|[aà])\s+paciente\s+(.+?)(?:\s+-\s+|[,.;\n]|$)/i.exec(t); if (seg) m.nome = pareceNomeMsg(seg[1]); }
     if (!m.nome) for (const l of linhas.slice(0, 3)) {
       if (ROTULO.test(l)) continue;
       const limpa = l.replace(/pagamento\s*\d\s*\/\s*\d|\d\s*\/\s*\d|\|/gi, ' ');

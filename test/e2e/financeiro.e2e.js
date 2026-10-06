@@ -271,9 +271,10 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   await amigo2.evaluate(BOOK);
   await amigo2.waitForSelector('#bf-pag', { timeout: 10000 });
   ok('Endereço do site com caminho é corrigido e a falha de comunicação mostra o caminho alternativo', /Não consegui falar com o Controle financeiro/.test(await amigo2.textContent('#blue-fin-box')));
+  ctx.on('page', (pg) => pg.on('pageerror', (e) => console.log('[erro na página aberta]', e.message)));
   const [pag] = await Promise.all([ctx.waitForEvent('page'), amigo2.click('#bf-pag')]);
   await pag.waitForLoadState();
-  await pag.waitForFunction(() => /Maria da Silva Santos/.test(document.getElementById('pac-res').textContent), null, { timeout: 15000 });
+  await pag.waitForFunction(() => /Maria da Silva Santos/.test(document.getElementById('pac-res').textContent), null, { timeout: 15000 }).catch(async (e) => { console.log('   página aberta:', pag.url(), '|', await pag.textContent('#st'), '|', await pag.textContent('#pac-res'), '|', await pag.inputValue('#c-pagador')); throw e; });
   ok('Caminho alternativo: a página retoma o comprovante pendente e liga a paciente do Amigo', (await pag.inputValue('#c-pagador')) === 'Teste Caminho Alternativo' && !/paciente=/.test(pag.url()), nova + ' · ' + pag.url());
   await pag.click('#b-desc').catch(() => {});
   const tot = await popup.textContent('#tot');

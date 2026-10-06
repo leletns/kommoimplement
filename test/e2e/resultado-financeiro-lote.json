@@ -1,5 +1,5 @@
 {
- "quando": "2026-10-06T13:13:03.458Z",
+ "quando": "2026-10-06T13:35:29.601Z",
  "resultados": [
   {
    "nome": "WhatsApp: botão lista os 3 comprovantes",
@@ -29,7 +29,7 @@
   {
    "nome": "Maquininha na fila: R$ 1.800,00, crédito Visa 3x",
    "ok": true,
-   "extra": "Falta conferir a paciente Fernanda Alves Rocha R$ 1.800,00 Cartão de crédito · Visa · 3x 06/10/2026"
+   "extra": "Falta conferir a pacienteFernanda Alves RochaR$ 1.800,00Cartão de crédito · Visa · 3x06/10/2026"
   },
   {
    "nome": "Foto da maquininha: tipo Cartão, crédito, Visa, final 1234",
@@ -83,6 +83,21 @@
   },
   {
    "nome": "Página recebe sozinha: 2 prontas para lançar e 1 para escolher",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Trocar paciente: volta para \"PACIENTE NÃO IDENTIFICADO\" e explica por que não lança",
+   "ok": true,
+   "extra": "Para liberar o lançamento: falta a paciente."
+  },
+  {
+   "nome": "Usar o nome da mensagem: paciente ligada sem ID do Amigo e o lançamento libera",
+   "ok": true,
+   "extra": "Paciente: Maria da Silva Santosfonte: nome da mensagem (sem conferência no AmigoApp)Não é esta paciente: trocar"
+  },
+  {
+   "nome": "Sem certeza no Amigo, também dá para usar o nome da mensagem (fica sem ID do Amigo)",
    "ok": true,
    "extra": ""
   },

@@ -415,19 +415,32 @@
   function mostrarPaciente() {
     const p = S.paciente;
     if (p) {
-      $('pac-res').innerHTML = '<div class="res ok"><b>Paciente: ' + esc(p.nome) + '</b><div style="font-size:13px;color:var(--ink)">' + [p.idAmigo ? 'ID AmigoApp ' + p.idAmigo : '', p.cpf ? 'CPF ' + p.cpf : '', p.celular, 'fonte: ' + (p.fonte || '')].filter(Boolean).map(esc).join(' · ') + '</div></div>';
+      $('pac-res').innerHTML = '<div class="res ok"><b>Paciente: ' + esc(p.nome) + '</b><div style="font-size:13px;color:var(--ink)">' + [p.idAmigo ? 'ID AmigoApp ' + p.idAmigo : '', p.cpf ? 'CPF ' + p.cpf : '', p.celular, 'fonte: ' + (p.fonte || '')].filter(Boolean).map(esc).join(' · ') + '</div>' +
+        (S.lancado ? '' : '<button type="button" class="sec" id="b-trocar" style="margin-top:8px">Não é esta paciente: trocar</button>') + '</div>';
       $('cands').innerHTML = '';
+      if ($('b-trocar')) $('b-trocar').onclick = async () => {
+        await api('limpar-paciente', { id: S.concId });
+        S.paciente = null; if (ATUAL) { ATUAL.paciente = null; ATUAL.amigo = null; }
+        $('ok-div').checked = false; mostrarPaciente(); renderFila();
+      };
     } else {
       const pm = S.mensagem && S.mensagem.nome;
       const am = ATUAL && ATUAL.amigo;
       $('pac-res').innerHTML = '<div class="res bad"><h3>PACIENTE NÃO IDENTIFICADO</h3>' + (pm ? 'A mensagem indica a paciente <b>' + esc(pm) + '</b>. ' : '') +
         (am && am.lista && !am.lista.length ? 'O AmigoApp não achou ninguém com o nome <b>' + esc(am.busca || '') + '</b>: busque pelo CPF ou celular e abra a ficha.' : am && am.lista ? 'O AmigoApp achou mais de uma possibilidade: escolha abaixo.' : 'Confira a paciente no AmigoApp antes de lançar.') + ' Nada é lançado sem paciente.</div>';
+      S.candidatos = S.candidatos.filter((c) => !c._msg);
       $('cands').innerHTML = S.candidatos.length ? '<div class="muted" style="margin-top:8px">' + (S.candidatos.length > 1 ? 'Mais de uma paciente possível. Escolha a correta (nada é escolhido sozinho):' : 'Possível paciente. Confirme clicando:') + '</div>' +
         S.candidatos.map((c, i) => '<button type="button" class="cand" data-i="' + i + '"><b>' + esc(c.nome) + '</b> <span class="muted">' + esc([c.idAmigo ? 'ID ' + c.idAmigo : '', c.cpf ? 'CPF ' + c.cpf : '', c.fonte].filter(Boolean).join(' · ')) + '</span></button>').join('') : '';
+      // Sem achar no AmigoApp: dá para usar o nome que veio na mensagem (fica registrado como "Sem ID do AmigoApp").
+      if (pm) {
+        $('cands').innerHTML += '<button type="button" class="cand" id="b-usar-msg">Usar <b>' + esc(pm) + '</b> <span class="muted">(nome da mensagem, sem conferir no AmigoApp)</span></button>';
+        S.candidatos.push({ nome: pm, fonte: 'nome da mensagem (sem conferência no AmigoApp)', _msg: true });
+        $('b-usar-msg').dataset.i = String(S.candidatos.length - 1);
+      }
       $('cands').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const c = S.candidatos[+b.dataset.i]; const j = await api('paciente', { id: S.concId, paciente: { ...c, fonte: c.fonte } }); if (j.ok) { S.paciente = j.paciente; if (ATUAL) ATUAL.paciente = j.paciente; mostrarPaciente(); conciliar(); checarDup(); renderFila(); } }; });
     }
     $('conc').classList.toggle('hide', !p);
-    if (p) conciliar();
+    if (p) conciliar(); else habilitar();
   }
   async function acompanhar() {
     if (!S.concId || S.lancado) return clearInterval(S.poll);
@@ -474,7 +487,11 @@
   }
   function habilitar() {
     const precisaDiv = S.val && S.val.divergencias.length, precisaDup = S.dup && S.dup.tipo === 'provavel';
-    $('b-lancar').disabled = S.lancado || !S.paciente || (S.dup && S.dup.tipo === 'certa') || (precisaDiv && (!$('ok-div').checked || !$('obs').value.trim())) || (precisaDup && !$('ok-dup').checked) || !$('resp').value.trim();
+    const motivos = [!$('resp').value.trim() ? 'preencha "Quem está conferindo" no topo da página' : '', !S.paciente ? 'falta a paciente' : '', S.dup && S.dup.tipo === 'certa' ? 'este pagamento já foi lançado' : '',
+      precisaDiv && !$('ok-div').checked ? 'marque "Conferi as divergências"' : '', precisaDiv && !$('obs').value.trim() ? 'escreva na Observação por que está lançando mesmo com divergência' : '',
+      precisaDup && !$('ok-dup').checked ? 'marque "não é o mesmo pagamento já lançado"' : ''].filter(Boolean);
+    $('b-lancar').disabled = S.lancado || motivos.length > 0;
+    $('b-motivo').textContent = !S.lancado && motivos.length ? 'Para liberar o lançamento: ' + motivos.join(' · ') + '.' : '';
   }
   ['ok-div', 'ok-dup'].forEach((id) => $(id).addEventListener('change', habilitar));
   $('obs').addEventListener('input', () => { habilitar(); if (ATUAL) ATUAL.obs = $('obs').value; });

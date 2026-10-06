@@ -57,6 +57,9 @@ export async function onRequest({ request, env }) {
         return json({ ok: true, conciliacao: await fin.conciliacaoPendente(db) }, 200, h);
       case 'paciente':
         return json({ ok: true, paciente: await fin.definirPaciente(db, b.id, b.paciente || {}) }, 200, h);
+      case 'limpar-paciente':
+        await fin.limparPaciente(db, b.id);
+        return json({ ok: true }, 200, h);
       case 'comprovante':
         await fin.atualizarComprovante(db, b.id, b.comprovante);
         return json({ ok: true }, 200, h);

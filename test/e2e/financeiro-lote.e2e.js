@@ -38,7 +38,8 @@ const PACIENTES = {
     r.fulfill({ body: fs.readFileSync(arq), contentType: TIPOS[ext] || 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'cross-origin-resource-policy': 'cross-origin' } });
   });
   await ctx.route('https://web.whatsapp.com/**', (r) => r.fulfill({ body: WA_HTML, contentType: 'text/html', headers: { 'content-security-policy': CSP_WA, 'cross-origin-opener-policy': 'same-origin', 'cross-origin-embedder-policy': 'require-corp' } }));
-  await ctx.route('https://amigoapp.com.br/**', (r) => r.fulfill({ body: '<!doctype html><html><head><meta charset="utf-8"><title>Pacientes</title></head><body><h1>Pacientes</h1></body></html>', contentType: 'text/html' }));
+  // Lista de Pacientes como no Amigo real: o cabeçalho "Nome | Telefone | CPF" não pode ser lido como paciente aberta.
+  await ctx.route('https://amigoapp.com.br/**', (r) => r.fulfill({ body: '<!doctype html><html><head><meta charset="utf-8"><title>Pacientes</title></head><body><h1>Pacientes</h1><table><thead><tr><th><label>Nome</label></th><th><label>Telefone</label></th><th><label>CPF</label></th></tr></thead><tbody><tr><td>Outra Pessoa Qualquer</td><td>(21) 90000-0000</td><td>000.000.000-00</td></tr></tbody></table></body></html>', contentType: 'text/html' }));
   // API do AmigoApp (busca e ficha), só com a sessão aberta.
   const buscasAmigo = [];
   await ctx.route('https://api.amigoapp.com.br/**', (r) => {
@@ -135,9 +136,19 @@ const PACIENTES = {
   // ---------- página: escolhe a Beatriz e lança as prontas ----------
   await fin.waitForFunction(() => [...document.querySelectorAll('#fila .st')].filter((s) => /Pronto para lançar/.test(s.textContent)).length === 2 && /Escolher paciente/.test(document.getElementById('fila').textContent), null, { timeout: 20000 });
   ok('Página recebe sozinha: 2 prontas para lançar e 1 para escolher', true);
+  // Paciente ligada errada: "Não é esta paciente: trocar" → volta a faltar paciente; dá para usar o nome da mensagem.
+  await linha(/Maria da Silva Santos/).click();
+  await fin.waitForSelector('#b-trocar');
+  await fin.click('#b-trocar');
+  await fin.waitForSelector('#b-usar-msg');
+  ok('Trocar paciente: volta para "PACIENTE NÃO IDENTIFICADO" e explica por que não lança', /PACIENTE NÃO IDENTIFICADO/.test(await fin.textContent('#pac-res')) && /falta a paciente/.test(await fin.textContent('#b-motivo')), await fin.textContent('#b-motivo'));
+  await fin.click('#b-usar-msg');
+  await fin.waitForSelector('#conc:not(.hide)');
+  ok('Usar o nome da mensagem: paciente ligada sem ID do Amigo e o lançamento libera', /nome da mensagem/.test(await fin.textContent('#pac-res')) && await fin.locator('#b-lancar').isEnabled(), (await fin.textContent('#pac-res')).replace(/\s+/g, ' ').slice(0, 120));
   await linha(/Beatriz/).click();
   await fin.waitForSelector('#cands button');
-  const cands = await fin.$$eval('#cands button', (bs) => bs.map((b) => b.innerText.replace(/\s+/g, ' ')));
+  const cands = await fin.$$eval('#cands button:not(#b-usar-msg)', (bs) => bs.map((b) => b.innerText.replace(/\s+/g, ' ')));
+  ok('Sem certeza no Amigo, também dá para usar o nome da mensagem (fica sem ID do Amigo)', /Usar Beatriz Lima Costa/.test(await fin.textContent('#b-usar-msg')));
   ok('Candidatas do AmigoApp aparecem para escolher (com ID e % parecido)', cands.length === 2 && cands.some((c) => /ID 9002/.test(c)) && cands.some((c) => /ID 9003/.test(c)), JSON.stringify(cands));
   await fin.click('#cands button:has-text("ID 9002")');
   await fin.waitForFunction(() => [...document.querySelectorAll('#fila .st')].filter((s) => /Pronto para lançar/.test(s.textContent)).length === 3, null, { timeout: 10000 });

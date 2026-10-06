@@ -178,8 +178,14 @@
       const cpf = campo(['cpf']) || ((/cpf[:\s]*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i.exec(document.body.innerText) || [])[1] || '');
       const celular = campo(['celular', 'telefone', 'celular principal', 'whatsapp']);
       const nascimento = (document.getElementById('patient-born') || {}).value || campo(['data de nascimento', 'nascimento']);
-      return nome ? { nome, idAmigo: id, cpf: /\d{11}/.test(cpf.replace(/\D/g, '')) ? cpf : '', celular, nascimento, fonte: 'AmigoApp (tela da paciente)', url: location.href } : null;
+      // Só é "paciente aberta" numa tela de paciente (ID no endereço ou formulário da paciente) e com cara de nome de pessoa.
+      // Na lista de Pacientes o cabeçalho da tabela ("Nome | Telefone | CPF") não pode virar paciente.
+      if (!id && !document.getElementById('patient-born')) return null;
+      if (!nomeDePessoa(nome)) return null;
+      return { nome, idAmigo: id, cpf: /\d{11}/.test(cpf.replace(/\D/g, '')) ? cpf : '', celular, nascimento, fonte: 'AmigoApp (tela da paciente)', url: location.href };
     };
+    const ROTULOS = /^(nome|nome completo|nome social|telefone|celular|whatsapp|cpf|rg|e-?mail|data de nascimento|nascimento|idade|sexo|g[eê]nero|endere[cç]o|cidade|estado|cep|conv[eê]nio|plano|paciente|pacientes|a[cç][oõ]es|status|cadastro|agenda|prontu[aá]rio|buscar|filtros?)$/i;
+    const nomeDePessoa = (n) => { const t = String(n || '').trim(); return t.length >= 5 && t.length <= 80 && !ROTULOS.test(t) && /^[A-Za-zÀ-ÿ'´`.\s-]+$/.test(t) && t.split(/\s+/).filter((w) => w.length > 1).length >= 2; };
     const api = async (acao, corpo) => {
       const r = await fetch(cfg.site + '/api/financeiro?acao=' + acao, { method: corpo ? 'POST' : 'GET', headers: { 'x-financeiro-senha': cfg.senha, 'content-type': 'application/json' }, body: corpo ? JSON.stringify(corpo) : undefined });
       if (r.status === 401) { cfg.senha = ''; try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ } throw new Error('Senha da gestão incorreta. Clique de novo no botão.'); }
@@ -211,7 +217,11 @@
     const detalhar = async (x) => { try { const j = await amigoGet('/api/patient/' + encodeURIComponent(x.idAmigo)); const dd = pacAmigo((j && (j.data || j)) || {}); x.cpf = x.cpf || dd.cpf; x.celular = x.celular || dd.celular; x.nascimento = x.nascimento || dd.nascimento; } catch (e) { /* segue com o que a busca trouxe */ } return x; };
     const nomeDe = (pd) => { const cp = pd.comprovante || {}; return (cp.mensagem && cp.mensagem.nome) || cp.pagador || ''; };
 
-    const p0 = lerPaciente();
+    let p0 = lerPaciente();
+    // Com a sessão do Amigo e o ID da paciente no endereço, os dados vêm da base do Amigo (mais confiável que ler a tela).
+    if (p0 && p0.idAmigo && localStorage.getItem('token')) {
+      try { const j = await amigoGet('/api/patient/' + encodeURIComponent(p0.idAmigo)); const d = pacAmigo((j && (j.data || j)) || {}); if (C && nomeDePessoa(d.nome) && /igual|forte/.test(C.compararNomes(d.nome, p0.nome).nivel)) p0 = { ...p0, nome: d.nome, cpf: d.cpf || p0.cpf, celular: d.celular || p0.celular, nascimento: d.nascimento || p0.nascimento, fonte: 'AmigoApp (ficha da paciente)' }; } catch (e) { /* fica com o que está na tela */ }
+    }
     let pend = null, falhou = '', fila = [];
     try { fila = (await api('fila')).fila || []; } catch (e) {
       if (/senha/i.test(e.message)) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); return; }
