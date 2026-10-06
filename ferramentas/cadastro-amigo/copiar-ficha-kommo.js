@@ -40,7 +40,7 @@
     url = prev && items.length ? new URL(prev, location.origin).href : null;
     pag++;
   }
-  const fichas = msgs.filter((m) => /cpf|passport|nome\s*:|full name/i.test(m.text) && m.text.split('\n').length >= 4).sort((a, b) => b.ts - a.ts);
+  const fichas = msgs.filter((m) => pareceFicha(m.text)).sort((a, b) => b.ts - a.ts);
   if (!fichaBlue && !fichas.length) { caixa('<b>Não achei ficha nesta conversa.</b><br>A paciente ainda não mandou os dados (nome, CPF…).'); return; }
   const d = fichaBlue || parseFicha(fichas[0].text);
   d._lead = id;

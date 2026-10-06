@@ -45,7 +45,7 @@
   let ficha = null;
   const nb = notas.find((n) => n.text.includes('FICHA_BLUE_JSON:'));
   if (nb) { try { ficha = JSON.parse(nb.text.split('FICHA_BLUE_JSON:')[1].trim()); } catch (e) { ficha = null; } }
-  const fichaZap = !ficha && msgs.filter((m) => m.t === 89 && /cpf|nome\s*:|full name|passport/i.test(m.texto) && m.texto.split('\n').length >= 4).sort((a, b) => b.ts - a.ts)[0];
+  const fichaZap = !ficha && msgs.filter((m) => m.t === 89 && pareceFicha(m.texto)).sort((a, b) => b.ts - a.ts)[0];
   if (fichaZap) ficha = parseFicha(fichaZap.texto);
   const r = (ficha && ficha._ficha && ficha._ficha.r) || {};
   const tel = String(((contato.custom_fields_values || []).find((f) => f.field_code === 'PHONE') || { values: [{}] }).values[0].value || (ficha && ficha.telefone) || '');
