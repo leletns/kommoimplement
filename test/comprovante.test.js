@@ -66,7 +66,11 @@ test('Cartão de crédito: forma, NSU como identificador, pagador em "Pago por"'
   assert.strictEqual(d.forma, 'Cartão de crédito');
   assert.strictEqual(d.valor, 1800);
   assert.strictEqual(d.data, '02/10/2026');
-  assert.strictEqual(d.idTransacao, '778899');
+  assert.strictEqual(d.idTransacao, 'NSU 778899 · 02/10/2026');
+  assert.strictEqual(d.nsu, '778899');
+  assert.strictEqual(d.bandeira, 'Visa');
+  assert.strictEqual(d.cartaoFinal, '1234');
+  assert.strictEqual(d.parcelas, 3);
   assert.strictEqual(d.pagador, 'Talita do Paço Lima');
 });
 

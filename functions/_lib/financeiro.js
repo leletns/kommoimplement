@@ -51,7 +51,9 @@ const TABELAS = [
   'CREATE INDEX IF NOT EXISTS fin_lanc_data ON fin_lancamentos (data_pagamento)',
 ];
 // Dados da mensagem enviada junto com o comprovante (WhatsApp): quem é a paciente, o que foi pago e de quê.
-const COLUNAS_MENSAGEM = ['paciente_mensagem TEXT', 'procedimento TEXT', 'consulta_em TEXT', 'parcela TEXT', 'total_centavos INTEGER', 'falta_centavos INTEGER', 'desconto INTEGER', 'mensagem TEXT', 'categoria TEXT', 'itens TEXT'];
+const COLUNAS_MENSAGEM = ['paciente_mensagem TEXT', 'procedimento TEXT', 'consulta_em TEXT', 'parcela TEXT', 'total_centavos INTEGER', 'falta_centavos INTEGER', 'desconto INTEGER', 'mensagem TEXT', 'categoria TEXT', 'itens TEXT',
+  // Cartão (maquininha), nota fiscal e a conferência da paciente no AmigoApp.
+  'tipo_documento TEXT', 'bandeira TEXT', 'cartao_final TEXT', 'nsu TEXT', 'autorizacao TEXT', 'parcelas INTEGER', 'numero_nota TEXT', 'amigo_status TEXT'];
 let pronto = false;
 async function preparar(db) {
   if (pronto) return;
@@ -59,6 +61,8 @@ async function preparar(db) {
   const { results } = await db.prepare('PRAGMA table_info(fin_lancamentos)').all();
   const tem = new Set(results.map((r) => r.name));
   for (const c of COLUNAS_MENSAGEM) if (!tem.has(c.split(' ')[0])) await db.prepare('ALTER TABLE fin_lancamentos ADD COLUMN ' + c).run();
+  const cc = new Set((await db.prepare('PRAGMA table_info(fin_conciliacoes)').all()).results.map((r) => r.name));
+  if (!cc.has('candidatos_json')) await db.prepare('ALTER TABLE fin_conciliacoes ADD COLUMN candidatos_json TEXT').run();
   pronto = true;
 }
 
@@ -77,7 +81,8 @@ export async function criarConciliacao(db, { comprovante, hash, origem }) {
   return id;
 }
 
-const conc = (x) => x && ({ id: x.id, criadoEm: x.criado_em, status: x.status, origem: x.origem, hash: x.hash_comprovante, comprovante: JSON.parse(x.comprovante_json), paciente: x.paciente_json ? JSON.parse(x.paciente_json) : null, lancamentoId: x.lancamento_id });
+const conc = (x) => x && ({ id: x.id, criadoEm: x.criado_em, status: x.status, origem: x.origem, hash: x.hash_comprovante, comprovante: JSON.parse(x.comprovante_json), paciente: x.paciente_json ? JSON.parse(x.paciente_json) : null, lancamentoId: x.lancamento_id,
+  candidatos: x.candidatos_json ? JSON.parse(x.candidatos_json) : null });
 
 export async function conciliacao(db, id) {
   await preparar(db);
@@ -89,6 +94,22 @@ export async function conciliacaoPendente(db) {
   await preparar(db);
   return conc(await db.prepare("SELECT * FROM fin_conciliacoes WHERE status <> 'lancada' AND status <> 'descartada' AND criado_em >= ? ORDER BY criado_em DESC LIMIT 1")
     .bind(new Date(Date.now() - 12 * 3600e3).toISOString()).first());
+}
+
+/** Fila: comprovantes lidos nos últimos dias e ainda não lançados (a página e o botão no AmigoApp trabalham em lote). */
+export async function fila(db, { dias = 7 } = {}) {
+  await preparar(db);
+  const { results } = await db.prepare("SELECT * FROM fin_conciliacoes WHERE status <> 'lancada' AND status <> 'descartada' AND criado_em >= ? ORDER BY criado_em DESC LIMIT 100")
+    .bind(new Date(Date.now() - dias * 86400e3).toISOString()).all();
+  return results.map(conc);
+}
+
+/** Possíveis pacientes achadas na busca do AmigoApp quando não deu para ter certeza (a gestão escolhe na página). */
+export async function definirCandidatos(db, id, { busca, lista }) {
+  await preparar(db);
+  const l = (Array.isArray(lista) ? lista : []).slice(0, 8).map((p) => ({ nome: limpo(p.nome), idAmigo: limpo(p.idAmigo, 60), cpf: limpo(p.cpf, 20), celular: limpo(p.celular, 30), nascimento: limpo(p.nascimento, 20), nota: Number(p.nota) || null, fonte: limpo(p.fonte, 80) })).filter((p) => p.nome);
+  await db.prepare("UPDATE fin_conciliacoes SET candidatos_json = ?, atualizado_em = ? WHERE id = ? AND status <> 'lancada'").bind(JSON.stringify({ busca: limpo(busca), quando: agora(), lista: l }), agora(), id).run();
+  return l;
 }
 
 /** Paciente conferida no AmigoApp (lida da tela do Amigo pelo botão) → vinculada à conciliação. */
@@ -120,6 +141,7 @@ const lanc = (x) => x && ({
   pacienteMensagem: x.paciente_mensagem, procedimento: x.procedimento, consultaEm: x.consulta_em, parcela: x.parcela,
   total: x.total_centavos == null ? null : x.total_centavos / 100, falta: x.falta_centavos == null ? null : x.falta_centavos / 100, desconto: x.desconto, mensagem: x.mensagem,
   categoria: x.categoria, itens: x.itens,
+  tipoDocumento: x.tipo_documento, bandeira: x.bandeira, cartaoFinal: x.cartao_final, nsu: x.nsu, autorizacao: x.autorizacao, parcelas: x.parcelas, numeroNota: x.numero_nota, amigoStatus: x.amigo_status,
 });
 
 /**
@@ -173,6 +195,10 @@ export async function lancar(db, e) {
           Number.isFinite(Number(m.desconto)) && m.desconto !== undefined && m.desconto !== null ? Number(m.desconto) : null, limpo(m.texto, 1500),
           limpo(m.categoria, 120), limpo(m.resumoItens, 400)];
       })()).first();
+    const parcelas = Number.parseInt(e.parcelas, 10);
+    await db.prepare('UPDATE fin_lancamentos SET tipo_documento = ?, bandeira = ?, cartao_final = ?, nsu = ?, autorizacao = ?, parcelas = ?, numero_nota = ?, amigo_status = ? WHERE id = ?').bind(
+      limpo(e.tipoDocumento, 40), limpo(e.bandeira, 30), digitos(e.cartaoFinal).slice(-4) || null, limpo(e.nsu, 30), limpo(e.autorizacao, 30), parcelas > 0 && parcelas < 49 ? parcelas : null, limpo(e.numeroNota, 30),
+      e.pacienteIdAmigo ? 'Encontrada no AmigoApp (ID ' + String(e.pacienteIdAmigo).slice(0, 40) + ')' : 'Sem ID do AmigoApp', r.id).run();
     if (e.conciliacaoId) await db.prepare("UPDATE fin_conciliacoes SET status = 'lancada', lancamento_id = ?, atualizado_em = ? WHERE id = ?").bind(r.id, agora(), e.conciliacaoId).run();
     return r.id;
   } catch (err) {
@@ -207,7 +233,8 @@ export async function candidatosPorHistorico(db, { pagador, cpfMeio, pacienteMen
 export const COLUNAS = ['Lançamento', 'Data do pagamento', 'Data do comprovante', 'Hora', 'Paciente', 'ID AmigoApp', 'Pagador', 'Doc. pagador', 'Valor', 'Moeda',
   'Forma', 'Banco', 'Instituição recebedora', 'Recebedor', 'ID da transação / Pix', 'Tipo do ID', 'Referência do comprovante', 'Status', 'Divergências',
   'Confirmado em', 'Responsável', 'Observações', 'Origem', 'Confiança da leitura',
-  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total', 'Falta pagar', 'Desconto (%)', 'Categoria', 'Itens pagos'];
+  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total', 'Falta pagar', 'Desconto (%)', 'Categoria', 'Itens pagos',
+  'Tipo de documento', 'Bandeira', 'Final do cartão', 'NSU', 'Autorização', 'Parcelas', 'Nº da nota fiscal', 'Paciente no AmigoApp'];
 
 export function linhaPlanilha(l) {
   const br = (isoD) => (isoD ? isoD.slice(8, 10) + '/' + isoD.slice(5, 7) + '/' + isoD.slice(0, 4) : '');
@@ -217,7 +244,8 @@ export function linhaPlanilha(l) {
     { conferido: 'Conferido', conferido_com_divergencia: 'Conferido com divergência' }[l.status] || l.status, (l.divergencias || []).join(' | '),
     conf.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }), l.responsavel, l.observacoes || '', l.origem || '', l.confianca == null ? '' : Math.round(l.confianca * 100) + '%',
     l.pacienteMensagem || '', l.procedimento || '', l.consultaEm || '', { reserva: 'Reserva (1ª parte)', restante: 'Restante (2ª parte)', integral: 'Integral', sinal: 'Sinal' }[l.parcela] || '',
-    l.total == null ? '' : l.total, l.falta == null ? '' : l.falta, l.desconto == null ? '' : l.desconto, l.categoria || '', l.itens || ''];
+    l.total == null ? '' : l.total, l.falta == null ? '' : l.falta, l.desconto == null ? '' : l.desconto, l.categoria || '', l.itens || '',
+    l.tipoDocumento || '', l.bandeira || '', l.cartaoFinal || '', l.nsu || '', l.autorizacao || '', l.parcelas == null ? '' : l.parcelas, l.numeroNota || '', l.amigoStatus || ''];
 }
 
 /** Envia o lançamento para a planilha. Nunca derruba o lançamento: se falhar, fica 'pendente' para reenviar. */

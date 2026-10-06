@@ -8,6 +8,7 @@
 //   POST paciente {id,paciente}        → paciente conferida no AmigoApp
 //   POST lancar {...}                  → grava o lançamento (bloqueia duplicado) e envia para a planilha
 //   POST descartar {id} · GET lancamentos · POST sincronizar (reenvia à planilha o que falhou)
+//   GET  fila (comprovantes ainda não lançados) · POST candidatos {id,busca,lista} (busca no AmigoApp sem certeza)
 import { json, igual } from '../_lib/comum.js';
 import * as fin from '../_lib/financeiro.js';
 import { chavePlanilha } from './financeiro-planilha.js';
@@ -48,6 +49,10 @@ export async function onRequest({ request, env }) {
         const candidatos = await fin.candidatosPorHistorico(db, { pagador: c.pagador, cpfMeio: cpfMeio.length >= 6 ? cpfMeio : '', pacienteMensagem: c.mensagem && c.mensagem.nome });
         return json({ ok: true, id, duplicidade, candidatos }, 200, h);
       }
+      case 'fila':
+        return json({ ok: true, fila: await fin.fila(db, { dias: Math.min(30, Number(u.searchParams.get('dias')) || 7) }) }, 200, h);
+      case 'candidatos':
+        return json({ ok: true, candidatos: await fin.definirCandidatos(db, b.id, b) }, 200, h);
       case 'pendente':
         return json({ ok: true, conciliacao: await fin.conciliacaoPendente(db) }, 200, h);
       case 'paciente':

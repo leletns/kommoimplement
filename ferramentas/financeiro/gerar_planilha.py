@@ -11,8 +11,9 @@ NAVY, AZUL, CLARO, CINZA, OURO = '13294A', '2F6FB5', 'EAF2FB', '6B7890', 'FDF4E3
 COLUNAS = ['Lançamento', 'Data do pagamento', 'Data do comprovante', 'Hora', 'Paciente', 'ID AmigoApp', 'Pagador', 'Doc. pagador', 'Valor', 'Moeda',
   'Forma', 'Banco', 'Instituição recebedora', 'Recebedor', 'ID da transação / Pix', 'Tipo do ID', 'Referência do comprovante', 'Status', 'Divergências',
   'Confirmado em', 'Responsável', 'Observações', 'Origem', 'Confiança da leitura',
-  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total', 'Falta pagar', 'Desconto (%)', 'Categoria', 'Itens pagos']
-assert len(COLUNAS) == 33
+  'Paciente (mensagem)', 'Procedimento (mensagem)', 'Consulta (mensagem)', 'Parcela', 'Total', 'Falta pagar', 'Desconto (%)', 'Categoria', 'Itens pagos',
+  'Tipo de documento', 'Bandeira', 'Final do cartão', 'NSU', 'Autorização', 'Parcelas', 'Nº da nota fiscal', 'Paciente no AmigoApp']
+assert len(COLUNAS) == 41
 
 saida = sys.argv[1]; exemplo = '--exemplo' in sys.argv
 wb = Workbook()
@@ -49,22 +50,24 @@ def tabela(linha, col, titulo, formula):
     for k in range(3):
         c = r.cell(row=linha + 1, column=col + k); c.font = Font(bold=True, color='FFFFFF', name='Arial', size=10); c.fill = PatternFill('solid', fgColor=AZUL)
     for rr in range(linha + 2, linha + 16): r.cell(row=rr, column=col + 2).number_format = 'R$ #,##0.00'
-Q = lambda sel, grupo, rotulo: ('=IFERROR(QUERY(Dados!A2:AG,"select ' + sel + ', count(A), sum(I) where A is not null and J = \'BRL\' group by ' + grupo +
+Q = lambda sel, grupo, rotulo: ('=IFERROR(QUERY(Dados!A2:AO,"select ' + sel + ', count(A), sum(I) where A is not null and J = \'BRL\' group by ' + grupo +
                                 ' order by sum(I) desc label ' + sel + " '" + rotulo + "', count(A) 'Qtd', sum(I) 'Valor (R$)'\",0),\"Sem lançamentos ainda\")")
 tabela(9, 2, 'Por categoria', Q('AF', 'AF', 'Categoria'))
 tabela(9, 6, 'Por forma de pagamento', Q('K', 'K', 'Forma'))
 tabela(27, 2, 'Por responsável', Q('U', 'U', 'Responsável'))
-tabela(27, 6, 'Por mês', '=IFERROR(QUERY(Dados!A2:AG,"select year(B), month(B)+1, sum(I) where A is not null and J = \'BRL\' group by year(B), month(B)+1 order by year(B) desc, month(B)+1 desc label year(B) \'Ano\', month(B)+1 \'Mês\', sum(I) \'Valor (R$)\'",0),"Sem lançamentos ainda")')
+tabela(45, 2, 'Cartão por bandeira', '=IFERROR(QUERY(Dados!A2:AO,"select AI, count(A), sum(I) where A is not null and J = \'BRL\' and AI is not null group by AI order by sum(I) desc label AI \'Bandeira\', count(A) \'Qtd\', sum(I) \'Valor (R$)\'",0),"Sem cartão ainda")')
+tabela(27, 6, 'Por mês', '=IFERROR(QUERY(Dados!A2:AO,"select year(B), month(B)+1, sum(I) where A is not null and J = \'BRL\' group by year(B), month(B)+1 order by year(B) desc, month(B)+1 desc label year(B) \'Ano\', month(B)+1 \'Mês\', sum(I) \'Valor (R$)\'",0),"Sem lançamentos ainda")')
 for c in ('C', 'G'): r.column_dimensions[c].width = 10
 
 # ---------- Lançamentos (visão formatada, mais novo primeiro) ----------
 l = wb.create_sheet('Lançamentos')
 VISTA = [('A', 'Nº', 7), ('B', 'Data', 12), ('E', 'Paciente', 28), ('F', 'ID Amigo', 10), ('G', 'Pagador', 26), ('I', 'Valor', 13), ('J', 'Moeda', 7),
   ('K', 'Forma', 16), ('L', 'Banco', 14), ('AF', 'Categoria', 16), ('AG', 'Itens pagos', 34), ('AB', 'Parcela', 16), ('AE', 'Desc. %', 8),
-  ('R', 'Status', 22), ('S', 'Divergências', 40), ('O', 'ID da transação', 34), ('U', 'Responsável', 16), ('T', 'Confirmado em', 18), ('V', 'Observações', 40)]
+  ('R', 'Status', 22), ('S', 'Divergências', 40), ('O', 'ID da transação', 34), ('U', 'Responsável', 16), ('T', 'Confirmado em', 18), ('V', 'Observações', 40),
+  ('AH', 'Documento', 16), ('AI', 'Bandeira', 12), ('AJ', 'Final', 8), ('AM', 'Parcelas', 9), ('AK', 'NSU', 12), ('AL', 'Autorização', 12), ('AN', 'Nº NF', 10), ('AO', 'Paciente no Amigo', 30)]
 cab(l, 1, [v[1] for v in VISTA], [v[2] for v in VISTA])
 l.freeze_panes = 'C2'; l.row_dimensions[1].height = 26
-l['A2'] = '=IFERROR(QUERY(Dados!A2:AG,"select ' + ', '.join(v[0] for v in VISTA) + ' where A is not null order by A desc",0),"")'
+l['A2'] = '=IFERROR(QUERY(Dados!A2:AO,"select ' + ', '.join(v[0] for v in VISTA) + ' where A is not null order by A desc",0),"")'
 ult = get_column_letter(len(VISTA))
 for rr in range(2, 302):
     l.cell(row=rr, column=2).number_format = 'dd/mm/yyyy'
@@ -82,6 +85,9 @@ if exemplo:
       [3, '04/10/2026', '04/10/2026', '18:47', 'Juliana Costa Mendes', '7777', 'Juliana Costa Mendes', '', 900, 'BRL', 'PIX', 'Banco Inter', 'Itaú', 'Clinica Blue', 'E004169682026100421', 'Pix E2E', '', 'Conferido', '', '05/10/2026 15:10', 'Mayra', 'Obs. da mensagem: Desconto de 30%', 'WhatsApp', '95%', 'Juliana Costa Mendes', 'Botox e preenchedor', '', '', '', '', 30, 'Estética', 'Botox, Preenchimento'],
       [4, '05/10/2026', '05/10/2026', '', 'Roberta Lima', '', 'Roberta Lima', '', 600, 'BRL', 'Cartão de crédito', '', '', '', 'NSU778899', '', '', 'Conferido', '', '05/10/2026 16:00', 'Mayra', '', 'Página', '', '', '', '', '', '', '', '', 'Soroterapia', 'Ferro, Vitamina D'],
     ]
+    extras = [['Comprovante Pix', '', '', '', '', '', '', 'Encontrada no AmigoApp (ID 4321)'], ['Comprovante Pix', '', '', '', '', '', '', 'Encontrada no AmigoApp (ID 5555)'],
+              ['Nota fiscal', '', '', '', '', '', '2871', 'Encontrada no AmigoApp (ID 7777)'], ['Cartão', 'Visa', '1234', '004512', 'A1B2C3', 3, '', 'Sem ID do AmigoApp']]
+    linhas = [l + e for l, e in zip(linhas, extras)]
     for j, c in enumerate(COLUNAS, 1): d.cell(row=1, column=j, value=c)
     for i, row in enumerate(linhas, 2):
         for j, v in enumerate(row, 1):

@@ -215,7 +215,7 @@ const AMIGO_LISTA = `<!doctype html><html><head><meta charset="utf-8"><title>Pac
   await popup.waitForTimeout(1500); // a página salva a mensagem na conciliação (o AmigoApp lê de lá)
   await amigo.goto('https://app.amigoapp.com.br/patients');
   await amigo.evaluate(BOOK);
-  await amigo.waitForFunction(() => /possíveis pacientes|paciente encontrada|NÃO IDENTIFICADO/.test((document.getElementById('blue-fin-box') || {}).textContent || ''), null, { timeout: 10000 });
+  await amigo.waitForFunction(() => /possíveis pacientes|paciente encontrada|NÃO IDENTIFICADO/.test((document.getElementById('blue-fin-box') || {}).textContent || ''), null, { timeout: 10000 }).catch(async (e) => { console.log('   painel do Amigo:', (await amigo.textContent('#blue-fin-box').catch(() => '')).replace(/\s+/g, ' ')); throw e; });
   const lista = await amigo.textContent('#blue-fin-box');
   ok('AmigoApp → Pacientes: busca o pagador e mostra os 2 candidatos sem escolher', /2 possíveis pacientes/.test(lista) && /Juliana Costa Mendes/.test(lista) && /Juliana Mendes Costa/.test(lista), lista.replace(/\s+/g, ' ').slice(0, 220));
   ok('A busca do Amigo usa o nome da paciente que veio na mensagem', /Juliana Costa Mendes/.test(await amigo.inputValue('input[placeholder^="Buscar"]')) && /nome da mensagem/.test(lista));

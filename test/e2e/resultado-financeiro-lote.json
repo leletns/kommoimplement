@@ -1,0 +1,155 @@
+{
+ "quando": "2026-10-06T13:13:03.458Z",
+ "resultados": [
+  {
+   "nome": "WhatsApp: botão lista os 3 comprovantes",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "WhatsApp: modo \"vários de uma vez\" marca os 3",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Pacote .zip com as 3 imagens e as mensagens de cada uma",
+   "ok": true,
+   "extra": "comprovante-01.jpg,comprovante-02.jpg,comprovante-03.png,manifest.json"
+  },
+  {
+   "nome": "Abre a página Controle financeiro pronta para receber o pacote",
+   "ok": true,
+   "extra": "http://127.0.0.1:8788/financeiro#whatsapp-lote"
+  },
+  {
+   "nome": "Fila lê os 3 comprovantes do pacote",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Maquininha na fila: R$ 1.800,00, crédito Visa 3x",
+   "ok": true,
+   "extra": "Falta conferir a paciente Fernanda Alves Rocha R$ 1.800,00 Cartão de crédito · Visa · 3x 06/10/2026"
+  },
+  {
+   "nome": "Foto da maquininha: tipo Cartão, crédito, Visa, final 1234",
+   "ok": true,
+   "extra": "{\"tipoDocumento\":\"Cartão\",\"forma\":\"Cartão de crédito\",\"bandeira\":\"Visa\",\"cartaoFinal\":\"1234\",\"nsu\":\"004512\",\"autorizacao\":\"A1B2C3\",\"parcelas\":\"3\",\"valor\":\"1.800,00\",\"data\":\"06/10/2026\"}"
+  },
+  {
+   "nome": "Foto da maquininha: NSU 004512, autorização A1B2C3, 3 parcelas",
+   "ok": true,
+   "extra": "{\"tipoDocumento\":\"Cartão\",\"forma\":\"Cartão de crédito\",\"bandeira\":\"Visa\",\"cartaoFinal\":\"1234\",\"nsu\":\"004512\",\"autorizacao\":\"A1B2C3\",\"parcelas\":\"3\",\"valor\":\"1.800,00\",\"data\":\"06/10/2026\"}"
+  },
+  {
+   "nome": "Foto da maquininha: valor 1.800,00 e data 06/10/2026",
+   "ok": true,
+   "extra": "{\"tipoDocumento\":\"Cartão\",\"forma\":\"Cartão de crédito\",\"bandeira\":\"Visa\",\"cartaoFinal\":\"1234\",\"nsu\":\"004512\",\"autorizacao\":\"A1B2C3\",\"parcelas\":\"3\",\"valor\":\"1.800,00\",\"data\":\"06/10/2026\"}"
+  },
+  {
+   "nome": "Foto da nota fiscal: tipo, número 2871, tomador e CPF",
+   "ok": true,
+   "extra": "{\"tipoDocumento\":\"Nota fiscal\",\"numeroNota\":\"2871\",\"pagador\":\"Beatriz Lima Costa\",\"pagadorDoc\":\"529.982.247-25\",\"valor\":\"900,00\",\"data\":\"06/10/2026\"}"
+  },
+  {
+   "nome": "Foto da nota fiscal: valor total 900,00 (sem o ISS) e emissão 06/10/2026",
+   "ok": true,
+   "extra": "{\"tipoDocumento\":\"Nota fiscal\",\"numeroNota\":\"2871\",\"pagador\":\"Beatriz Lima Costa\",\"pagadorDoc\":\"529.982.247-25\",\"valor\":\"900,00\",\"data\":\"06/10/2026\"}"
+  },
+  {
+   "nome": "Mensagem de cada comprovante chega junto",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Sem paciente conferida: nenhum está pronto para lançar",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "AmigoApp: liga sozinha as 2 pacientes sem dúvida (nome e CPF)",
+   "ok": true,
+   "extra": "💰 Controle financeiro gestão · v4Conferi 3 comprovantes no AmigoApp.✓ 2 paciente(s) encontrada(s) e ligada(s)Maria da Silva Santos ID 4321 · R$ 1.800,00Fernanda Alves Rocha ID 9001 · R$ 1.800,00⚠ 1 p"
+  },
+  {
+   "nome": "AmigoApp: nomes parecidos (Beatriz Lima Costa × Beatriz Costa Lima) ficam para escolher",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "AmigoApp: nada lançado nem alterado lá",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Página recebe sozinha: 2 prontas para lançar e 1 para escolher",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Candidatas do AmigoApp aparecem para escolher (com ID e % parecido)",
+   "ok": true,
+   "extra": "[\"Beatriz Lima Costa ID 9002 · CPF 529.982.247-25 · AmigoApp (busca)\",\"Beatriz Costa Lima ID 9003 · CPF 222.333.444-05 · AmigoApp (busca)\"]"
+  },
+  {
+   "nome": "Escolhida a paciente, as 3 ficam prontas",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Botão mostra quantas e o total: 3 · R$ 4.500,00",
+   "ok": true,
+   "extra": "✓ Lançar as prontas (3 · R$ 4.500,00)"
+  },
+  {
+   "nome": "Lote: 3 lançamentos gravados e enviados à planilha",
+   "ok": true,
+   "extra": "Lote lançado✓ #1 · Beatriz Lima Costa · R$ 900,00 · planilha ok✓ #2 · Fernanda Alves Rocha · R$ 1.800,00 · planilha ok✓ #3 · Maria da Silva Santos · R$ 1.800,00 · planilha ok"
+  },
+  {
+   "nome": "Planilha tem as colunas novas (tipo, bandeira, final, NSU, autorização, parcelas, nota, paciente no Amigo)",
+   "ok": true,
+   "extra": "Tipo de documento | Bandeira | Final do cartão | NSU | Autorização | Parcelas | Nº da nota fiscal | Paciente no AmigoApp"
+  },
+  {
+   "nome": "Planilha: cartão com Visa, final 1234, NSU 004512, aut. A1B2C3, 3 parcelas",
+   "ok": true,
+   "extra": "[\"Cartão\",\"Visa\",\"1234\",\"004512\",\"A1B2C3\",\"3\",\"\",\"Encontrada no AmigoApp (ID 9001)\"]"
+  },
+  {
+   "nome": "Planilha: paciente encontrada no AmigoApp com o ID",
+   "ok": true,
+   "extra": "Encontrada no AmigoApp (ID 9001)"
+  },
+  {
+   "nome": "Planilha: nota fiscal nº 2871 e o que foi pago (soroterapia)",
+   "ok": true,
+   "extra": "[\"2871\",\"Soroterapia\",\"Ferro, Vitamina D\"]"
+  },
+  {
+   "nome": "Painel: recebido no mês R$ 4.500,00 (3 pagamentos)",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Painel: por forma de pagamento (Pix, cartão Visa e nota sem forma = Não informado)",
+   "ok": true,
+   "extra": "PIX · R$ 1.800,00 (1)Cartão de crédito Visa · R$ 1.800,00 (1)Não informado · R$ 900,00 (1)"
+  },
+  {
+   "nome": "Painel: pelo que foi pago (consulta, soroterapia)",
+   "ok": true,
+   "extra": "Consulta · R$ 3.600,00 (2)Soroterapia · R$ 900,00 (1)"
+  },
+  {
+   "nome": "Mesmo pacote de novo: os 3 aparecem como \"Já lançado\" (sem ler de novo)",
+   "ok": true,
+   "extra": ""
+  },
+  {
+   "nome": "Conversa exportada: lê só os comprovantes do período (o de 2020 fica de fora) e reconhece o já lançado",
+   "ok": true,
+   "extra": ""
+  }
+ ]
+}

@@ -51,6 +51,14 @@ Na primeira vez, o botão pede:
 - o endereço do site (por exemplo `https://clinicablue.pages.dev`);
 - no AmigoApp, também a senha da gestão.
 
+## Vários comprovantes de uma vez (versão 4)
+
+1. No WhatsApp Web, clique no 💰, marque **Vários de uma vez**, clique nos comprovantes e em **Baixar pacote**.
+   Também dá para exportar a conversa do grupo pelo celular (Mais → Exportar conversa → Anexar mídia) e usar o .zip.
+2. Na página Controle financeiro, arraste o .zip. Cada comprovante entra na fila com a sua mensagem.
+3. Clique em **🔎 Conferir as pacientes no AmigoApp** e, lá, no 💰. Ele busca todas as pacientes e liga sozinho só as que não têm dúvida.
+4. De volta à página, escolha as que ficaram em dúvida e clique em **✓ Lançar as prontas**.
+
 ## Como funciona
 
 1. **WhatsApp Web:** o botão lista as imagens da conversa aberta. Ao clicar no comprovante, ele copia a imagem e abre a página `/financeiro`; lá você aperta ⌘V. O WhatsApp bloqueia chamadas a outros sites e isola janelas, por isso a imagem passa pela área de transferência.

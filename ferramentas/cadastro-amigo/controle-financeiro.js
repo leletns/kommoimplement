@@ -4,15 +4,15 @@
 // No AmigoApp → Pacientes: lê a paciente aberta na tela, compara com o comprovante em conciliação e manda a paciente conferida.
 // Não salva nada no AmigoApp nem no WhatsApp. O lançamento só acontece depois do "Confirmar lançamento".
 (async () => {
-  /*COMPROVANTE*/
-  const C = window.BlueComprovante;
+  // O leitor de comprovantes (comprovante.js) é carregado do próprio site no AmigoApp: o botão fica pequeno (o Safari limita o tamanho do favorito).
+  let C = window.BlueComprovante;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   let cfg = {};
   try { cfg = JSON.parse(localStorage.getItem('blueFinCfg') || '{}'); } catch (e) { cfg = {}; }
   const caixa = (html) => {
     let c = document.getElementById('blue-fin-box');
     if (!c) { c = document.createElement('div'); c.id = 'blue-fin-box'; c.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;width:360px;max-height:86vh;overflow:auto;background:#fff;color:#13294a;border:2px solid #1f7d52;border-radius:14px;padding:16px;font:14px/1.45 Arial,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)'; document.body.appendChild(c); }
-    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v3</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
+    c.innerHTML = '<div style="font-weight:bold;font-size:15px;margin-bottom:8px">💰 Controle financeiro <span style="font-weight:normal;font-size:11px;color:#8a97a8">gestão · v4</span></div>' + html + '<div style="margin-top:10px;text-align:right"><button id="bf-x" style="border:0;background:#e9f6ef;color:#13294a;border-radius:8px;padding:6px 12px;cursor:pointer">Fechar</button></div>';
     c.querySelector('#bf-x').onclick = () => c.remove();
     return c;
   };
@@ -66,17 +66,63 @@
     const imgs = [...document.querySelectorAll('img[src^="blob:"]')].filter((i) => i.naturalWidth >= 200 && i.naturalHeight >= 200 && !i.closest('header') && !i.closest('#blue-fin-box'));
     const grande = imgs.slice().sort((a, b) => b.getBoundingClientRect().width * b.getBoundingClientRect().height - a.getBoundingClientRect().width * a.getBoundingClientRect().height)[0];
     const naConversa = imgs.filter((i) => i.closest('#main') || i.closest('[data-id]'));
-    const lista = [...new Set([...(grande && !naConversa.includes(grande) ? [grande] : []), ...naConversa.reverse()])].slice(0, 8);
+    const lista = [...new Set([...(grande && !naConversa.includes(grande) ? [grande] : []), ...naConversa.reverse()])].slice(0, 24);
     const msgs = lista.map((i) => { try { return naConversa.includes(i) ? contexto(i) : ''; } catch (e) { return ''; } });
     const c = caixa(lista.length
       ? '<div style="font-size:13px">Clique no comprovante (o mais recente primeiro):</div><div id="bf-l" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">' +
         lista.map((i, k) => '<button data-k="' + k + '" style="border:2px solid #dbe4f0;background:#f4f8fd;border-radius:10px;padding:4px;cursor:pointer;text-align:left"><img src="' + i.src + '" style="width:100%;height:110px;object-fit:cover;border-radius:6px"><div style="font-size:11px;color:#5b6b82;max-height:44px;overflow:hidden">' +
           (msgs[k] ? '💬 ' + esc(msgs[k].replace(/\s+/g, ' ').slice(0, 80)) : (i === grande && !naConversa.includes(i) ? 'imagem aberta' : 'sem mensagem junto')) + '</div></button>').join('') + '</div>' +
+        '<label style="display:block;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="bf-varios"> <b>Vários de uma vez</b>: marcar os comprovantes e baixar um pacote</label>' +
+        '<div id="bf-lote" style="display:none">' + btn('bf-pacote', '⬇️ Baixar pacote (0)', '#1f7d52') + '<div style="font-size:12px;color:#5b6b82;margin-top:4px">Baixa um arquivo .zip com as imagens e as mensagens. Arraste o .zip na página Controle financeiro.</div></div>' +
         '<div style="font-size:12px;color:#5b6b82;margin-top:8px">A mensagem enviada junto vai para a página e ajuda a identificar a paciente. Comprovante em PDF: baixe pelo WhatsApp e arraste na página.</div>' + btn('bf-abrir', 'Abrir sem comprovante', '#2f6fb5')
       : '<div style="font-size:13px">Não achei imagem nesta conversa. Abra a conversa com o comprovante (ou clique na imagem para ampliar) e clique de novo no botão. PDF: baixe e arraste na página.</div>' + btn('bf-abrir', 'Abrir Controle financeiro', '#2f6fb5'));
     c.querySelector('#bf-abrir').onclick = () => window.open(cfg.site + '/financeiro#whatsapp', 'blueFinanceiro');
+    // Vários de uma vez: cada clique marca/desmarca; o pacote é um .zip (imagens + manifest.json com as mensagens).
+    const marcados = new Set();
+    const varios = c.querySelector('#bf-varios');
+    if (varios) varios.onchange = () => { c.querySelector('#bf-lote').style.display = varios.checked ? 'block' : 'none'; if (!varios.checked) { marcados.clear(); c.querySelectorAll('#bf-l button').forEach((b) => { b.style.borderColor = '#dbe4f0'; }); } };
+    const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let x = n; for (let k = 0; k < 8; k++) x = x & 1 ? 0xedb88320 ^ (x >>> 1) : x >>> 1; t[n] = x >>> 0; } return t; })();
+    const crc32 = (u) => { let x = 0xffffffff; for (let i = 0; i < u.length; i++) x = crcT[(x ^ u[i]) & 255] ^ (x >>> 8); return (x ^ 0xffffffff) >>> 0; };
+    // .zip simples (sem compressão): suficiente para imagens, que já são comprimidas.
+    const zip = (arquivos) => {
+      const enc = new TextEncoder(), partes = [], central = []; let off = 0;
+      const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+      for (const a of arquivos) {
+        const nome = enc.encode(a.nome), crc = crc32(a.dados), n = a.dados.length;
+        const cab = new Uint8Array([...u32(0x04034b50), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(n), ...u32(n), ...u16(nome.length), ...u16(0)]);
+        partes.push(cab, nome, a.dados);
+        central.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(n), ...u32(n), ...u16(nome.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), nome);
+        off += cab.length + nome.length + n;
+      }
+      const tamCentral = central.reduce((s2, x) => s2 + x.length, 0);
+      const fim = new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(arquivos.length), ...u16(arquivos.length), ...u32(tamCentral), ...u32(off), ...u16(0)]);
+      return new Blob([...partes, ...central, fim], { type: 'application/zip' });
+    };
+    if (c.querySelector('#bf-pacote')) c.querySelector('#bf-pacote').onclick = async () => {
+      if (!marcados.size) { alert('Clique nos comprovantes para marcar.'); return; }
+      const ks = [...marcados].sort((a, b) => a - b), arquivos = [], itens = [];
+      for (const [n, k] of ks.entries()) {
+        const blob = await (await fetch(lista[k].src)).blob();
+        const ext = (/png/.test(blob.type) ? 'png' : /webp/.test(blob.type) ? 'webp' : 'jpg');
+        const nome = 'comprovante-' + String(n + 1).padStart(2, '0') + '.' + ext;
+        arquivos.push({ nome, dados: new Uint8Array(await blob.arrayBuffer()) });
+        itens.push({ arquivo: nome, mensagem: msgs[k] || '' });
+      }
+      arquivos.push({ nome: 'manifest.json', dados: new TextEncoder().encode(JSON.stringify({ versao: 1, origem: 'WhatsApp Web', geradoEm: new Date().toISOString(), itens })) });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(zip(arquivos)); a.download = 'comprovantes-' + new Date().toISOString().slice(0, 16).replace(/\D/g, '') + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      const janela = window.open(cfg.site + '/financeiro#whatsapp-lote', 'blueFinanceiro');
+      caixa('<div style="font-weight:bold;color:#1f7d52">⬇️ Pacote com ' + ks.length + ' comprovante(s) baixado</div><div style="font-size:13px;margin-top:6px">Na página <b>Controle financeiro</b>, arraste o arquivo <b>' + esc(a.download) + '</b> (pasta Downloads) para a área dos comprovantes. Cada um entra na fila com a sua mensagem.' + (janela ? '' : ' <a href="' + esc(cfg.site) + '/financeiro#whatsapp-lote" target="_blank" style="color:#2f6fb5;font-weight:bold">Abrir Controle financeiro</a>') + '</div>');
+    };
     c.querySelectorAll('#bf-l button').forEach((b) => {
       b.onclick = () => {
+        if (varios && varios.checked) {
+          const k = Number(b.dataset.k);
+          if (marcados.has(k)) marcados.delete(k); else marcados.add(k);
+          b.style.borderColor = marcados.has(k) ? '#1f7d52' : '#dbe4f0';
+          c.querySelector('#bf-pacote').textContent = '⬇️ Baixar pacote (' + marcados.size + ')';
+          return;
+        }
         const img = lista[Number(b.dataset.k)], destino = pagina(msgs[Number(b.dataset.k)]);
         // PNG para a área de transferência (o Safari só aceita PNG). A Promise mantém o "clique" válido no Safari.
         const png = (async () => {
@@ -104,6 +150,12 @@
   // ================= AmigoApp (Pacientes) =================
   if (/(^|\.)(amigoapp|amigotech)\.com\.br$/.test(host)) {
     if (!cfg.site || !cfg.senha) await pedirCfg(true);
+    if (!C) {
+      try {
+        await new Promise((ok, erro) => { const sc = document.createElement('script'); sc.src = cfg.site + '/js/comprovante.js'; sc.onload = ok; sc.onerror = () => erro(new Error('Failed to fetch')); document.head.appendChild(sc); });
+        C = window.BlueComprovante;
+      } catch (e) { /* sem acesso ao site: cai na mensagem de comunicação logo abaixo */ }
+    }
     const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
     const visivel = (el) => el && el.offsetParent !== null && !el.closest('#blue-fin-box');
     // Valor de um campo pelo rótulo: input no mesmo bloco (formulário do Amigo) ou o texto ao lado do rótulo (tela de visualização).
@@ -133,12 +185,39 @@
       if (r.status === 401) { cfg.senha = ''; try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ } throw new Error('Senha da gestão incorreta. Clique de novo no botão.'); }
       return r.json();
     };
+    // Base de pacientes do AmigoApp, com a sessão que a gestão já tem aberta (só leitura).
+    const amigoGet = async (caminho) => {
+      const tok = localStorage.getItem('token');
+      if (!tok) throw new Error('sem sessão do Amigo');
+      const r = await fetch('https://api.amigoapp.com.br' + caminho, { headers: { Authorization: 'Bearer ' + tok, 'company-id': localStorage.getItem('log_in') || '', Accept: 'application/json' } });
+      if (!r.ok) throw new Error('Amigo ' + r.status);
+      return r.json();
+    };
+    const listaAmigo = (j) => { const a = Array.isArray(j) ? j : (j && (j.data || j.patients || j.items || j.results || j.rows)) || []; return Array.isArray(a) ? a : (Array.isArray(a.data) ? a.data : []); };
+    const pacAmigo = (x) => ({ nome: String(x.name || x.nome || x.full_name || x.label || '').trim(), idAmigo: String(x.id || x._id || x.value || ''), cpf: x.cpf || x.document || '', celular: x.cellphone || x.contact_cellphone || x.phone || x.mobile || '', nascimento: x.born || x.birthdate || '', fonte: 'AmigoApp (busca)' });
+    // Nomes parecidos: busca com o nome completo, primeiro + último, só o último sobrenome e o primeiro nome; junta e ordena pela semelhança.
+    const buscarAmigo = async (quem) => {
+      const ps = quem.trim().split(/\s+/).filter((w) => !/^(d[aeo]s?|e)$/i.test(w));
+      const buscas = [...new Set([quem, ps.length > 2 ? ps[0] + ' ' + ps[ps.length - 1] : '', ps.length > 1 ? ps[ps.length - 1] : '', ps[0]].filter((q) => q && q.length >= 3))];
+      const vistos = new Map();
+      for (const q of buscas) {
+        for (const x of listaAmigo(await amigoGet('/api/patient/suggest?name=' + encodeURIComponent(q) + '&reduce=true')).map(pacAmigo)) if (x.nome && !vistos.has(x.idAmigo || x.nome)) vistos.set(x.idAmigo || x.nome, x);
+        const bons = [...vistos.values()].filter((x) => C.compararNomes(quem, x.nome).nivel !== 'diferente');
+        if (bons.length && q !== buscas[0]) break;
+        if (bons.some((x) => /igual|forte/.test(C.compararNomes(quem, x.nome).nivel))) break;
+      }
+      return [...vistos.values()].map((x) => ({ ...x, sem: C.compararNomes(quem, x.nome) })).filter((x) => x.sem.nivel !== 'diferente').sort((a, b) => b.sem.nota - a.sem.nota).slice(0, 10);
+    };
+    const detalhar = async (x) => { try { const j = await amigoGet('/api/patient/' + encodeURIComponent(x.idAmigo)); const dd = pacAmigo((j && (j.data || j)) || {}); x.cpf = x.cpf || dd.cpf; x.celular = x.celular || dd.celular; x.nascimento = x.nascimento || dd.nascimento; } catch (e) { /* segue com o que a busca trouxe */ } return x; };
+    const nomeDe = (pd) => { const cp = pd.comprovante || {}; return (cp.mensagem && cp.mensagem.nome) || cp.pagador || ''; };
+
     const p0 = lerPaciente();
-    let pend = null, falhou = '';
-    try { pend = (await api('pendente')).conciliacao; } catch (e) {
+    let pend = null, falhou = '', fila = [];
+    try { fila = (await api('fila')).fila || []; } catch (e) {
       if (/senha/i.test(e.message)) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); return; }
       falhou = e.message;
     }
+    if (!falhou && !C) falhou = 'Failed to fetch';
     if (falhou) {
       // Sem comunicação com o servidor daqui: a paciente vai pelo endereço da página Controle financeiro (lá a chamada é do próprio site).
       const c0 = caixa('<div style="color:#b04848;font-size:13px">Não consegui falar com o Controle financeiro em <b>' + esc(cfg.site) + '</b> (' + esc(falhou) + ').</div>' +
@@ -149,6 +228,48 @@
       c0.querySelector('#bf-end').onclick = () => { delete cfg.site; try { localStorage.setItem('blueFinCfg', JSON.stringify(cfg)); } catch (e) { /* ok */ } caixa('<div style="font-size:13px">Clique de novo no botão 💰 e digite <b>https://clinicablue.pages.dev</b>.</div>'); };
       return;
     }
+    const semPac = fila.filter((x) => !x.paciente);
+    // ---------- vários comprovantes esperando: confere a fila inteira de uma vez ----------
+    if (!p0 && semPac.length >= 2) {
+      if (!localStorage.getItem('token')) {
+        caixa('<div style="font-size:13px"><b>' + semPac.length + ' comprovantes</b> esperando a paciente. Para conferir todos de uma vez, entre no AmigoApp (login) e clique de novo no 💰. Ou abra a ficha de cada paciente e clique no 💰.</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">' + semPac.map((pd) => '<li>' + esc(nomeDe(pd) || 'sem nome') + '</li>').join('') + '</ul>');
+        return;
+      }
+      const res = { ligadas: [], escolher: [], nao: [] };
+      for (const [i, pd] of semPac.entries()) {
+        const cp = pd.comprovante || {}, nome = nomeDe(pd);
+        caixa('<div style="font-size:13px">Conferindo no AmigoApp: <b>' + (i + 1) + ' de ' + semPac.length + '</b><br>' + esc(nome || 'comprovante sem nome') + '…</div>');
+        if (!nome) { res.nao.push({ nome: 'comprovante sem nome (' + (cp.valor ? C.brl(cp.valor, cp.moeda) : 'sem valor') + ')', motivo: 'sem nome no comprovante nem na mensagem' }); continue; }
+        let achados;
+        try { achados = await buscarAmigo(nome); } catch (e) { res.nao.push({ nome, motivo: 'erro na busca do Amigo (' + e.message + ')' }); continue; }
+        if (!achados.length) { await api('candidatos', { id: pd.id, busca: nome, lista: [] }); res.nao.push({ nome, motivo: 'ninguém com esse nome no AmigoApp' }); continue; }
+        for (const x of achados.slice(0, 3)) await detalhar(x);
+        const [a, b] = achados, val = C.validar(cp, a);
+        // Liga sozinha só quando não há dúvida: nome quase igual, nenhum outro parecido e nenhuma divergência (CPF, mensagem, valor, data).
+        if (a.sem.nota >= 90 && (!b || b.sem.nota < 80) && val.status === 'confirmada') {
+          const { sem, ...p } = a;
+          await api('paciente', { id: pd.id, paciente: { ...p, fonte: 'AmigoApp (busca automática · nome ' + sem.nota + '% parecido)' } });
+          res.ligadas.push({ nome: a.nome, id: a.idAmigo, valor: cp.valor ? C.brl(cp.valor, cp.moeda) : '' });
+        } else {
+          await api('candidatos', { id: pd.id, busca: nome, lista: achados.slice(0, 5).map(({ sem, ...p }) => ({ ...p, nota: sem.nota })) });
+          res.escolher.push({ nome, n: achados.length, motivo: val.status !== 'confirmada' && a.sem.nota >= 90 ? 'divergência: ' + (val.divergencias[0] || '') : achados.length > 1 ? achados.length + ' parecidos' : 'nome só parecido (' + a.sem.nota + '%)' });
+        }
+      }
+      const li = (x, extra) => '<li>' + esc(x.nome) + (extra ? ' <span style="color:#5b6b82">' + esc(extra) + '</span>' : '') + '</li>';
+      const c2 = caixa('<div style="font-size:13px">Conferi <b>' + semPac.length + '</b> comprovantes no AmigoApp.</div>' +
+        (res.ligadas.length ? '<div style="margin-top:8px;color:#1f7d52;font-weight:bold">✓ ' + res.ligadas.length + ' paciente(s) encontrada(s) e ligada(s)</div><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px">' + res.ligadas.map((x) => li(x, [x.id ? 'ID ' + x.id : '', x.valor].filter(Boolean).join(' · '))).join('') + '</ul>' : '') +
+        (res.escolher.length ? '<div style="margin-top:8px;color:#a46d1c;font-weight:bold">⚠ ' + res.escolher.length + ' para você escolher na página</div><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px">' + res.escolher.map((x) => li(x, x.motivo)).join('') + '</ul>' : '') +
+        (res.nao.length ? '<div style="margin-top:8px;color:#b04848;font-weight:bold">✗ ' + res.nao.length + ' não encontrada(s)</div><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px">' + res.nao.map((x) => li(x, x.motivo)).join('') + '</ul><div style="font-size:12px;color:#5b6b82">Busque pelo CPF ou celular, abra a ficha e clique no 💰.</div>' : '') +
+        btn('bf-voltar', 'Voltar ao Controle financeiro', '#1f7d52') + '<div style="font-size:12px;color:#5b6b82;margin-top:6px">Nada foi lançado: o lançamento é confirmado na página. Nada foi alterado no AmigoApp.</div>');
+      c2.querySelector('#bf-voltar').onclick = () => window.open(cfg.site + '/financeiro', 'blueFinanceiro');
+      return;
+    }
+    // Paciente aberta com vários comprovantes esperando: usa o comprovante cujo nome bate com ela; senão, o mais recente.
+    if (p0 && semPac.length >= 2) {
+      const melhor = semPac.map((pd) => ({ pd, n: C.compararNomes(nomeDe(pd), p0.nome).nota })).sort((a, b) => b.n - a.n)[0];
+      pend = melhor && melhor.n >= 80 ? melhor.pd : null;
+    }
+    if (!pend) { try { pend = (await api('pendente')).conciliacao; } catch (e) { caixa('<div style="color:#b04848">' + esc(e.message) + '</div>'); return; } }
     if (!pend) { caixa('<div style="font-size:13px">Nenhum comprovante esperando conferência. Primeiro leia o comprovante no <b>WhatsApp Web</b> (botão 💰) ou na página <a href="' + esc(cfg.site) + '/financeiro" target="_blank" style="color:#2f6fb5">Controle financeiro</a>.</div>'); return; }
     const cp = pend.comprovante || {};
     const mg = cp.mensagem || {};

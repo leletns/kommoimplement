@@ -220,11 +220,45 @@ Na planilha entram **Categoria** e **Itens pagos**, e não a mensagem inteira, q
   - 🟡 Testado até a cópia e a abertura da aba. **A colagem dentro do Google Sheets real não foi testada.** Se a fórmula aparecer como texto, apague a célula A6 e digite a fórmula de novo.
   - 🟡 As fórmulas `QUERY`/`IMPORTDATA` foram geradas, mas não executadas num Google Sheets real.
 
+### 3.9 Versão 4 (06/10): vários comprovantes, cartão, nota fiscal, conferência em lote e painel
+
+**Leitura**
+- **Cartão (maquininha):** lê bandeira, crédito ou débito, final do cartão, NSU, autorização, parcelas e adquirente (Stone, Cielo, Rede, Getnet, PagBank…).
+  - O identificador do lançamento passa a ser "NSU + data".
+  - Em foto, o final do cartão ("************1234") é lido numa segunda passada, recortando o fim da linha. Só é aceito quando duas leituras concordam; se não, fica em branco para preencher. Final errado é pior que final vazio.
+- **Nota fiscal (NFS-e/NF-e, foto ou PDF):** lê número da nota, tomador (quem pagou) e CPF, prestador, valor total (ignora ISS, base de cálculo e alíquota) e data de emissão.
+  - A nota não diz a forma de pagamento: isso vira aviso, não divergência.
+- **Foto de celular:** amplia, passa para tons de cinza, ajusta o contraste e gira sozinha quando a foto está torta. Se a confiança fica baixa, lê de novo em preto e branco e fica com a melhor leitura.
+- **ID do Pix:** quando vem duvidoso, deixou de travar o lançamento. Continua aparecendo como aviso.
+
+**Vários de uma vez**
+- **WhatsApp:** no painel do 💰, a opção "Vários de uma vez" permite marcar os comprovantes e baixar **um .zip**, com as imagens e um `manifest.json` com a mensagem de cada uma. Na página, basta arrastar esse .zip.
+- **Página:**
+  - aceita vários arquivos, o .zip do botão e também a **conversa exportada do WhatsApp** (.zip com `_chat.txt`, Android ou iPhone);
+  - na conversa exportada, junta cada comprovante com a mensagem da mesma pessoa e filtra por período (ontem e hoje, 7 dias, 30 dias ou todos);
+  - mostra uma **fila** com a situação de cada comprovante.
+- **Duplicidade no lote:**
+  - arquivo já lançado nem é lido de novo;
+  - mesmo pagamento já lançado (mesmo ID, NSU ou nota) é descartado da conferência na hora.
+
+**AmigoApp em lote**
+- Com 2 ou mais comprovantes esperando, o 💰 no AmigoApp procura todas as pacientes de uma vez, pela busca do próprio AmigoApp com a sessão aberta (só leitura).
+- **Liga sozinha** só quando não há dúvida: nome ≥ 90% parecido, nenhum outro nome parecido (< 80%) e nenhuma divergência (CPF, mensagem, valor, data).
+- Nos outros casos, guarda as candidatas, e a gestão escolhe na página. Nada é lançado lá e nada é alterado no AmigoApp.
+- O leitor de comprovantes passou a ser carregado do site, o que deixou o botão com 49 KB (a v3 tinha 77 KB).
+
+**Lançamento e controle**
+- **"Lançar as prontas":** lança de uma vez só os comprovantes com paciente conferida, sem divergência e sem duplicidade, depois de uma confirmação que mostra a lista e o total.
+- **Painel na página:** recebido hoje, na semana e no mês (com a quantidade), quantos estão na fila, e o mês por forma de pagamento (com a bandeira) e pelo que foi pago.
+- **Planilha:** 8 colunas novas (Tipo de documento, Bandeira, Final do cartão, NSU, Autorização, Parcelas, Nº da nota fiscal, Paciente no AmigoApp). O modelo .xlsx ganhou a tabela "Cartão por bandeira".
+
 ## 4. Testes realizados
 
 | Teste | Resultado |
 |---|---|
 | `node --test test/comprovante.test.js` (Nubank, Itaú, cartão, texto ilegível, validação, nomes e 5 casos de mensagem + catálogo com 7 formatos) | ✅ 16 de 16 (inclui nomes parecidos: apelido, erro de digitação, nome incompleto; e Bruna × Bruno continua "diferente") |
+| `node --test test/cartaoNota.test.js test/filaZip.test.js test/parseFicha.test.js` (maquininha Stone crédito 3x, Cielo débito, NFS-e, Pix continua Pix; conversa exportada Android/iPhone e filtro de período) | ✅ 11 de 11 |
+| `test/e2e/financeiro-lote.e2e.js`: WhatsApp → pacote .zip com 3 comprovantes (Pix, **foto** de maquininha e **foto** de nota fiscal, fictícios) → fila → AmigoApp em lote (API simulada) → escolha na página → "Lançar as prontas" → planilha (CSV) → painel → mesmo pacote de novo → conversa exportada | ✅ **30 de 30** |
 | `test/e2e/financeiro.e2e.js`: ponta a ponta com o servidor real (`wrangler pages dev` + D1 local), **OCR real** (tesseract.js) em PNG/JPG, PDF real (pdf.js) e o **código real da planilha** rodando num emulador local do Google Sheets | ✅ **56 de 57** (inclui a planilha automática: link → CSV com os 4 lançamentos, chave errada recusada (401), botão ✨ Criar a planilha no Google (abre sheets.new e copia a planilha formatada com o link), modelo .xlsx disponível; inclui busca pela API do Amigo, caminho alternativo sem comunicação, categoria e itens na planilha; inclui a mensagem do WhatsApp chegando na página, a mensagem curta com desconto, a busca no Amigo pelo nome da mensagem e as colunas novas na planilha) |
 | A falha (1): ID do Pix lido **exatamente** pelo OCR na imagem | ✗ O OCR trocou `0`/`O` e `1`/`l` no final do ID. O sistema **detectou e marcou para conferir** (verificação seguinte ✅). A duplicidade continua protegida pelo arquivo e por valor + data + pagador |
 | Persistência: servidor desligado e religado | ✅ os 4 lançamentos continuam no banco e na planilha, sem linha duplicada |

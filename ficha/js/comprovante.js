@@ -137,6 +137,57 @@
     };
   }
 
+  // ---------- cartão (maquininha, link de pagamento, fatura) ----------
+  const BANDEIRAS = [['Visa', /\bvisa\b|\bvisa ?(electron|credito|debito)/], ['Mastercard', /master ?card|\bmaster\b|maestro/], ['Elo', /\belo\b/],
+    ['American Express', /american express|\bamex\b/], ['Hipercard', /hipercard/], ['Diners', /diners/], ['Cabal', /\bcabal\b/], ['Hiper', /\bhiper\b/], ['JCB', /\bjcb\b/]];
+  const ADQUIRENTES = [['Stone', /\bstone\b/], ['Cielo', /cielo/], ['Rede', /\brede\b|userede/], ['Getnet', /getnet/], ['PagBank', /pagseguro|pagbank|moderninha/],
+    ['SumUp', /sumup/], ['Mercado Pago', /mercado ?pago/], ['InfinitePay', /infinite ?pay/], ['Safrapay', /safra ?pay/], ['Ton', /\bton\b/], ['Sipag', /sipag/], ['Vero', /\bvero\b/]];
+  const pegar = (t, re) => { const m = re.exec(t); return m ? m[m.length - 1] : ''; };
+  function lerCartao(texto) {
+    const t = consertarNumeros(texto), n = normal(t);
+    const marcas = (/\bnsu\b|autoriza|\baut\b|bandeira|via (do )?(cliente|estabelecimento)|cartao|credito|debito|parcelad|\bcv\b|\bdoc\b ?:|maquininha|\bpos\b|terminal|\btid\b/.test(n) ? 1 : 0) +
+      (BANDEIRAS.some(([, re]) => re.test(n)) ? 1 : 0) + (/[*x•]{4}\s?\d{4}|final\s*:?\s*\d{4}/i.test(t) ? 1 : 0);
+    if (marcas < 2) return null;
+    const b = BANDEIRAS.find(([, re]) => re.test(n));
+    const a = ADQUIRENTES.find(([, re]) => re.test(n));
+    // Final do cartão: "************1234", "**** **** **** 1234", "final 1234", "xxxx1234"
+    const fin = /(?:[*x•]{2,}[\s.-]?){1,4}(\d{4})\b/i.exec(t) || /final\s*(?:do cart[aã]o)?\s*:?\s*(\d{4})\b/i.exec(t);
+    const parc = /(\d{1,2})\s*[xX]\s*(?:de\s*)?(?:r\$\s*)?\d/i.exec(t) || /\bem\s*(?:at[eé]\s*)?(\d{1,2})\s*x\b/i.exec(t) || /parcelad[oa]\s*(?:em|lojista|emissor|loja|adm)?\s*:?\s*(\d{1,2})/i.exec(t) || /(\d{1,2})\s*parcelas?/i.exec(t) || /parcelas?\s*:?\s*(\d{1,2})\b/i.exec(t);
+    const nParc = parc ? +parc[1] : (/a vista|à vista|avista/.test(n) ? 1 : null);
+    const debito = /debito/.test(n) && !/credito/.test(n);
+    return {
+      bandeira: b ? b[0] : '',
+      modalidade: debito ? 'Débito' : /credito|parcelad/.test(n) || nParc > 1 ? 'Crédito' : '',
+      cartaoFinal: fin ? fin[1] : '',
+      nsu: pegar(t, /\b(?:nsu|cv|doc)(?:\s*(?:host|sitef|tef))?\s*[:.#nº°-]*\s*([0-9]{4,12})\b/i),
+      autorizacao: pegar(t, /\b(?:c[oó]d(?:igo)?\.?\s*(?:de\s*)?)?aut(?:oriza[cç][aã]o|\.)?\s*[:.#nº°-]*\s*([A-Z0-9]{5,10})\b/i),
+      parcelas: debito ? 1 : nParc,
+      adquirente: a ? a[0] : '',
+    };
+  }
+
+  // ---------- nota fiscal (NFS-e da prefeitura, NF-e/DANFE, recibo) ----------
+  function lerNotaFiscal(texto) {
+    const t = consertarNumeros(texto), n = normal(t);
+    if (!/nota fiscal|nfs-?e|\bnf-?e\b|danfe|prestador d[eo]s? servi|tomador d[eo]s? servi|discrimina[cç][aã]o dos servi/.test(n)) return null;
+    const linhas = t.split('\n').map((l) => l.trim()).filter(Boolean);
+    const num = pegar(t, /(?:n[uú]mero|n[º°o.])\s*(?:da\s*)?(?:nota|nfs-?e|nf-?e)?\s*[:.]?\s*(\d{1,12})\b/i) || pegar(t, /(?:nfs-?e|nota fiscal[^\n]{0,20}?)\s*(?:n[º°o.]?)?\s*[:.]?\s*(\d{3,12})\b/i);
+    // Seções: "PRESTADOR DE SERVIÇOS" (a clínica) e "TOMADOR DE SERVIÇOS" (quem pagou).
+    const secao = (re) => { const i = linhas.findIndex((l) => re.test(normal(l))); return i < 0 ? [] : linhas.slice(i, i + 8); };
+    const nomeNa = (ls) => {
+      for (let i = 0; i < ls.length; i++) {
+        const m = /(?:nome|raz[aã]o social)\s*(?:\/\s*raz[aã]o social)?\s*:?\s*(.*)$/i.exec(ls[i]);
+        if (m) { const v = pareceNome(m[1]) || pareceNome(ls[i + 1]); if (v) return v; }
+      }
+      return '';
+    };
+    const docNa = (ls) => { const m = /(\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/.exec(ls.join(' ')); return m ? m[1] : ''; };
+    const tom = secao(/tomador|destinatario/), pre = secao(/prestador|emitente/);
+    const desc = (() => { const i = linhas.findIndex((l) => /discrimina|descri[cç][aã]o do servi/i.test(l)); return i < 0 ? '' : linhas.slice(i + 1, i + 4).join(' ').slice(0, 200); })();
+    const emissao = (() => { const l = linhas.find((x) => /emiss[aã]o|compet[eê]ncia/i.test(x)); return l ? lerData(l) : ''; })();
+    return { numeroNota: num, tomador: nomeNa(tom), tomadorDoc: docNa(tom), prestador: nomeNa(pre), descricao: desc, emissao };
+  }
+
   /** Texto do comprovante → { valor, moeda, data, hora, forma, banco, pagador, pagadorDoc, recebedor, idTransacao, ... , confianca, faltando } */
   function lerComprovante(texto, { confiancaOcr = null } = {}) {
     const t = String(texto || '').replace(/\r/g, '');
@@ -146,7 +197,7 @@
     for (let i = 0; i < linhas.length && valor == null; i++) {
       const n = normal(linhas[i]);
       if (/^(valor|total|valor pago|valor da transferencia|valor do pix|valor enviado|quantia|montante)\b/.test(n) || /\bvalor\b/.test(n)) {
-        if (/tarifa|saldo|limite|desconto|juros|multa/.test(n)) continue;
+        if (/tarifa|saldo|limite|desconto|juros|multa|\biss\b|base de calculo|aliquota|deduc|\bpis\b|cofins|inss|irrf|csll|retenc|aproximad|tributo|parcela de/.test(n)) continue;
         const v = valores(linhas[i]).concat(valores(linhas[i + 1] || ''));
         if (v.length) { valor = v[0].v; moeda = v[0].moeda; }
       }
@@ -163,7 +214,24 @@
       pagador: p.pagador, pagadorDoc: p.pagadorDoc, recebedor: p.recebedor, recebedorDoc: p.recebedorDoc, bancoRecebedor: p.bancoRecebedor,
       idTransacao: id ? id.id : '', tipoId: id ? id.tipo : '', idDuvida: id && id.duvida ? id.duvida : '',
     };
-    const essenciais = ['valor', 'data', 'forma', 'pagador'];
+    // Cartão e nota fiscal: completam o que o comprovante bancário não tem.
+    const cartao = lerCartao(t), nota = lerNotaFiscal(t);
+    d.tipoDocumento = nota ? 'Nota fiscal' : cartao ? 'Cartão' : d.forma === 'PIX' ? 'Comprovante Pix' : d.forma ? 'Comprovante bancário' : '';
+    if (cartao) {
+      Object.assign(d, cartao);
+      if (!/^Cartão/.test(d.forma) && !nota) d.forma = cartao.modalidade === 'Débito' ? 'Cartão de débito' : 'Cartão de crédito';
+      if (cartao.nsu && !nota) { d.idTransacao = 'NSU ' + cartao.nsu + (d.data ? ' · ' + d.data : ''); d.tipoId = 'NSU (cartão)'; d.idDuvida = ''; }
+      if (cartao.adquirente && !d.banco) d.banco = cartao.adquirente;
+    }
+    if (nota) {
+      d.numeroNota = nota.numeroNota; d.descricaoNota = nota.descricao;
+      if (nota.tomador) d.pagador = nota.tomador;
+      if (nota.tomadorDoc) d.pagadorDoc = nota.tomadorDoc;
+      if (nota.prestador) d.recebedor = nota.prestador;
+      if (nota.emissao) d.data = nota.emissao;
+      if (nota.numeroNota) { d.idTransacao = 'NF ' + nota.numeroNota; d.tipoId = 'Nota fiscal'; d.idDuvida = ''; }
+    }
+    const essenciais = d.tipoDocumento === 'Cartão' ? ['valor', 'data', 'forma'] : d.tipoDocumento === 'Nota fiscal' ? ['valor', 'data', 'pagador'] : ['valor', 'data', 'forma', 'pagador'];
     d.faltando = essenciais.filter((k) => !d[k]);
     const achados = ['valor', 'data', 'forma', 'pagador', 'recebedor', 'idTransacao', 'banco'].filter((k) => d[k]).length / 7;
     d.confianca = Math.round(100 * (confiancaOcr == null ? achados : (achados * 0.6 + (confiancaOcr / 100) * 0.4))) / 100;
@@ -413,7 +481,7 @@
     }
     itens.push({ campo: 'Data', ok: !!iso && !divergencias.some((d) => /^Data/.test(d)), valor: c.data || '—' });
     // Forma
-    if (!c.forma) divergencias.push('Forma de pagamento não identificada (Pix, cartão, TED…).');
+    if (!c.forma) (c.tipoDocumento === 'Nota fiscal' ? avisos : divergencias).push(c.tipoDocumento === 'Nota fiscal' ? 'A nota fiscal não diz a forma de pagamento: escolha (Pix, cartão…).' : 'Forma de pagamento não identificada (Pix, cartão, TED…).');
     itens.push({ campo: 'Pagamento', ok: !!c.forma, valor: c.forma || '—' });
     // Identificador
     if (c.idDuvida) avisos.push(c.idDuvida);
@@ -424,7 +492,7 @@
     return { status: divergencias.length ? 'divergencia' : 'confirmada', divergencias, avisos, itens };
   }
 
-  const api = { lerComprovante, lerMensagem, classificarItens, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
+  const api = { lerComprovante, lerCartao, lerNotaFiscal, lerMensagem, classificarItens, validar, compararNomes, compararCpf, lerData, idTransacao, banco, normal, brl, dataISO };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.BlueComprovante = api;
 })(typeof window !== 'undefined' ? window : globalThis);
