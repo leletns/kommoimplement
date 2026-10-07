@@ -58,3 +58,10 @@ export async function resumo(db) {
   await preparar(db);
   return db.prepare("SELECT COUNT(*) AS total, SUM(status = 'no_kommo') AS no_kommo, SUM(status <> 'no_kommo') AS pendentes FROM fichas").first();
 }
+
+/** Todas as fichas, da mais antiga para a mais nova (cópia de segurança). */
+export async function todasFichas(db) {
+  await preparar(db);
+  const { results } = await db.prepare('SELECT * FROM fichas ORDER BY id').all();
+  return results;
+}

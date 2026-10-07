@@ -49,6 +49,7 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
     <input id="senha" type="password" placeholder="Senha da equipe" hidden>
     <button>Buscar</button>
   </form>
+  <div class="acts"><button type="button" class="sec" id="bk-csv">⬇️ Cópia de segurança (Excel)</button><button type="button" class="sec" id="bk-json">⬇️ Cópia completa (JSON)</button></div>
   <div id="msg" role="status"></div>
   <h2 id="h-lista">Recebidas nos últimos 7 dias <small id="atual"></small></h2>
   <div id="res"></div>
@@ -146,6 +147,20 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
     try{const j=await chamar("q="+encodeURIComponent(q));msg(j.fichas.length?j.fichas.length+" ficha(s) encontrada(s).":"Nenhuma Ficha Blue encontrada"+(j.semFicha?" (a paciente existe, mas ainda não enviou a ficha)":"")+".",j.fichas.length?"ok":"");$("h-lista").firstChild.textContent="Resultado da busca ";$("atual").textContent="";mostrar(j.fichas,$("res"));}
     catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui buscar agora.","bad");}
   });
+  async function copia(formato){
+    if(!$("senha").hidden)senha=$("senha").value;
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");$("senha").hidden=false;return;}
+    msg("Gerando a cópia de todas as fichas…");
+    try{
+      const r=await fetch("/api/ficha-backup?formato="+formato,{headers:{"x-painel-senha":senha}});
+      if(r.status===401){$("senha").hidden=false;throw new Error("senha");}
+      if(!r.ok)throw new Error("erro");
+      const nome=(r.headers.get("content-disposition")||"").match(/filename="([^"]+)"/),a=document.createElement("a");
+      a.href=URL.createObjectURL(await r.blob());a.download=nome?nome[1]:"fichas-blue."+formato;document.body.appendChild(a);a.click();a.remove();
+      msg("Cópia baixada com "+(r.headers.get("x-total-fichas")||"todas as")+" ficha(s). Guarde no Drive da clínica.","ok");
+    }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar a cópia agora.","bad");}
+  }
+  $("bk-csv").onclick=()=>copia("csv");$("bk-json").onclick=()=>copia("json");
   const q0=new URLSearchParams(location.search).get("q");
   if(q0){$("q").value=q0;if(senha)$("f").requestSubmit();}else if(senha)recentes();else msg("Digite a senha da equipe e clique em Buscar.");
   setInterval(()=>{if(senha&&!$("q").value.trim())recentes();},120000);
