@@ -5,21 +5,21 @@ import { todasFichas } from '../_lib/banco.js';
 
 const FIXAS = [['id', 'Nº'], ['recebida_em', 'Recebida em'], ['ver', 'Ficha'], ['lang', 'Idioma'], ['nome', 'Nome'], ['cpf', 'CPF'],
   ['celular', 'Celular'], ['email', 'E-mail'], ['lead_id', 'Lead no Kommo'], ['status', 'Situação'], ['erro', 'Erro']];
-const cel = (v) => {
+const cel = (v, sep = ';') => {
   const s = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
-  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  return s.includes(sep) || /["\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 const hora = (iso) => new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-export function paraCsv(linhas) {
+export function paraCsv(linhas, { sep = ';', planilha = false } = {}) {
   const resp = linhas.map((x) => { try { return (JSON.parse(x.dados_json)._ficha || {}).r || {}; } catch { return {}; } });
   const chaves = [...new Set(resp.flatMap((r) => Object.keys(r)))];
-  const cab = [...FIXAS.map(([, t]) => t), ...chaves, 'Dados completos (JSON)'];
+  const cab = [...FIXAS.map(([, t]) => t), ...chaves, ...(planilha ? [] : ['Dados completos (JSON)'])];
   const corpo = linhas.map((x, i) => [
     ...FIXAS.map(([k]) => (k === 'recebida_em' ? hora(x[k]) : x[k] === 'lip' ? 'Lipedema' : x[k] === 'pla' ? 'Plástica' : x[k])),
-    ...chaves.map((k) => resp[i][k]), x.dados_json,
-  ].map(cel).join(';'));
-  return '﻿' + [cab.map(cel).join(';'), ...corpo].join('\r\n');
+    ...chaves.map((k) => resp[i][k]), ...(planilha ? [] : [x.dados_json]),
+  ].map((v) => (planilha && v != null ? String(v).replace(/\s*[\r\n]+\s*/g, ' / ') : v)).map((v) => cel(v, sep)).join(sep));
+  return (planilha ? '' : '﻿') + [cab.map((v) => cel(v, sep)).join(sep), ...corpo].join('\r\n');
 }
 
 export async function onRequest({ request, env }) {

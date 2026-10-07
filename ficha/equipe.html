@@ -49,9 +49,10 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
     <input id="senha" type="password" placeholder="Senha da equipe" hidden>
     <button>Buscar</button>
   </form>
-  <div class="acts"><button type="button" class="sec" id="bk-csv">⬇️ Cópia de segurança (Excel)</button><button type="button" class="sec" id="bk-json">⬇️ Cópia completa (JSON)</button></div>
+  <div class="acts"><button type="button" class="sec" id="bk-csv">⬇️ Cópia de segurança (Excel)</button><button type="button" class="sec" id="bk-json">⬇️ Cópia completa (JSON)</button><button type="button" class="sec" id="bk-sheet">📊 Planilha que atualiza sozinha</button></div>
+  <div id="planilha" class="card" hidden></div>
   <div id="msg" role="status"></div>
-  <h2 id="h-lista">Recebidas nos últimos 7 dias <small id="atual"></small></h2>
+  <h2 id="h-lista">Todas as fichas recebidas <small id="atual"></small></h2>
   <div id="res"></div>
 </main>
 <script>
@@ -137,7 +138,7 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
   }
   async function recentes(){
     msg("Carregando fichas…");
-    try{const j=await chamar("recentes=1");msg("");$("h-lista").firstChild.textContent="Recebidas nos últimos 7 dias ";$("atual").textContent="atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});mostrar(j.fichas,$("res"));}
+    try{const j=await chamar("recentes=1");msg("");$("h-lista").firstChild.textContent="Todas as fichas recebidas ("+j.fichas.length+") ";$("atual").textContent="atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});mostrar(j.fichas,$("res"));}
     catch(e){msg(e.message==="senha"?"Digite a senha da equipe e clique em Buscar.":"Não consegui carregar agora.","bad");}
   }
   $("f").addEventListener("submit",async e=>{
@@ -160,6 +161,18 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
       msg("Cópia baixada com "+(r.headers.get("x-total-fichas")||"todas as")+" ficha(s). Guarde no Drive da clínica.","ok");
     }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar a cópia agora.","bad");}
   }
+  $("bk-sheet").onclick=async()=>{
+    if(!$("senha").hidden)senha=$("senha").value;
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");$("senha").hidden=false;return;}
+    try{
+      const r=await fetch("/api/fichas-planilha?link=1",{headers:{"x-painel-senha":senha}});
+      if(r.status===401){$("senha").hidden=false;throw new Error("senha");}
+      const j=await r.json();if(!j.ok)throw new Error("erro");
+      const f='=IMPORTDATA("'+j.link+'")',box=$("planilha");box.hidden=false;
+      box.innerHTML='<h3>Planilha do Google ligada ao banco</h3><p class="meta">1. Abra <b>sheets.new</b> logada na conta da clínica. 2. Clique na célula A1. 3. Cole a fórmula abaixo e aperte Enter. Toda ficha nova aparece sozinha (o Google atualiza em até 1 hora). Não compartilhe a fórmula: quem tiver o link vê as fichas.</p><input id="formula" readonly style="width:100%;margin-top:8px"><div class="acts"><button type="button" id="cp-f">Copiar fórmula</button></div>';
+      $("formula").value=f;$("cp-f").onclick=()=>{navigator.clipboard.writeText(f).then(()=>msg("Fórmula copiada. Cole na célula A1 da planilha nova.","ok"),()=>{$("formula").select();msg("Selecione e copie a fórmula.","");});};
+    }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar o link agora.","bad");}
+  };
   $("bk-csv").onclick=()=>copia("csv");$("bk-json").onclick=()=>copia("json");
   const q0=new URLSearchParams(location.search).get("q");
   if(q0){$("q").value=q0;if(senha)$("f").requestSubmit();}else if(senha)recentes();else msg("Digite a senha da equipe e clique em Buscar.");

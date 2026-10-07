@@ -1,5 +1,5 @@
 // GET /api/ficha-busca?q=<nome, celular ou e-mail> → fichas da Ficha Blue (nota do lead no Kommo).
-// GET /api/ficha-busca?recentes=1 → fichas recebidas nos últimos 7 dias (lista da página /equipe).
+// GET /api/ficha-busca?recentes=1 → todas as fichas do banco (lista da página /equipe); sem banco, últimos dias pelo Kommo.
 // Para quem não usa o Kommo: o botão ✍️ Preencher cadastro (Amigo/DocSignature) e a página /equipe chamam aqui,
 // sempre com a senha da equipe (FICHA_SENHA) no cabeçalho x-painel-senha.
 import busca from '../../src/services/fichaBusca.js';
@@ -18,7 +18,7 @@ export async function onRequest({ request, env }) {
     let r = null;
     if (env.DB) {
       try {
-        const fichas = u.searchParams.get('recentes') ? await banco.fichasRecentes(env.DB, dias) : await banco.buscarFichas(env.DB, q || '');
+        const fichas = u.searchParams.get('recentes') ? await banco.fichasRecentes(env.DB) : await banco.buscarFichas(env.DB, q || '');
         if (fichas.length || u.searchParams.get('recentes')) r = { ok: true, fichas, semFicha: 0, fonte: 'banco' };
       } catch (e) { console.error('[ficha-busca] banco', e.message); }
     }

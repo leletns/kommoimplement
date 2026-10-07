@@ -38,10 +38,10 @@ export async function atualizarFicha(db, id, { leadId = null, origem = null, sta
 
 const linha = (x) => ({ id: x.id, lead: x.lead_id, nome: x.nome, recebidaEm: Math.floor(Date.parse(x.recebida_em) / 1000), status: x.status, erro: x.erro, dados: JSON.parse(x.dados_json) });
 
-export async function fichasRecentes(db, dias = 7) {
+/** Lista da página /equipe: todas as fichas, da mais nova para a mais antiga (o banco guarda para sempre). */
+export async function fichasRecentes(db) {
   await preparar(db);
-  const desde = new Date(Date.now() - dias * 86400000).toISOString();
-  const { results } = await db.prepare('SELECT * FROM fichas WHERE recebida_em >= ? ORDER BY recebida_em DESC LIMIT 200').bind(desde).all();
+  const { results } = await db.prepare('SELECT * FROM fichas ORDER BY recebida_em DESC LIMIT 2000').all();
   return results.map(linha);
 }
 
