@@ -106,7 +106,7 @@
     '<label style="grid-column:1/3">Como encontrou<input id="ag-como" ' + inp + ' value="' + esc(como) + '"></label>' +
     '<label style="grid-column:1/3">Objetivo da consulta<input id="ag-obj" ' + inp + ' value="' + esc(objetivo) + '"></label></div>' +
     (recibos.length ? '<div style="margin-top:8px;font-size:13px">🧾 Comprovante: ' + recibos.map((x) => '<a href="' + esc(x.media) + '" target="_blank" rel="noopener" style="color:#2f6fb5;font-weight:bold">' + new Date(x.ts * 1000).toLocaleDateString('pt-BR') + ' (abrir e salvar)</a>').join(' · ') + '</div>' : '') +
-    '<div style="margin-top:10px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">1. Mensagem para a paciente <select id="ag-lang" style="padding:3px 6px;border:1px solid #dbe4f0;border-radius:8px;font:12px Arial"><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></div>' + ta('ag-msg', 210) + btn('ag-c0', 'Copiar mensagem para a paciente', '#1f7d52') +
+    '<div style="margin-top:10px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">1. Mensagem para a paciente <select id="ag-lang" style="padding:3px 6px;border:1px solid #dbe4f0;border-radius:8px;font:12px Arial"><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></div>' + ta('ag-msg', 210) + '<div id="ag-pdf" style="display:none;margin:6px 0;padding:6px 8px;background:#fff6e5;border-radius:8px;font-size:12px">📎 Teleconsulta: depois da mensagem, anexe o <b>PDF de fotos</b> na conversa.</div>' + btn('ag-c0', 'Copiar mensagem para a paciente', '#1f7d52') +
     '<div style="margin-top:10px;font-weight:bold">2. Grupo de comprovantes</div>' + ta('ag-grupo', 150) + btn('ag-c1', 'Copiar texto do grupo') +
     '<div style="margin-top:10px;font-weight:bold">3. TimeTree</div><input id="ag-tt" ' + inp + '>' + btn('ag-c2', 'Copiar título', '#2f6fb5') + ta('ag-desc', 120) + btn('ag-c3', 'Copiar descrição', '#2f6fb5') +
     '<div id="ag-ok" style="font-size:12px;color:#1f7d52;margin-top:6px;min-height:16px"></div>');
@@ -122,7 +122,14 @@
     sp: 'Alameda Campinas, 977 - 8º andar / conjunto 82 - Jardim Paulista, São Paulo - SP',
   };
   const SEML = { pt: SEM, es: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] };
-  const juntar = (linhas) => linhas.filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
+  const agora = () => { const d = new Date(); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' às ' + pad(d.getHours()) + 'h' + pad(d.getMinutes()); };
+  // Teleconsulta: aviso do PDF de fotos (a equipe anexa o PDF logo depois da mensagem)
+  const FOTOS = {
+    pt: (v) => '📸 Em seguida te envio um PDF com o passo a passo das fotos para a teleconsulta. Peço que envie as fotos por aqui ' + (v ? 'até ' + v : 'até o dia anterior à consulta') + ' (biquíni ou roupa íntima preta, ambiente bem iluminado, corpo inteiro e sem filtros). Elas ficam guardadas com sigilo no seu prontuário.',
+    es: (v) => '📸 A continuación te envío un PDF con el paso a paso de las fotos para la teleconsulta. Por favor, envíalas por aquí ' + (v ? 'hasta el ' + v : 'hasta el día anterior a la consulta') + ' (bikini o ropa interior negra, lugar bien iluminado, cuerpo entero y sin filtros). Se guardan con total confidencialidad en tu historia clínica.',
+    en: (v) => '📸 Next I will send you a PDF with the step-by-step photos for your online consultation. Please send the photos here ' + (v ? 'by ' + v : 'by the day before your consultation') + ' (black bikini or underwear, well-lit room, full body, no filters). They are stored confidentially in your medical record.',
+  };
+  const juntar = (linhas) => linhas.filter((x) => x !== null).filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== '')).join('\n');
   // Mensagem "consulta agendada" com o link fixo da pré-consulta (ou o agradecimento, se a ficha já chegou)
   const mensagem = ({ nome, t, l, med, dia, dd, m, h, pago, total, lg }) => {
     const primeiro = nome.split(/\s+/)[0] || '';
@@ -132,11 +139,14 @@
     const link = SITE + (t === 'pla' ? '/plastica' : '/lipedema') + (lg === 'pt' ? '' : '/' + lg);
     const falta = total && pago && pago < total ? total - pago : 0;
     const temFicha = !!(nb || fichaZap);
+    const vesp = dia ? new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() - 1) : null;
+    const fotos = l === 'tele' ? FOTOS[lg](vesp ? pad(vesp.getDate()) + '/' + pad(vesp.getMonth() + 1) : '') : '';
     if (lg === 'es') return juntar([
       '¡Perfecto, ' + primeiro + '! 💙', '', 'Tu ' + (l === 'tele' ? 'teleconsulta' : 'consulta') + ' con el ' + dr + ' está agendada:',
       '🗓️ ' + quando + ', a las *' + hora + '* (hora de Brasilia)',
       l === 'tele' ? '💻 Por Google Meet. Cerca del horario, nuestra concierge Helen te enviará el enlace.' : '📍 ' + END[l],
       pago ? (falta ? '💳 Recibimos tu pago de ' + brl(pago) + ' (reserva). El saldo de ' + brl(falta) + ' se paga el día de la consulta.' : '💳 Pago recibido (' + brl(pago) + '). ¡Gracias!') : '',
+      fotos ? '' : null, fotos || null,
       '', temFicha ? 'Ya recibimos tu ficha de pre-consulta, ¡gracias! 🙏' : 'Para que el ' + dr + ' llegue a tu consulta conociendo tu historia, completa tu ficha de pre-consulta (toma unos 6 minutos). Es nuestro formulario oficial y seguro:\n👉 ' + link,
       '', 'Cualquier duda, estoy aquí.']);
     if (lg === 'en') return juntar([
@@ -144,6 +154,7 @@
       '🗓️ ' + quando + ' at *' + hora + '* (Brasília time)',
       l === 'tele' ? '💻 On Google Meet. Our concierge Helen will send you the link close to the time.' : '📍 ' + END[l],
       pago ? (falta ? '💳 We received your payment of ' + brl(pago) + ' (deposit). The remaining ' + brl(falta) + ' is paid on the day of your consultation.' : '💳 Payment received (' + brl(pago) + '). Thank you!') : '',
+      fotos ? '' : null, fotos || null,
       '', temFicha ? 'We have already received your pre-consultation form, thank you! 🙏' : 'So that ' + dr + ' can meet you already knowing your story, please fill in your pre-consultation form (about 6 minutes). It is our official, secure form:\n👉 ' + link,
       '', 'Any questions, I am here to help.']);
     return juntar([
@@ -151,6 +162,7 @@
       '🗓️ ' + quando + ', às *' + hora + '*',
       l === 'tele' ? '💻 Pelo Google Meet. Perto do horário, a nossa concierge Helen te envia o link.' : '📍 ' + END[l] + (l === 'sp' ? ' (estacionamento no local)' : ''),
       pago ? (falta ? '💳 Recebemos o seu pagamento de ' + brl(pago) + ' (reserva). Os ' + brl(falta) + ' restantes são pagos no dia da consulta.' : '💳 Pagamento recebido (' + brl(pago) + '). Muito obrigada!') : '',
+      fotos ? '' : null, fotos || null,
       '', temFicha ? 'Já recebemos a sua ficha de pré-consulta, obrigada! 🙏' : 'Para o ' + dr + ' já chegar à sua consulta conhecendo a sua história, preencha a sua ficha de pré-consulta (leva uns 6 minutos). É o nosso formulário oficial e seguro:\n👉 ' + link,
       '', 'Qualquer dúvida, estou por aqui.']);
   };
@@ -167,9 +179,12 @@
     const consulta = (l === 'tele' ? 'Teleconsulta' : 'Consulta' + (l === 'sp' ? ' (SP)' : '')) + (med === 'leo' ? ' com o Dr. Leonardo' : '') + ' - ' + tipoTxt + ' 1x';
     const como2 = $('#ag-como').value.trim(), obj = $('#ag-obj').value.trim() || (t === 'pla' ? 'Avaliação de cirurgia plástica' : 'Avaliar lipedema');
     $('#ag-grupo').value = [nome, 'Tel: ' + $('#ag-tel').value.trim(), como2 ? 'Ind: ' + como2 : '', 'Objetivo: ' + obj, consulta,
-      dia ? 'Dia ' + pad(dd) + ' de ' + MES[m - 1] + (h ? ' às ' + h : '') : '', 'Pagamento: ' + pagTxt,
-      nb || fichaZap ? 'Dados recebidos ✅' : 'Aguardando envio de dados'].filter(Boolean).join('\n');
+      '🗓️ ' + (dia ? SEM[dia.getDay()] + ', ' + pad(dd) + '/' + pad(m) + '/' + y : '[dia]') + ' às ' + (h || '[hora]'),
+      'Pagamento: ' + pagTxt,
+      nb || fichaZap ? 'Dados recebidos ✅' : 'Aguardando envio de dados',
+      'Agendado em ' + agora()].filter(Boolean).join('\n');
     const curto = nome.split(/\s+/).filter(Boolean); const nomeCurto = curto.length > 1 ? curto[0] + ' ' + curto[curto.length - 1] : nome;
+    $('#ag-pdf').style.display = l === 'tele' ? 'block' : 'none';
     $('#ag-msg').value = mensagem({ nome, t, l, med, dia, dd, m, h, pago, total, lg: $('#ag-lang').value });
     $('#ag-tt').value = (l === 'tele' ? '(Tele) ' : l === 'sp' ? '(SP) ' : '') + (med === 'leo' ? '(Dr. Leonardo) ' : '') + nomeCurto + ' - ' + tipoTxt;
     $('#ag-desc').value = ['Nome completo: ' + nome, 'Tel: ' + $('#ag-tel').value.trim(), 'Como encontrou o ' + quem + ': ' + (como2 || '-'), 'Objetivo da consulta: ' + obj,
