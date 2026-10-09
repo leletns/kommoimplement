@@ -38,6 +38,13 @@ td.falta-0{color:var(--ok);font-weight:600}
 .vermelha{background:var(--badbg)!important;color:var(--bad)!important;cursor:pointer;font-weight:600}
 .vermelha::after{content:" ✎";font-weight:400}
 .editavel{cursor:pointer}
+tr.pac td{background:var(--soft);border-top:2px solid var(--line)}
+tr.pac td .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+tr.serv td:first-child{padding-left:22px;color:var(--body)}
+tr td:first-child{min-width:230px}
+span.vermelha,span.editavel{border-radius:6px;padding:0 3px}
+.st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.st.ok{background:var(--okbg);color:var(--ok)}.st.falta{background:var(--warnbg);color:var(--warn)}.st.sem{background:var(--badbg);color:var(--bad)}
 .chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px;white-space:nowrap;cursor:pointer;background:var(--surface)}
 .chip.calc{background:var(--warnbg);color:var(--warn);border-color:transparent}
 .chip.sem{background:var(--badbg);color:var(--bad);border-color:transparent;font-weight:600}
@@ -64,7 +71,7 @@ a.botao{display:inline-block;background:#13294a;color:#fff;font-weight:700;paddi
       <label>Até <input id="ate" type="date"></label>
       <input id="busca" placeholder="Buscar paciente" style="min-width:200px">
       <span class="esp"></span>
-      <button class="sec" id="csv">⬇️ Baixar planilha (Excel)</button>
+      <button class="sec" id="csv">⬇️ Baixar planilha (Excel, uma aba por paciente)</button>
       <button class="sec" id="gsheet">📊 Google Planilhas</button>
     </div>
     <div id="msg" role="status"></div>
@@ -77,10 +84,10 @@ a.botao{display:inline-block;background:#13294a;color:#fff;font-weight:700;paddi
     </div>
     <div id="gbox" class="card" hidden></div>
     <div class="tab"><table>
-      <thead><tr><th>Paciente</th><th>Telefone</th><th>Consulta</th><th style="text-align:right">Total</th><th style="text-align:right">Recebido</th><th style="text-align:right">Falta</th><th>Pagamentos (data · valor · comprovante)</th></tr></thead>
+      <thead><tr><th>Paciente / serviço</th><th style="text-align:right">Valor</th><th>Forma de pagamento</th><th style="text-align:right">Desconto</th><th style="text-align:right">Recebido</th><th style="text-align:right">Falta</th><th>Status</th><th>Pagamentos (data · valor · comprovante)</th></tr></thead>
       <tbody id="linhas"></tbody>
     </table></div>
-    <div class="leg"><b style="color:var(--bad)">Vermelho</b> = faltou no grupo (clique para preencher) · <b style="color:var(--warn)">Amarelo</b> = restante calculado (total − o que já foi pago) · borda laranja = valor do comprovante diferente do escrito na mensagem. Clique num pagamento para corrigir o valor ou tirar da planilha.</div>
+    <div class="leg"><b style="color:var(--bad)">Vermelho</b> = faltou no grupo (clique para preencher) · <b style="color:var(--warn)">Amarelo</b> = restante calculado (total − o que já foi pago) · borda laranja = valor do comprovante diferente do escrito na mensagem. Clique em qualquer valor, forma, desconto ou serviço para corrigir; num pagamento para mudar o valor ou tirar da planilha. O Excel sai igual ao modelo da gestão: aba <b>Resumo</b> + uma aba por paciente, com fórmulas.</div>
     <details class="card" id="instalar"><summary>Instalar o botão 📊 Conciliar grupo (WhatsApp Web, Safari ou Chrome)</summary>
       <p>1. Mostre a barra de favoritos (Safari: <b>⌘+Shift+B</b>). 2. Arraste este botão para a barra:</p>
       <p><a class="botao" id="link-botao" href="#">📊 Conciliar grupo</a></p>

@@ -179,6 +179,48 @@
     return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   };
   
+  // Serviços da planilha da gestão, na ordem da planilha. [nome, regex no texto normalizado]
+  // A busca vai do mais específico para o mais geral ("equipe cirúrgica" antes de "cirurgia").
+  const SERVICOS = ['Consulta', 'Teleconsulta', 'Retorno', 'Cirurgia', 'Equipe cirúrgica', 'Morpheus', 'Argoplasma', 'Fisioterapia', 'Hospital', 'Compressor', 'Seguro saúde', 'Prótese'];
+  const SERVICO_RE = [
+    ['Equipe cirúrgica', /\bequipe\b|anestesi|instrumentad/],
+    ['Morpheus', /morpheus/],
+    ['Argoplasma', /argo ?plasma/],
+    ['Fisioterapia', /fisio|drenagem/],
+    ['Hospital', /hospital|internac/],
+    ['Compressor', /compressor|bota pneumatica/],
+    ['Seguro saúde', /\bseguro\b/],
+    ['Prótese', /protese|silicone/],
+    ['Cirurgia', /cirurgia|lipedefinition|sublift|lipo ?hd|lipoaspira|\blipo\b/],
+    ['Teleconsulta', /teleconsulta|\btele\b|consulta (online|on-line|por video)/],
+    ['Retorno', /\bretorno\b/],
+    ['Consulta', /consulta|avaliacao/],
+  ];
+  /** Texto da mensagem → serviço da planilha (ou null se a mensagem não diz). */
+  function servicoDoTexto(text) {
+    const t = normalize(text);
+    const s = SERVICO_RE.find(([, re]) => re.test(t));
+    return s ? s[0] : null;
+  }
+  /** Forma de pagamento escrita na mensagem ("pix", "cartão 10x", "à vista"…). */
+  function formaDoTexto(text) {
+    const t = normalize(text);
+    const parc = t.match(/\b(\d{1,2})\s*x\b/);
+    if (/cart[a]o|credito|debito|maquininha|\blink\b/.test(t) || (parc && Number(parc[1]) > 1)) return 'Cartão' + (parc && Number(parc[1]) > 1 ? ' ' + Number(parc[1]) + 'x' : /debito/.test(t) ? ' de débito' : '');
+    if (/\bpix\b/.test(t)) return 'Pix';
+    if (/dinheiro|especie/.test(t)) return 'Dinheiro';
+    if (/\bted\b|transferencia/.test(t)) return 'Transferência';
+    if (/boleto/.test(t)) return 'Boleto';
+    if (/a vista/.test(t)) return 'À vista';
+    return null;
+  }
+  /** "10% de desconto" / "desconto de 5%" → 10 / 5 (porcentagem). */
+  function descontoDoTexto(text) {
+    const t = normalize(text);
+    const m = t.match(/(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:de\s*)?(?:desc|off)/) || t.match(/desc(?:onto)?\.?\s*(?:de\s*)?(\d{1,2}(?:[.,]\d+)?)\s*%/);
+    return m ? Number(m[1].replace(',', '.')) : null;
+  }
+
   /**
    * Fichas de pagamento do grupo de WhatsApp. Cada ficha vira um registro:
    * { data, autor, nome, telefone, cpf, email, pago, total, tipo, restante, consultaEm, texto }
@@ -271,6 +313,9 @@
         pago: valores ? valores.pago : null,
         total: valores ? valores.total : null,
         tipo,
+        servico: servicoDoTexto(text),
+        forma: formaDoTexto(text),
+        desconto: descontoDoTexto(text),
         restante: Boolean(restLine) || parcela,
         retorno: /retorno/i.test(text),
         consultaEm: consultaData(text, msg.date),
@@ -299,9 +344,11 @@
 
 
   /**
-   * Linhas lidas do grupo → planilha por paciente.
-   * Junta a mesma paciente (CPF, celular, e-mail ou nome — "Cinthia Nunes" junta com "Cinthia Nunes Siqueira Amorim"),
-   * soma o que foi pago e calcula o restante sem valor escrito (total − o que já tinha sido pago).
+   * Linhas lidas do grupo → planilha por paciente, separada por serviço (consulta, cirurgia, equipe, hospital…).
+   * Junta a mesma paciente (CPF, celular, e-mail ou nome — "Cinthia Nunes" junta com "Cinthia Nunes Siqueira Amorim").
+   * Em cada serviço: valor (total), forma de pagamento, desconto (%), a pagar, recebido e falta. O restante sem valor
+   * escrito é calculado (a pagar − o que já foi pago). Mensagem que não diz o serviço ("Restante pagamento: Fulana")
+   * vai para o serviço da paciente que ainda tem saldo em aberto.
    * faltando: campos sem dado (a página pinta de vermelho).
    */
   function planilhaPorPaciente(linhas) {
@@ -317,45 +364,80 @@
     };
     for (const r of regs) {
       const tel = r.telefone ? phoneKey(String(r.telefone).replace(/\D/g, '')) : null;
-      let g = grupos.find((p) => p.tipo === r.tipo && (
+      let g = grupos.find((p) =>
         (r.cpf && p.cpfs.has(r.cpf)) || (tel && p.tels.has(tel)) || (r.email && p.emails.has(r.email)) ||
-        (r.nome && p.nomes.some((n) => mesmoNome(n, r.nome)))));
-      if (!g) { g = { tipo: r.tipo, cpfs: new Set(), tels: new Set(), emails: new Set(), nomes: [], linhas: [] }; grupos.push(g); }
+        (r.nome && p.nomes.some((n) => mesmoNome(n, r.nome))));
+      if (!g) { g = { cpfs: new Set(), tels: new Set(), emails: new Set(), nomes: [], linhas: [] }; grupos.push(g); }
       g.linhas.push(r);
       if (r.cpf) g.cpfs.add(r.cpf);
       if (tel) g.tels.add(tel);
       if (r.email) g.emails.add(r.email);
       if (r.nome) g.nomes.push(r.nome);
     }
+    const num = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
+    const centavos = (v) => Math.round(v * 100) / 100;
     return grupos.map((g) => {
       const L = g.linhas;
       const nome = g.nomes.slice().sort((a, b) => b.length - a.length)[0] || null;
       const telefone = (L.find((l) => l.telefone) || {}).telefone || null;
-      const total = Math.max(0, ...L.map((l) => Number(l.total) || 0)) || null;
-      let soma = 0;
-      const linhas = L.map((l) => {
-        let valor = l.pago != null && l.pago !== '' ? Number(l.pago) : null, calculado = false;
-        if (valor == null && total && (l.restante || soma > 0) && total - soma > 0) { valor = total - soma; calculado = true; }
-        if (valor != null) soma += valor;
+      // Serviços, na ordem cronológica das mensagens
+      const S = [];
+      const doServico = (nomeS) => {
+        let s = S.find((x) => x.servico === nomeS);
+        if (!s) { s = { servico: nomeS, total: null, desconto: null, soma: 0, formas: [], linhas: [] }; S.push(s); }
+        return s;
+      };
+      const saldo = (s) => (s.total ? s.total * (1 - (s.desconto || 0) / 100) - s.soma : 0);
+      const todas = L.map((l) => {
+        let s;
+        if (l.servico) s = doServico(l.servico);
+        else if (l.tipo === 'cirurgia') s = doServico('Cirurgia');
+        else s = S.slice().reverse().find((x) => saldo(x) > 0.009) || S[S.length - 1] || doServico('Consulta');
+        const t = num(l.total);
+        if (t && t > (s.total || 0)) s.total = t;
+        const d = num(l.desconto);
+        if (d != null) s.desconto = d;
+        let valor = num(l.pago), calculado = false;
+        if (valor == null && s.total && (l.restante || s.soma > 0) && saldo(s) > 0.009) { valor = centavos(saldo(s)); calculado = true; }
+        if (valor != null) s.soma += valor;
+        const forma = (l.forma || (l.comprovante && l.comprovante.forma) || '').replace(/^PIX$/, 'Pix') || null;
+        if (forma && !s.formas.includes(forma)) s.formas.push(forma);
         const faltando = [];
         if (valor == null) faltando.push('valor');
         if (!l.nome && !nome) faltando.push('nome');
-        return Object.assign({}, l, { valor, calculado, faltando });
+        const linha = Object.assign({}, l, { servico: s.servico, valor, calculado, forma, faltando });
+        s.linhas.push(linha);
+        return linha;
       });
+      const servicos = S.sort((a, b) => SERVICOS.indexOf(a.servico) - SERVICOS.indexOf(b.servico)).map((s) => {
+        const descontoValor = s.total && s.desconto ? centavos(s.total * s.desconto / 100) : 0;
+        const aPagar = s.total ? centavos(s.total - descontoValor) : null;
+        const falta = aPagar != null ? Math.max(0, centavos(aPagar - s.soma)) : null;
+        const faltando = [];
+        if (!s.total) faltando.push('total');
+        if (!s.formas.length) faltando.push('forma');
+        if (s.linhas.some((l) => l.valor == null)) faltando.push('valor');
+        return { servico: s.servico, total: s.total, desconto: s.desconto, descontoValor, aPagar, pago: centavos(s.soma), falta,
+          forma: s.formas.join(' + ') || null, status: falta == null ? 'sem valor' : falta === 0 ? 'ok' : 'falta', linhas: s.linhas, faltando };
+      });
+      const soma = (k) => centavos(servicos.reduce((a, s) => a + (s[k] || 0), 0));
+      const comTotal = servicos.filter((s) => s.total);
       const ultima = L.slice().reverse().find((l) => l.consultaEm) || {};
       const faltando = [];
       if (!nome) faltando.push('nome');
       if (!telefone) faltando.push('telefone');
-      if (!total) faltando.push('total');
+      if (comTotal.length < servicos.length) faltando.push('total');
       if (!ultima.consultaEm) faltando.push('consultaEm');
-      if (linhas.some((l) => l.valor == null)) faltando.push('valor');
+      if (todas.some((l) => l.valor == null)) faltando.push('valor');
       return {
-        nome, telefone, tipo: g.tipo, total, pago: soma, falta: total ? Math.max(0, total - soma) : null,
+        nome, telefone, tipo: servicos.some((s) => !/consulta|retorno/i.test(s.servico)) ? 'cirurgia' : 'consulta',
+        total: comTotal.length ? soma('total') : null, desconto: soma('descontoValor'), aPagar: comTotal.length ? soma('aPagar') : null,
+        pago: soma('pago'), falta: comTotal.length ? centavos(comTotal.reduce((a, s) => a + s.falta, 0)) : null,
         consultaEm: ultima.consultaEm || null, consultaHora: ultima.consultaHora || null,
-        primeiraData: L[0].data, ultimaData: L[L.length - 1].data, linhas, faltando,
+        primeiraData: L[0].data, ultimaData: L[L.length - 1].data, linhas: todas, servicos, faltando,
       };
     }).sort((a, b) => b.ultimaData.localeCompare(a.ultimaData));
   }
 
-  return { planilhaPorPaciente, normalize, parseExport, parseComprovantes, parsePagamento, consultaData, consultaHora, normPhone, phoneKey, normCpf, normName, cleanName, money, textoDoWhatsAppWeb };
+  return { SERVICOS, servicoDoTexto, formaDoTexto, descontoDoTexto, planilhaPorPaciente, normalize, parseExport, parseComprovantes, parsePagamento, consultaData, consultaHora, normPhone, phoneKey, normCpf, normName, cleanName, money, textoDoWhatsAppWeb };
 });

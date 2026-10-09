@@ -58,7 +58,7 @@ export async function apagarLote(db, id) {
   await db.prepare('DELETE FROM fin_lote WHERE id = ?').bind(id).run();
 }
 
-const CAMPOS_EDITAVEIS = ['nome', 'telefone', 'pago', 'total', 'consultaEm', 'consultaHora', 'tipo', 'restante'];
+const CAMPOS_EDITAVEIS = ['nome', 'telefone', 'pago', 'total', 'consultaEm', 'consultaHora', 'tipo', 'restante', 'servico', 'forma', 'desconto'];
 const limpo = (r) => ({
   data: String(r.data || '').slice(0, 10), hora: String(r.hora || '').slice(0, 5), autor: String(r.autor || '').slice(0, 80),
   nome: r.nome ? String(r.nome).slice(0, 120) : null, telefone: r.telefone ? String(r.telefone).slice(0, 20) : null,
@@ -67,6 +67,8 @@ const limpo = (r) => ({
   total: Number.isFinite(Number(r.total)) && r.total !== null && r.total !== '' ? Number(r.total) : null,
   pagoMensagem: Number.isFinite(Number(r.pagoMensagem)) && r.pagoMensagem !== null && r.pagoMensagem !== '' ? Number(r.pagoMensagem) : null,
   tipo: r.tipo === 'cirurgia' ? 'cirurgia' : 'consulta', restante: !!r.restante, retorno: !!r.retorno,
+  servico: r.servico ? String(r.servico).slice(0, 40) : null, forma: r.forma ? String(r.forma).slice(0, 40) : null,
+  desconto: Number.isFinite(Number(r.desconto)) && r.desconto !== null && r.desconto !== '' ? Number(r.desconto) : null,
   consultaEm: r.consultaEm ? String(r.consultaEm).slice(0, 10) : null, consultaHora: r.consultaHora ? String(r.consultaHora).slice(0, 5) : null,
   texto: String(r.texto || '').slice(0, 400), origem: r.origem === 'comprovante' ? 'comprovante' : 'mensagem',
   comprovante: r.comprovante && typeof r.comprovante === 'object' ? {
@@ -113,7 +115,7 @@ export async function ajustar(db, chave, campo, valor) {
   if (!x) return false;
   const aj = x.ajustes_json ? JSON.parse(x.ajustes_json) : {};
   if (valor === null || valor === '') delete aj[campo];
-  else aj[campo] = ['pago', 'total'].includes(campo) ? Number(valor) : campo === 'restante' ? !!valor : String(valor).slice(0, 120);
+  else aj[campo] = ['pago', 'total', 'desconto'].includes(campo) ? Number(valor) : campo === 'restante' ? !!valor : String(valor).slice(0, 120);
   await db.prepare('UPDATE fin_grupo SET ajustes_json = ? WHERE chave = ?').bind(JSON.stringify(aj), chave).run();
   return true;
 }

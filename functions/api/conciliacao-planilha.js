@@ -1,4 +1,4 @@
-// /api/conciliacao-planilha?k=<chave> → planilha da conciliação em CSV, uma paciente por linha (fórmula IMPORTDATA no Google Planilhas).
+// /api/conciliacao-planilha?k=<chave> → planilha da conciliação em CSV, uma linha por serviço de cada paciente (fórmula IMPORTDATA no Google Planilhas).
 // A chave aparece na página /conciliacao (depois da senha) e muda quando a FINANCEIRO_SENHA muda. Só leitura.
 import G from '../../ficha/js/grupo-comprovantes.js';
 import * as grupo from '../_lib/grupo.js';
@@ -15,8 +15,10 @@ export async function onRequest({ request, env }) {
   if (!senha || !env.DB) return txt('Conciliação não configurada.', 503);
   if (!igual(new URL(request.url).searchParams.get('k') || '', await grupo.chave(senha, 'planilha-conciliacao-v1'))) return txt('Link da planilha inválido.', 401);
   const pac = G.planilhaPorPaciente(await grupo.listar(env.DB));
-  const linhas = [['Paciente', 'Telefone', 'Tipo', 'Consulta', 'Total', 'Recebido', 'Falta', 'Pagamentos', 'Faltando no grupo']];
-  for (const p of pac) linhas.push([p.nome || '', p.telefone || '', p.tipo, br(p.consultaEm) + (p.consultaHora ? ' ' + p.consultaHora : ''), brl(p.total), brl(p.pago), brl(p.falta),
-    p.linhas.map((l) => br(l.data) + ' ' + (l.valor == null ? '?' : 'R$ ' + brl(l.valor)) + (l.calculado ? ' (calculado)' : '')).join(' | '), p.faltando.join(', ')]);
+  // Uma linha por serviço da paciente (como a planilha da gestão): valor, forma, desconto, a pagar, recebido, falta e status.
+  const linhas = [['Paciente', 'Telefone', 'Consulta', 'Serviço', 'Valor', 'Forma de pagamento', 'Desconto', 'Valor com desconto', 'Recebido', 'Falta', 'Status', 'Pagamentos', 'Faltando no grupo']];
+  for (const p of pac) for (const s of p.servicos) linhas.push([p.nome || '', p.telefone || '', br(p.consultaEm) + (p.consultaHora ? ' ' + p.consultaHora : ''), s.servico,
+    brl(s.total), s.forma || '', s.desconto ? String(s.desconto).replace('.', ',') + '%' : '', brl(s.aPagar), brl(s.pago), brl(s.falta), s.status,
+    s.linhas.map((l) => br(l.data) + ' ' + (l.valor == null ? '?' : 'R$ ' + brl(l.valor)) + (l.calculado ? ' (calculado)' : '')).join(' | '), [...new Set([...p.faltando, ...s.faltando])].join(', ')]);
   return new Response(linhas.map((l) => l.map(cel).join(',')).join('\r\n'), { headers: { 'content-type': 'text/csv; charset=utf-8', 'cache-control': 'no-store' } });
 }

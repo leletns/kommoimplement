@@ -25,6 +25,10 @@ ${sep('05/10/2026')}
 <div role="row"><div data-id="false_g@g.us_A4_5521922222222@c.us"><img id="foto" style="width:300px"><span>10:00</span></div></div>
 ${sep('06/10/2026')}
 <div role="row"><div data-id="false_g@g.us_A5_5521911111111@c.us"><div role="button" title="comprovante-itau.jpg" id="doc2">comprovante-itau.jpg · JPG</div><span>16:20</span></div></div>
+${sep('07/10/2026')}
+${linhaTexto('false_g@g.us_A6_5521911111111@c.us', '[10:00, 07/10/2026] Maria Gabriela: ', 'Patricia Souza Lima<br>Tel: 21 97777-6666<br>Cirurgia LipeDefinition à vista 10% de desconto via Pix<br>Pagamento: R$ 20.000,00 de R$ 42.700,00')}
+${linhaTexto('false_g@g.us_A7_5521911111111@c.us', '[10:05, 07/10/2026] Maria Gabriela: ', 'Patricia Souza Lima<br>Equipe cirúrgica pix<br>Pagamento: R$ 6.700,00 de R$ 6.700,00')}
+${linhaTexto('false_g@g.us_A8_5521911111111@c.us', '[10:09, 07/10/2026] Maria Gabriela: ', 'Patricia Souza Lima<br>Hospital<br>Pagamento: R$ 2.000,00 de R$ 5.988,00')}
 </div></div></div>
 <script nonce="abc">
   const bin = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -40,7 +44,7 @@ ${sep('06/10/2026')}
 
 (async () => {
   const b = await chromium.launch({ args: ['--disable-features=PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests,LocalNetworkAccessChecks,PrivateNetworkAccessSendPreflights'] });
-  const ctx = await b.newContext({ acceptDownloads: false, ignoreHTTPSErrors: true });
+  const ctx = await b.newContext({ acceptDownloads: true, ignoreHTTPSErrors: true });
   ctx.on('response', async (resp) => { if (resp.url().includes('acao=lote')) { try { const j = await resp.json(); console.log('[lote]', JSON.stringify(j.dados.itens.map((i) => ({ id: i.id, dia: i.dia, hora: i.hora, autor: i.autor, cab: i.cab, t: (i.texto || '').slice(0, 60), arq: i.arquivo, pdf: i.pdfNome })))); } catch (e) {} } });
   await ctx.addInitScript(() => { if (location.hostname === 'clinicablue.pages.dev') localStorage.setItem('blueFinSenha', 'SenhaTeste'); });
   await ctx.route('**/*', async (r) => {
@@ -81,6 +85,10 @@ ${sep('06/10/2026')}
   linhas.forEach((l) => console.log('  ', l));
   console.log('KPIs:', await popup.textContent('#k-rec'), '/', await popup.textContent('#k-falta'), '/', await popup.textContent('#k-pac'), '/', await popup.textContent('#k-pend'));
   await popup.screenshot({ path: path.join(__dirname, 'conciliacao.png'), fullPage: true });
+  // Excel no modelo da gestão
+  const [dl] = await Promise.all([popup.waitForEvent('download', { timeout: 120000 }), popup.click('#csv')]);
+  await dl.saveAs(path.join(__dirname, 'conciliacao.xlsx'));
+  console.log('Excel:', dl.suggestedFilename(), '|', await popup.textContent('#msg'));
   // Ler de novo não duplica
   const n1 = (await (await fetch(LOCAL + '/api/conciliacao', { headers: { 'x-financeiro-senha': 'SenhaTeste' } })).json()).linhas.length;
   console.log('linhas no banco:', n1);

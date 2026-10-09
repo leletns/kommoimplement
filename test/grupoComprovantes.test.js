@@ -48,3 +48,20 @@ test('planilha: correção feita à mão vale e linha ignorada some', () => {
   assert.deepStrictEqual([p.pago, p.falta, p.telefone], [500, 1300, '21999990000']);
   assert.strictEqual(G.planilhaPorPaciente([{ ...regs[0], ignorado: true }]).length, 0);
 });
+
+test('planilha por serviço: cirurgia, equipe e hospital da mesma paciente, com forma, desconto e restante', () => {
+  const regs = linhas([
+    { cab: '[10:00, 01/10/2026] Maria: ', texto: 'Patricia Souza Lima\nTel: 21 97777-6666\nCirurgia LipeDefinition à vista 10% de desconto via Pix\nPagamento: R$ 20.000,00 de R$ 42.700,00' },
+    { cab: '[10:05, 01/10/2026] Maria: ', texto: 'Patricia Souza Lima\nEquipe cirúrgica pix\nPagamento: R$ 6.700,00 de R$ 6.700,00' },
+    { cab: '[11:00, 02/10/2026] Maria: ', texto: 'Patricia Souza Lima\nHospital cartão 6x\nPagamento: R$ 5.988,00 de R$ 5.988,00' },
+    { cab: '[09:00, 05/10/2026] Helen: ', texto: 'Restante pagamento: Patricia Souza Lima' },
+  ]);
+  const [p] = G.planilhaPorPaciente(regs);
+  assert.deepStrictEqual(p.servicos.map((s) => [s.servico, s.total, s.desconto, s.aPagar, s.pago, s.falta, s.forma, s.status]), [
+    ['Cirurgia', 42700, 10, 38430, 38430, 0, 'Pix', 'ok'],
+    ['Equipe cirúrgica', 6700, null, 6700, 6700, 0, 'Pix', 'ok'],
+    ['Hospital', 5988, null, 5988, 5988, 0, 'Cartão 6x', 'ok'],
+  ]);
+  assert.strictEqual(p.linhas[3].calculado, true, 'restante sem valor vai para o serviço com saldo (cirurgia)');
+  assert.deepStrictEqual([p.total, p.desconto, p.aPagar, p.pago, p.falta, p.tipo], [55388, 4270, 51118, 51118, 0, 'cirurgia']);
+});

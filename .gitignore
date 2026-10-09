@@ -9,3 +9,5 @@ site/
 .wrangler/
 test/e2e/resultado-financeiro.json
 entregas/
+test/e2e/conciliacao.png
+test/e2e/conciliacao.xlsx

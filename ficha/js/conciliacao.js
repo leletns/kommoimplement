@@ -1,7 +1,8 @@
 // Página /conciliacao: planilha da gestão montada a partir do grupo "Comprovantes de pagamento".
 // 1) O botão 📊 no WhatsApp Web manda um lote (mensagens + imagens/PDFs) e abre esta página com #lote=…
 // 2) Aqui cada comprovante é lido (OCR / texto do PDF), ligado à mensagem da paciente e tudo vai para o banco.
-// 3) A planilha mostra uma paciente por linha: total, recebido, falta e os pagamentos. Vermelho = faltou dado.
+// 3) A planilha mostra cada paciente e, embaixo, os serviços (valor, forma, desconto, recebido, falta). Vermelho = faltou dado.
+//    "Baixar planilha" gera o Excel no modelo da gestão: Resumo + uma aba por paciente, com fórmulas.
 (function () {
   'use strict';
   const G = window.GrupoComprovantes, C = window.BlueComprovante, L = window.BlueLeitura;
@@ -99,6 +100,8 @@
     return G.planilhaPorPaciente(LINHAS).filter((p) => p.linhas.some(noPeriodo))
       .filter((p) => !q || G.normalize(p.nome || '').includes(q) || (dig.length >= 4 && String(p.telefone || '').includes(dig)));
   }
+  const pct = (d) => (d ? String(d).replace('.', ',') + '%' : '');
+  const STATUS = { ok: '<span class="st ok">✓ quitado</span>', falta: '<span class="st falta">a receber</span>', 'sem valor': '<span class="st sem">sem valor</span>' };
   function mostrar() {
     const P = pacientes();
     let rec = 0, falta = 0, pend = 0;
@@ -106,62 +109,196 @@
       rec += p.linhas.filter(noPeriodo).reduce((a, l) => a + (l.valor || 0), 0);
       falta += p.falta || 0;
       if (p.faltando.length) pend++;
-      const v = (campo, conteudo, cls) => '<td class="' + (cls || '') + (p.faltando.includes(campo) ? ' vermelha' : ' editavel') + '" data-p="' + i + '" data-campo="' + campo + '">' + (conteudo || (p.faltando.includes(campo) ? 'faltando' : '')) + '</td>';
-      const chips = p.linhas.map((l, j) => {
-        const c = l.comprovante || {};
-        const div = c.valor != null && l.pagoMensagem != null && Math.abs(c.valor - l.pagoMensagem) > 0.009;
-        const cls = l.valor == null ? 'sem' : l.calculado ? 'calc' : div ? 'div' : '';
-        const det = [c.tipo ? (c.lido ? '📎 ' : '⚠️ ') + c.tipo : '', c.forma, l.restante ? 'restante' : ''].filter(Boolean).join(' · ');
-        const tit = [l.autor ? 'Enviado por ' + l.autor + ' às ' + (l.hora || '') : '', c.pagador ? 'Pagador: ' + c.pagador : '', c.arquivo ? 'Arquivo: ' + c.arquivo : '', div ? 'Mensagem dizia ' + brl(l.pagoMensagem) + ', comprovante ' + brl(c.valor) : '', l.texto ? l.texto.slice(0, 160) : ''].filter(Boolean).join('\n');
-        return '<span class="chip ' + cls + '" data-p="' + i + '" data-l="' + j + '" title="' + esc(tit) + '">' + curto(l.data) + ' · ' + (l.valor == null ? 'valor?' : brl(l.valor)) + (l.calculado ? ' (calc.)' : '') + (det ? ' <small>' + esc(det) + '</small>' : '') + '</span>';
+      const f = (campo, conteudo, extra) => '<span class="' + (p.faltando.includes(campo) ? 'vermelha' : 'editavel') + '" data-p="' + i + '" data-campo="' + campo + '"' + (extra || '') + '>' + (conteudo || (p.faltando.includes(campo) ? ROTULO_CURTO[campo] + '?' : '')) + '</span>';
+      const stP = p.falta == null ? 'sem valor' : p.falta === 0 && !p.faltando.includes('total') ? 'ok' : 'falta';
+      const cab = '<tr class="pac"><td>' + f('nome', '<b>' + esc(p.nome || '') + '</b>') + '<div class="sub">' + f('telefone', esc(fone(p.telefone))) + ' · consulta ' + f('consultaEm', p.consultaEm ? br(p.consultaEm) + (p.consultaHora ? ' ' + p.consultaHora : '') : '') + '</div></td>' +
+        '<td class="n">' + brl(p.total) + '</td><td></td><td class="n">' + (p.desconto ? '− ' + brl(p.desconto) : '') + '</td><td class="n"><b>' + brl(p.pago) + '</b></td><td class="n"><b>' + (p.falta == null ? '–' : brl(p.falta)) + '</b></td><td>' + STATUS[stP] + '</td><td></td></tr>';
+      const linhasS = p.servicos.map((s, k) => {
+        const c = (campo, conteudo, cls) => '<td class="' + (cls || '') + (s.faltando.includes(campo) ? ' vermelha' : ' editavel') + '" data-p="' + i + '" data-s="' + k + '" data-campo="' + campo + '">' + (conteudo || (s.faltando.includes(campo) ? 'faltando' : '')) + '</td>';
+        const chips = s.linhas.map((l, j) => {
+          const cp = l.comprovante || {};
+          const div = cp.valor != null && l.pagoMensagem != null && Math.abs(cp.valor - l.pagoMensagem) > 0.009;
+          const cls = l.valor == null ? 'sem' : l.calculado ? 'calc' : div ? 'div' : '';
+          const det = [cp.tipo ? (cp.lido ? '📎 ' : '⚠️ ') + cp.tipo : '', l.restante ? 'restante' : ''].filter(Boolean).join(' · ');
+          const tit = [l.autor ? 'Enviado por ' + l.autor + ' às ' + (l.hora || '') : '', l.forma ? 'Forma: ' + l.forma : '', cp.pagador ? 'Pagador: ' + cp.pagador : '', cp.arquivo ? 'Arquivo: ' + cp.arquivo : '', div ? 'Mensagem dizia ' + brl(l.pagoMensagem) + ', comprovante ' + brl(cp.valor) : '', l.texto ? l.texto.slice(0, 160) : ''].filter(Boolean).join('\n');
+          return '<span class="chip ' + cls + '" data-p="' + i + '" data-s="' + k + '" data-l="' + j + '" title="' + esc(tit) + '">' + curto(l.data) + ' · ' + (l.valor == null ? 'valor?' : brl(l.valor)) + (l.calculado ? ' (calc.)' : '') + (det ? ' <small>' + esc(det) + '</small>' : '') + '</span>';
+        }).join('');
+        return '<tr class="serv">' + c('servico', '↳ ' + esc(s.servico)) + c('total', s.total ? brl(s.total) : '', 'n') + c('forma', esc(s.forma || '')) + c('desconto', pct(s.desconto), 'n') +
+          '<td class="n">' + brl(s.pago) + '</td><td class="n">' + (s.falta == null ? '–' : brl(s.falta)) + '</td><td>' + STATUS[s.status] + '</td><td>' + chips + '</td></tr>';
       }).join('');
-      return '<tr>' + v('nome', esc(p.nome) + (p.tipo === 'cirurgia' ? ' <small>(cirurgia)</small>' : '')) + v('telefone', esc(fone(p.telefone))) +
-        v('consultaEm', p.consultaEm ? br(p.consultaEm) + (p.consultaHora ? ' ' + p.consultaHora : '') : '') + v('total', p.total ? brl(p.total) : '', 'n') +
-        '<td class="n">' + brl(p.pago) + '</td><td class="n ' + (p.falta === 0 ? 'falta-0' : '') + '">' + (p.falta == null ? '–' : p.falta === 0 ? 'quitado' : brl(p.falta)) + '</td><td>' + chips + '</td></tr>';
+      return cab + linhasS;
     }).join('');
-    $('linhas').innerHTML = html || '<tr><td colspan="7" style="color:var(--muted);padding:18px">Nada no período. Use o botão 📊 Conciliar grupo no WhatsApp Web.</td></tr>';
+    $('linhas').innerHTML = html || '<tr><td colspan="8" style="color:var(--muted);padding:18px">Nada no período. Use o botão 📊 Conciliar grupo no WhatsApp Web.</td></tr>';
     $('k-rec').textContent = brl(rec) || 'R$ 0,00'; $('k-falta').textContent = brl(falta) || 'R$ 0,00'; $('k-pac').textContent = P.length; $('k-pend').textContent = pend;
-    $('linhas').querySelectorAll('td[data-campo]').forEach((td) => (td.onclick = () => editarPaciente(P[td.dataset.p], td.dataset.campo)));
-    $('linhas').querySelectorAll('.chip').forEach((ch) => (ch.onclick = () => editarPagamento(P[ch.dataset.p].linhas[ch.dataset.l])));
+    $('linhas').querySelectorAll('[data-campo]').forEach((el) => (el.onclick = () => (el.dataset.s != null ? editarServico(P[el.dataset.p].servicos[el.dataset.s], el.dataset.campo) : editarPaciente(P[el.dataset.p], el.dataset.campo))));
+    $('linhas').querySelectorAll('.chip').forEach((ch) => (ch.onclick = () => editarPagamento(P[ch.dataset.p].servicos[ch.dataset.s].linhas[ch.dataset.l])));
   }
 
-  const ROTULO = { nome: 'Nome da paciente', telefone: 'Telefone', consultaEm: 'Data da consulta (dd/mm/aaaa)', total: 'Valor total da consulta (R$)' };
-  async function ajustar(chave, campo, valor) {
-    await api('?acao=ajustar', { chave, campo, valor });
+  const ROTULO_CURTO = { nome: 'nome', telefone: 'telefone', consultaEm: 'data' };
+  const ROTULO = { nome: 'Nome da paciente', telefone: 'Telefone', consultaEm: 'Data da consulta (dd/mm/aaaa)', total: 'Valor do serviço (R$)', forma: 'Forma de pagamento (ex.: Pix, Cartão 10x, À vista)', desconto: 'Desconto em % (ex.: 10). Vazio = sem desconto', servico: 'Serviço (' + G.SERVICOS.join(', ') + ')' };
+  // A correção vale para todas as mensagens daquela paciente/serviço, então nenhuma mensagem antiga "ganha" da correção.
+  async function ajustar(linhas, campo, valor) {
+    for (const l of linhas) await api('?acao=ajustar', { chave: l.chave, campo, valor });
     LINHAS = (await api('')).linhas;
     mostrar();
   }
   async function editarPaciente(p, campo) {
-    const atual = campo === 'consultaEm' ? br(p.consultaEm) : campo === 'total' ? (p.total || '') : (p[campo] || '');
-    const r = prompt(ROTULO[campo] + ' — ' + (p.nome || 'paciente sem nome'), atual);
+    const r = prompt(ROTULO[campo] + ' — ' + (p.nome || 'paciente sem nome'), campo === 'consultaEm' ? br(p.consultaEm) : (p[campo] || ''));
     if (r == null) return;
     let valor = r.trim();
-    if (campo === 'total') valor = numero(valor);
     if (campo === 'consultaEm' && valor) { const m = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) { alert('Use dd/mm/aaaa.'); return; } valor = m[3] + '-' + pad(m[2]) + '-' + pad(m[1]); }
-    try { await ajustar(p.linhas[0].chave, campo, valor); } catch (e) { msg('Não consegui salvar a correção.', 'bad'); }
+    try { await ajustar(campo === 'nome' ? p.linhas.slice(0, 1) : p.linhas, campo, valor); } catch (e) { msg('Não consegui salvar a correção.', 'bad'); }
+  }
+  async function editarServico(s, campo) {
+    const atual = campo === 'total' ? (s.total || '') : campo === 'desconto' ? (s.desconto || '') : (s[campo] || '');
+    const r = prompt(ROTULO[campo] + ' — ' + s.servico, String(atual).replace('.', ','));
+    if (r == null) return;
+    let valor = r.trim();
+    if (campo === 'total' || campo === 'desconto') valor = valor === '' ? '' : numero(valor);
+    if (campo === 'servico' && valor) valor = G.SERVICOS.find((x) => G.normalize(x) === G.normalize(valor)) || G.servicoDoTexto(valor) || valor;
+    try { await ajustar(s.linhas, campo, valor); } catch (e) { msg('Não consegui salvar a correção.', 'bad'); }
   }
   async function editarPagamento(l) {
-    const r = prompt('Pagamento de ' + br(l.data) + (l.autor ? ' (' + l.autor + ')' : '') + '\nValor recebido em R$ (vazio = manter · 0 = tirar da planilha)', l.valor == null ? '' : String(l.valor).replace('.', ','));
+    const r = prompt('Pagamento de ' + br(l.data) + (l.autor ? ' (' + l.autor + ')' : '') + ' · ' + l.servico + '\nValor recebido em R$ (vazio = manter · 0 = tirar da planilha)', l.valor == null ? '' : String(l.valor).replace('.', ','));
     if (r == null || r.trim() === '') return;
     const n = numero(r);
     try {
-      if (n === 0) await ajustar(l.chave, 'ignorado', true);
-      else if (n != null) await ajustar(l.chave, 'pago', n);
+      if (n === 0) await ajustar([l], 'ignorado', true);
+      else if (n != null) await ajustar([l], 'pago', n);
     } catch (e) { msg('Não consegui salvar a correção.', 'bad'); }
   }
 
   // ---------- 3. exportar ----------
-  $('csv').onclick = () => {
-    const cel = (v) => { const s = v == null ? '' : String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-    const num = (v) => (v == null ? '' : Number(v).toFixed(2).replace('.', ','));
-    const linhas = [['Paciente', 'Telefone', 'Tipo', 'Consulta', 'Total', 'Recebido', 'Falta', 'Pagamentos', 'Faltando no grupo']];
-    for (const p of pacientes()) linhas.push([p.nome, p.telefone, p.tipo, br(p.consultaEm) + (p.consultaHora ? ' ' + p.consultaHora : ''), num(p.total), num(p.pago), num(p.falta),
-      p.linhas.map((l) => br(l.data) + ' ' + (l.valor == null ? '?' : num(l.valor)) + (l.calculado ? ' (calculado)' : '') + (l.comprovante && l.comprovante.forma ? ' ' + l.comprovante.forma : '')).join(' | '), p.faltando.join(', ')]);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + linhas.map((l) => l.map(cel).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'conciliacao-' + ($('de').value || '') + '-a-' + ($('ate').value || '') + '.csv';
-    document.body.appendChild(a); a.click(); a.remove();
+  $('csv').onclick = async () => {
+    try { msg('Montando a planilha…'); await baixarExcel(pacientes()); msg('✅ Planilha baixada.', 'ok'); }
+    catch (e) { console.error(e); msg('Não consegui montar a planilha: ' + (e && e.message), 'bad'); }
   };
+  const carregarScript = (src) => new Promise((ok, erro) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => erro(new Error('sem internet para a planilha')); document.head.appendChild(s); });
+  // Excel no modelo da gestão: aba Resumo + uma aba por paciente (serviços com fórmulas e pagamentos recebidos).
+  async function baixarExcel(P) {
+    if (!window.ExcelJS) await carregarScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+    const wb = new window.ExcelJS.Workbook();
+    wb.creator = 'Clínica Blue';
+    const NAVY = 'FF13294A', MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00;"R$" -', VERM = 'FFFBE3E3', AMAR = 'FFFDF3DC', CINZA = 'FFEAF2FB';
+    const fundo = (c, cor) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cor } }; };
+    const borda = { top: { style: 'thin', color: { argb: 'FFDBE4F0' } }, bottom: { style: 'thin', color: { argb: 'FFDBE4F0' } }, left: { style: 'thin', color: { argb: 'FFDBE4F0' } }, right: { style: 'thin', color: { argb: 'FFDBE4F0' } } };
+    const cabecalho = (row) => row.eachCell((c) => { fundo(c, NAVY); c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; c.border = borda; });
+    // Status colorido (verde ok · laranja falta · vermelho sem valor), acompanha as fórmulas
+    const statusCF = (ws, col, r1, r2) => {
+      const cor = (txt, fonte, fundoCor, prioridade) => ({ type: 'expression', priority: prioridade, formulae: [col + r1 + '="' + txt + '"'],
+        style: { font: { bold: true, color: { argb: fonte } }, fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: fundoCor } } } });
+      ws.addConditionalFormatting({ ref: col + r1 + ':' + col + r2, rules: [cor('ok', 'FF1F7D52', 'FFE9F6EF', 1), cor('falta', 'FF8A5A12', 'FFFDF3DC', 2), cor('sem valor', 'FFB04848', 'FFFBE3E3', 3)] });
+    };
+    const periodo = br($('de').value) + ' a ' + br($('ate').value);
+
+    // Resumo (preenchido com fórmulas que leem as abas das pacientes: mexeu na aba, o resumo acompanha)
+    const R = wb.addWorksheet('Resumo', { views: [{ state: 'frozen', ySplit: 3 }], properties: { tabColor: { argb: NAVY } }, pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+    R.columns = [{ width: 34 }, { width: 17 }, { width: 13 }, { width: 15 }, { width: 14 }, { width: 17 }, { width: 15 }, { width: 15 }, { width: 12 }];
+    R.mergeCells('A1:I1');
+    R.getCell('A1').value = 'Conciliação · grupo de comprovantes · ' + periodo;
+    R.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY } };
+    R.getCell('A2').value = 'Vermelho = faltou no grupo · Amarelo = restante calculado · Clique no nome para abrir a aba da paciente';
+    R.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF6B7890' } };
+    cabecalho(R.addRow(['PACIENTE', 'TELEFONE', 'CONSULTA', 'VALOR', 'DESCONTO', 'VALOR COM DESCONTO', 'RECEBIDO', 'FALTA', 'STATUS']));
+    const usados = new Set();
+    const nomeAba = (n) => {
+      let b = String(n || 'Sem nome').replace(/[\[\]:*?/\\']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Sem nome', x = b, k = 2;
+      while (usados.has(x.toLowerCase()) || x.toLowerCase() === 'resumo') x = b.slice(0, 26) + ' ' + k++;
+      usados.add(x.toLowerCase());
+      return x;
+    };
+    const ini = R.rowCount + 1;
+    for (const p of P) {
+      const aba = nomeAba(nomeBonito(p.nome));
+      const ws = wb.addWorksheet(aba, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+      ws.columns = [{ width: 24 }, { width: 16 }, { width: 22 }, { width: 12 }, { width: 19 }, { width: 16 }, { width: 15 }, { width: 13 }];
+      ws.mergeCells('A1:H1');
+      ws.getCell('A1').value = nomeBonito(p.nome) || 'Paciente sem nome';
+      ws.getCell('A1').font = { bold: true, size: 15, color: { argb: NAVY } };
+      if (!p.nome) fundo(ws.getCell('A1'), VERM);
+      ws.mergeCells('A2:H2');
+      ws.getCell('A2').value = 'Telefone: ' + (fone(p.telefone) || 'faltando') + '   ·   Consulta: ' + (p.consultaEm ? br(p.consultaEm) + (p.consultaHora ? ' às ' + p.consultaHora : '') : 'faltando');
+      ws.getCell('A2').font = { color: { argb: 'FF3A4760' } };
+      cabecalho(ws.addRow(['SERVIÇO', 'VALOR', 'FORMA DE PAGAMENTO', 'DESCONTO', 'VALOR COM DESCONTO', 'RECEBIDO', 'FALTA', 'STATUS']));
+      ws.getRow(3).height = 30;
+      // Pagamentos ficam embaixo; RECEBIDO soma os pagamentos daquele serviço (SOMASE), então dá para incluir pagamento à mão.
+      const nS = p.servicos.length, linhaTot = 4 + nS, pagCab = linhaTot + 8, pagIni = pagCab + 1, pagFim = pagIni + p.linhas.length + 9;
+      p.servicos.forEach((s, k) => {
+        const r = 4 + k;
+        const row = ws.addRow([s.servico, s.total, s.forma || '', s.desconto ? s.desconto / 100 : 0,
+          { formula: 'IF(B' + r + '="","",B' + r + '*(1-D' + r + '))', result: s.aPagar == null ? '' : s.aPagar },
+          { formula: 'SUMIF($B$' + pagIni + ':$B$' + pagFim + ',A' + r + ',$C$' + pagIni + ':$C$' + pagFim + ')', result: s.pago },
+          { formula: 'IF(E' + r + '="","",MAX(0,E' + r + '-F' + r + '))', result: s.falta == null ? '' : s.falta },
+          { formula: 'IF(B' + r + '="","sem valor",IF(G' + r + '<=0,"ok","falta"))', result: s.status }]);
+        row.eachCell({ includeEmpty: true }, (c) => { c.border = borda; });
+        row.getCell(1).font = { bold: true };
+        [2, 5, 6, 7].forEach((n) => (row.getCell(n).numFmt = MOEDA));
+        row.getCell(4).numFmt = '0%';
+        row.getCell(8).alignment = { horizontal: 'center' };
+        if (!s.total) fundo(row.getCell(2), VERM);
+        if (!s.forma) fundo(row.getCell(3), VERM);
+      });
+      const f1 = 4, f2 = 3 + nS;
+      const tot = [['TOTAL', 'SUM(B' + f1 + ':B' + f2 + ')', p.total || 0], ['DESCONTOS', 'SUM(B' + f1 + ':B' + f2 + ')-SUM(E' + f1 + ':E' + f2 + ')', p.desconto || 0],
+        ['TOTAL COM DESCONTOS', 'SUM(E' + f1 + ':E' + f2 + ')', p.aPagar || 0], ['RECEBIDO', 'SUM(F' + f1 + ':F' + f2 + ')', p.pago || 0], ['FALTA RECEBER', 'SUM(G' + f1 + ':G' + f2 + ')', p.falta || 0]];
+      ws.addRow([]);
+      tot.forEach(([rot, fo, res], k) => {
+        const row = ws.addRow([rot, { formula: fo, result: res }]);
+        row.getCell(1).font = { bold: true, color: { argb: NAVY } };
+        row.getCell(2).numFmt = MOEDA;
+        row.getCell(2).font = { bold: true };
+        [1, 2].forEach((n) => { fundo(row.getCell(n), k === 4 ? AMAR : CINZA); row.getCell(n).border = borda; });
+      });
+      ws.getRow(pagCab - 1).getCell(1).value = 'PAGAMENTOS RECEBIDOS';
+      ws.getRow(pagCab - 1).getCell(1).font = { bold: true, color: { argb: NAVY } };
+      const hp = ws.getRow(pagCab);
+      hp.values = ['DATA', 'SERVIÇO', 'VALOR', 'FORMA', 'COMPROVANTE', 'ENVIADO POR', 'OBS.'];
+      cabecalho(hp);
+      p.linhas.forEach((l, k) => {
+        const cp = l.comprovante || {};
+        const row = ws.getRow(pagIni + k);
+        row.values = [br(l.data), l.servico, l.valor, l.forma || '', cp.tipo ? cp.tipo + (cp.lido ? '' : ' (não lido)') : 'só mensagem', l.autor || '', l.calculado ? 'restante calculado' : l.restante ? 'restante' : ''];
+        row.getCell(3).numFmt = MOEDA;
+        row.eachCell({ includeEmpty: true }, (c) => { c.border = borda; });
+        if (l.valor == null) fundo(row.getCell(3), VERM);
+        else if (l.calculado) fundo(row.getCell(3), AMAR);
+        if (!l.forma) fundo(row.getCell(4), VERM);
+      });
+      for (let r = pagIni + p.linhas.length; r <= pagFim; r++) { ws.getRow(r).getCell(3).numFmt = MOEDA; for (let c = 1; c <= 7; c++) ws.getRow(r).getCell(c).border = borda; }
+      ws.dataValidations.add('B' + pagIni + ':B' + pagFim, { type: 'list', allowBlank: true, formulae: ['$A$' + f1 + ':$A$' + f2] });
+      statusCF(ws, 'H', f1, f2);
+
+      // Linha da paciente no Resumo (fórmulas apontando para a aba dela)
+      const q = "'" + aba.replace(/'/g, "''") + "'!";
+      const r = R.rowCount + 1;
+      const row = R.addRow([{ text: nomeBonito(p.nome) || 'Sem nome', hyperlink: '#' + q + 'A1' }, fone(p.telefone), br(p.consultaEm),
+        { formula: q + 'B' + (linhaTot + 1), result: p.total || 0 }, { formula: q + 'B' + (linhaTot + 2), result: p.desconto || 0 }, { formula: q + 'B' + (linhaTot + 3), result: p.aPagar || 0 },
+        { formula: q + 'B' + (linhaTot + 4), result: p.pago || 0 }, { formula: q + 'B' + (linhaTot + 5), result: p.falta || 0 },
+        { formula: 'IF(COUNTIF(' + q + 'H' + f1 + ':H' + f2 + ',"sem valor")>0,"sem valor",IF(H' + r + '<=0,"ok","falta"))', result: p.falta == null ? 'sem valor' : p.falta === 0 && !p.faltando.includes('total') ? 'ok' : 'falta' }]);
+      row.getCell(1).font = { bold: true, color: { argb: 'FF2F6FB5' }, underline: true };
+      [4, 5, 6, 7, 8].forEach((n) => (row.getCell(n).numFmt = MOEDA));
+      row.getCell(9).alignment = { horizontal: 'center' };
+      row.eachCell({ includeEmpty: true }, (c) => { c.border = borda; });
+      if (!p.nome) fundo(row.getCell(1), VERM);
+      if (!p.telefone) fundo(row.getCell(2), VERM);
+      if (!p.consultaEm) fundo(row.getCell(3), VERM);
+      if (p.faltando.includes('total')) fundo(row.getCell(4), VERM);
+    }
+    const fim = R.rowCount;
+    if (fim >= ini) {
+      const row = R.addRow(['TOTAL (' + P.length + ' pacientes)', '', '', ...['D', 'E', 'F', 'G', 'H'].map((c) => ({ formula: 'SUM(' + c + ini + ':' + c + fim + ')' })), '']);
+      row.eachCell({ includeEmpty: true }, (c) => { fundo(c, CINZA); c.font = { bold: true, color: { argb: NAVY } }; c.border = borda; });
+      [4, 5, 6, 7, 8].forEach((n) => (row.getCell(n).numFmt = MOEDA));
+      statusCF(R, 'I', ini, fim);
+      R.autoFilter = 'A3:I' + fim;
+    }
+    const buf = await wb.xlsx.writeBuffer();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    a.download = 'Conciliacao-' + br($('de').value).replace(/\//g, '-') + '-a-' + br($('ate').value).replace(/\//g, '-') + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
   $('gsheet').onclick = () => {
     const f = '=IMPORTDATA("' + PLANILHA + '")', box = $('gbox');
     box.hidden = !box.hidden;
