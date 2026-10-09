@@ -1,0 +1,13 @@
+node_modules/
+.env
+*.log
+*.bak
+retroativo-*.json
+backups/
+site/
+.dev.vars
+.wrangler/
+test/e2e/resultado-financeiro.json
+entregas/
+test/e2e/conciliacao.png
+test/e2e/conciliacao.xlsx

@@ -1,0 +1,98 @@
+{
+  "cliente": "MODELO — cirurgião plástico (troque tudo que está em MAIÚSCULO)",
+  "subdominio": "SUBDOMINIO",
+  "pasta_dados": "./dados-<cliente>",
+  "segredos": {
+    "kommo_token_cmd": "cat /caminho/para/.kommo_token_<cliente>   # ou: ssh root@SEU_SERVIDOR cat /root/.kommo_token_<cliente>",
+    "env_cmd": "cat /caminho/para/.env   # arquivo com OPENAI_API_KEY=..."
+  },
+  "pipeline_id": 0,
+  "etapas": {
+    "negociacao": 0
+  },
+  "usuarios": {
+    "0": "NOME DA ATENDENTE"
+  },
+  "contexto": "um cirurgião plástico (lipo, abdominoplastia, mama, face) em CIDADE",
+  "endereco_clinica": "ENDEREÇO DA CLÍNICA",
+  "termos_transcricao": "Clínica de cirurgia plástica. Termos: lipo HD, lipoaspiração, abdominoplastia, prótese de silicone, mamoplastia, rinoplastia, blefaroplastia, lipedema, consulta, sinal, Pix.",
+  "prefixo": "IA · ",
+  "grupo_campos": "IA · Comercial",
+  "regras_extra": [
+    "consulta_para é a relação entre QUEM ESCREVE e QUEM VAI CONSULTAR.",
+    "procedimento_interesse: marque só o que o paciente disse querer, não o que a equipe ofereceu.",
+    "Janela de tempo: quando pretende operar, se dito."
+  ],
+  "campos": [
+    {
+      "chave": "consulta_para",
+      "nome_kommo": "IA · Consulta para",
+      "tipo": "lista",
+      "marca_processado": true,
+      "opcoes": [
+        "Própria pessoa",
+        "Cônjuge",
+        "Filho(a)",
+        "Outro parente",
+        "Não informado"
+      ]
+    },
+    {
+      "chave": "procedimento_interesse",
+      "nome_kommo": "IA · Procedimento de interesse",
+      "tipo": "lista_multipla",
+      "opcoes": [
+        "Lipo / Lipo HD",
+        "Abdominoplastia",
+        "Mama (prótese / mastopexia / redução)",
+        "Face (rino / blefaro / lifting)",
+        "Lipedema",
+        "Outro",
+        "Não informado"
+      ]
+    },
+    {
+      "chave": "idade_paciente",
+      "nome_kommo": "IA · Idade do paciente",
+      "tipo": "numero"
+    },
+    {
+      "chave": "perguntou_plano_saude",
+      "nome_kommo": "IA · Perguntou plano de saúde",
+      "tipo": "sim_nao"
+    },
+    {
+      "chave": "perguntou_parcelamento",
+      "nome_kommo": "IA · Perguntou parcelamento",
+      "tipo": "sim_nao",
+      "instrucao": "Perguntou sobre parcelas, financiamento ou forma de pagamento"
+    },
+    {
+      "chave": "ja_operou",
+      "nome_kommo": "IA · Já fez plástica",
+      "tipo": "lista",
+      "opcoes": [
+        "Sim",
+        "Não",
+        "Não informado"
+      ]
+    },
+    {
+      "chave": "prazo_cirurgia",
+      "nome_kommo": "IA · Quando quer operar",
+      "tipo": "lista",
+      "opcoes": [
+        "Até 3 meses",
+        "3 a 6 meses",
+        "Mais de 6 meses",
+        "Não informado"
+      ]
+    },
+    {
+      "chave": "cidade",
+      "nome_kommo": "IA · Cidade",
+      "tipo": "texto",
+      "instrucao": "Cidade - UF onde o paciente mora"
+    }
+  ]
+}

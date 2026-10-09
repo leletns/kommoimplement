@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<!-- Prévia no WhatsApp: o servidor troca __ORIGEM__ pelo endereço do site (functions/_lib/pagina.js) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Blue Clínica · Dr. Rafael Erthal">
+<meta property="og:title" content="Ficha Blue · Dr. Rafael Erthal">
+<meta property="og:description" content="Pré-consulta e cadastro da Blue Clínica, com segurança e confidencialidade.">
+<meta property="og:image" content="__ORIGEM__/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#13294a">
+<title>Ficha Blue · Dr. Rafael Erthal</title>
+<link rel="icon" href="/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600&display=swap">
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--okbg:#e9f6ef;--bad:#b04848;--badbg:#fbeceb;
+  --f-display:"Cormorant Garamond",Georgia,serif;--f-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--badbg:#3a1c1c;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--badbg:#3a1c1c;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--body);font:15px/1.6 var(--f-body)}
+.card{max-width:560px;margin:0 auto;min-height:100vh;background:var(--surface);display:flex;flex-direction:column}
+@media (min-width:600px){.card{margin:32px auto;min-height:auto;border-radius:24px;overflow:hidden;box-shadow:0 30px 70px -36px rgba(19,41,74,.45)}}
+.head{background:#13294a;color:#fff;padding:22px 24px 18px;padding-top:max(22px,env(safe-area-inset-top))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c7d6ea}
+.brand img{width:30px;height:30px}
+.langs{display:flex;gap:4px}
+.langs button{border:1px solid rgba(255,255,255,.28);background:transparent;color:#c7d6ea;border-radius:999px;padding:4px 9px;font:600 11px var(--f-body);cursor:pointer}
+.langs button[aria-pressed="true"]{background:#fff;color:#13294a;border-color:#fff}
+.head h1{font-family:var(--f-display);font-weight:500;font-size:31px;line-height:1.08;margin:18px 0 0;color:#fff}
+.head .sub{margin:6px 0 0;color:#c7d6ea;font-size:13px}
+.prog{margin-top:16px}
+.prog .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:#9fb6d6;letter-spacing:.04em}
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.18);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:#7fb0ee;border-radius:4px;transition:width .35s ease}
+form{display:flex;flex-direction:column;flex:1}
+.body{padding:22px 24px 8px;display:grid;gap:18px;align-content:start;flex:1}
+.body h2{margin:0;color:var(--ink);font-family:var(--f-display);font-weight:600;font-size:24px;line-height:1.15}
+.intro{margin:-8px 0 0;color:var(--muted);font-size:14px}
+.field{display:grid;gap:6px}
+.field>label,.legend{font-size:13px;font-weight:600;color:var(--ink)}
+.req{color:var(--bad);font-weight:700}
+.opt{color:var(--muted);font-weight:500;font-size:12px}
+.hint{color:var(--muted);font-size:12.5px;margin-top:-2px}
+input:not([type=checkbox]):not([type=radio]),textarea,select{width:100%;font:16px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 13px;appearance:none}
+textarea{min-height:92px;resize:vertical;line-height:1.5}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 52%,calc(100% - 13px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+input:focus,textarea:focus,select:focus,button:focus-visible,.chips label:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+[aria-invalid="true"]{border-color:var(--bad)!important;background:var(--badbg)!important}
+.err{font-size:12.5px;color:var(--bad);font-weight:600}
+.okmsg{font-size:12.5px;color:var(--ok);font-weight:600}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media (max-width:380px){.row2{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{position:relative;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;cursor:pointer;background:var(--surface);color:var(--body);line-height:1.3}
+.chips.col{flex-direction:column}.chips.col label{border-radius:14px}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label:has(input:checked){border-color:var(--accent);background:var(--soft);color:var(--accent);font-weight:600}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:4px 11px;font:500 12px var(--f-body);cursor:pointer}
+.nav{display:flex;gap:10px;padding:16px 24px 26px;padding-bottom:max(26px,env(safe-area-inset-bottom))}
+.btn{flex:1;border:0;border-radius:14px;padding:15px 16px;font:600 15px var(--f-body);cursor:pointer}
+.btn.primary{background:#13294a;color:#fff}.btn.ghost{background:var(--soft);color:var(--ink);flex:0 0 auto;padding-inline:20px}
+.btn[disabled]{opacity:.6;cursor:wait}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:#2f6fb5}}
+.note{display:flex;gap:10px;background:var(--soft);border-radius:14px;padding:13px 14px;font-size:13px;color:var(--body)}
+.consent{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;background:var(--soft);padding:15px;border-radius:14px;cursor:pointer;line-height:1.55}
+.consent input{margin-top:3px;width:20px;height:20px;flex:none;accent-color:#13294a}
+.review{display:grid;gap:12px}
+.review section{border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.review header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.review h3{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.review button{border:0;background:none;color:var(--accent);font:600 13px var(--f-body);cursor:pointer;text-decoration:underline}
+.review dl{display:grid;gap:2px;margin:0;font-size:14px}
+.review dt{color:var(--muted);font-size:12.5px;margin-top:8px}.review dt:first-child{margin-top:0}.review dd{margin:0;color:var(--ink);font-weight:500;overflow-wrap:anywhere;white-space:pre-line}
+.done{text-align:center;display:grid;gap:12px;place-items:center;padding:44px 8px 20px}
+.done .check{width:72px;height:72px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;font-size:34px}
+.done h2{font-size:32px}
+.done p{max-width:40ch;margin:0}
+.sign{font-family:var(--f-display);font-size:19px;color:var(--ink)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.foot{font-size:11.5px;color:var(--muted);text-align:center;padding:0 24px 20px;line-height:1.5}
+@media (prefers-reduced-motion:no-preference){.body{animation:in .28s ease}@keyframes in{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<main class="card">
+  <header class="head">
+    <div class="top">
+      <div class="brand"><img src="/logo.png" alt=""><span id="t-brand"></span></div>
+      <div class="langs" role="group" aria-label="Idioma / Language">
+        <button type="button" data-l="pt" aria-pressed="true">PT</button><button type="button" data-l="es" aria-pressed="false">ES</button><button type="button" data-l="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+    <h1 id="t-title"></h1>
+    <p class="sub" id="t-sub"></p>
+    <div class="prog" aria-hidden="true"><div class="lbl"><span id="p-name"></span><span id="p-count"></span></div><div class="bar"><i id="p-bar"></i></div></div>
+  </header>
+  <form id="ficha" novalidate autocomplete="on">
+    <div class="hp" aria-hidden="true"><label>Empresa<input name="empresa" id="hp" tabindex="-1" autocomplete="off"></label></div>
+    <div class="body" id="step" aria-live="polite"></div>
+    <div class="nav"><button type="button" class="btn ghost" id="back"></button><button type="submit" class="btn primary" id="next"></button></div>
+  </form>
+  <p class="foot" id="t-foot"></p>
+</main>
+<script>/*FICHA_CFG*/</script>
+<script>
+(function(){
+  "use strict";
+  const CFG=window.FICHA_CFG||{};
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const q=new URLSearchParams(location.search);
+  const codigo=(location.pathname.match(/\/f\/([^/?#]+)/)||[])[1]||q.get("c")||"";
+  const ver=CFG.ver||(/\/plastica/.test(location.pathname)||q.get("v")==="pla"?"pla":"lip");
+  let lang=CFG.lang||(["pt","es","en"].includes(q.get("l"))?q.get("l"):(/^es/i.test(navigator.language||"")?"es":"pt"));
+  const t0=Date.now();
+
+  // ---------- Textos (a voz da Blue, nas três línguas) ----------
+  const TX={
+    pt:{brand:"Blue Clínica",title:{lip:"Sua pré-consulta de lipedema",pla:"Sua pré-consulta de cirurgia plástica"},
+      sub:"Com carinho, Dr. Rafael Erthal e equipe Blue",step:"Etapa",of:"de",next:"Continuar",back:"Voltar",send:"Enviar minha ficha",sending:"Enviando com segurança…",edit:"Editar",
+      foot:"🔒 Conexão segura. Suas respostas são confidenciais e ficam só com a equipe da Blue Clínica.",
+      need:"Esta resposta é importante para nós.",optional:"opcional",no:"Não tenho",none:"Nenhum",
+      steps:["Boas-vindas","Seus dados","Endereço","Avaliação","Saúde e rotina","Sonhos e expectativas","Espaço aberto","Revisão"],
+      s0h:"Que bom ter você aqui 💙",s0p:"Em cerca de 6 minutos, o Dr. Rafael chega à sua consulta já conhecendo a sua história. Tudo o que você escrever é confidencial e usado só para o seu atendimento.",
+      s0save:"Se precisar parar, suas respostas ficam guardadas neste aparelho até você fechar o navegador.",
+      apelido:"Como gostaria de ser chamada?",
+      s1h:n=>n?`Prazer, ${n}!`:"Seus dados",s1p:"Estes dados vão para o seu cadastro e o seu prontuário na clínica. Confira com atenção: é com eles que emitimos pedidos de exame e documentos.",
+      nome:"Nome completo",nomeH:"Como está no seu documento",cpf:"CPF",cpfOk:"CPF válido ✓",cpfBad:"Confira o CPF: os números não batem.",doc:"Documento ou passaporte",rg:"RG",nasc:"Data de nascimento",anos:"anos",nascBad:"Confira a data de nascimento.",
+      sexo:"Sexo",sexoO:["Feminino","Masculino"],civil:"Estado civil",civilO:["Solteira(o)","Casada(o)","União estável","Divorciada(o)","Viúva(o)"],prof:"Profissão",
+      cel:"Celular com WhatsApp",celH:"Com DDD. Usamos para confirmar a consulta.",celBad:"Confira o número: faltam dígitos.",mail:"E-mail",mailBad:"Confira o e-mail.",insta:"Instagram",
+      s2h:"Seu endereço",s2p:"Usado no cadastro e nos documentos da consulta.",cep:"CEP",cepOk:"Endereço encontrado ✓",rua:"Rua / avenida",num:"Número",compl:"Complemento",bairro:"Bairro",cidade:"Cidade",uf:"UF",pais:"País",end:"Endereço completo",
+      s3h:{lip:"Vamos entender a sua situação",pla:"Vamos entender o que você deseja"},s3p:"Não existe resposta certa ou errada. Responda do seu jeito.",
+      alt:"Altura (cm)",altH:"Ex.: 165",peso:"Peso atual (kg)",pesoH:"Ex.: 72",
+      diag:"Você já tem diagnóstico médico de lipedema?",diagO:["Sim, confirmado por um especialista","Nunca ouvi falar, mas me identifico com os sintomas"],
+      reg:{lip:"Quais regiões do corpo mais te incomodam ou causam dor/desconforto?",pla:"Quais regiões você gostaria de tratar ou melhorar?"},
+      regO:{lip:["Coxas","Panturrilhas","Braços","Glúteos","Culotes","Abdômen"],pla:["Abdômen","Mamas","Coxas","Braços","Glúteos","Culotes","Panturrilhas","Rosto"]},
+      outros:"Outras regiões? Quais?",
+      dor:"Com que frequência você sente dor, peso ou cansaço nas pernas?",dorO:["Diariamente","Algumas vezes por semana","Eventualmente","Não sinto dor"],
+      inch:"Você nota inchaço no final do dia, principalmente nas pernas ou tornozelos?",inchO:["Sim","Às vezes","Não"],
+      proc:"Qual procedimento você tem interesse em realizar?",procO:["Abdominoplastia","Lipoaspiração","Lipoescultura","Mamoplastia (aumento, redução ou lifting)","Rinoplastia","Ainda não sei / gostaria de uma avaliação"],
+      relato:"Se desejar, conte com suas palavras o que sente no corpo ou no dia a dia",relatoH:"Este espaço é todo seu. Pode desabafar, estamos aqui para te acolher.",
+      trat:"Quais tratamentos já tentou até hoje?",tratH:"Medicamentos, drenagens, exercícios, cirurgias… o que já tentou?",
+      procAnt:"Já realizou algum procedimento estético ou cirúrgico? Se sim, quais e quando?",
+      s4h:"Sua saúde e sua rotina",s4p:"Essas informações deixam a sua avaliação mais segura.",
+      alerg:"Você possui alguma alergia? Se sim, qual/quais?",acomp:"Faz acompanhamento com algum médico atualmente? Qual especialidade?",
+      cond:"Tem alguma condição de saúde que devemos saber?",condH:"Ex.: hipertensão, varizes, hipotireoidismo",med:"Faz uso contínuo de medicamentos? Quais?",cir:"Já passou por alguma cirurgia? Qual?",
+      fuma:"Você é fumante?",fumaO:["Não","Sim","Já fui fumante, mas parei"],
+      s5h:"Seus sonhos e expectativas",s5p:"Queremos entender o que é importante para você.",
+      gat:"O que te fez buscar ajuda agora? Teve algum gatilho específico?",quer:{lip:"O que você deseja alcançar com o tratamento?",pla:"O que você deseja alcançar com a cirurgia?"},querH:"Pode ser algo físico, emocional ou de qualidade de vida.",
+      lipedef:"Você já conhece ou pesquisou sobre a técnica LipeDefinition® do Dr. Rafael?",lipedefO:["Sim, e estou muito interessada","Já ouvi falar, mas quero entender melhor","Ainda não conheço"],
+      decis:{lip:"Está considerando realizar cirurgia para tratar o lipedema?",pla:"Você já está decidida a realizar a cirurgia plástica?"},decisO:["Sim, acredito que é o meu caminho","Tenho dúvidas, preciso de orientação","Ainda não sei"],
+      como:"Como conheceu o Dr. Rafael?",comoO:["Instagram","Indicação de alguém","Indicação de outro médico","Google / site","Já acompanhava o Dr. Rafael","Outro"],
+      quem:"Quem te indicou? Queremos agradecer essa gentileza 😉",plano:"Plano de saúde (se tiver)",
+      s6h:"Espaço aberto para você",s6p:"Estamos aqui para acolher, não apenas tratar.",hist:"Existe algo importante que gostaria de nos contar sobre sua história, corpo ou emoções?",
+      cons:"Autorizo a Blue Clínica a usar as informações desta ficha, inclusive as de saúde, exclusivamente para o meu atendimento, cadastro e prontuário, conforme a Lei Geral de Proteção de Dados (LGPD). Elas são acessadas apenas pela equipe da clínica e não são compartilhadas com terceiros. Posso pedir a correção ou exclusão a qualquer momento.",
+      consNeed:"Para enviarmos a sua ficha, precisamos da sua autorização.",
+      s7h:"Confira antes de enviar",s7p:"Se algo estiver diferente, toque em Editar. Depois é só enviar.",
+      robo:"Confirme que você não é um robô para enviar.",fail:"Não conseguimos enviar agora. Confira sua internet e tente de novo — suas respostas continuam aqui.",
+      doneH:n=>`Obrigada${n?", "+n:""}!`,doneP:"Obrigado por confiar na nossa equipe. Só de você ter chegado até aqui, já é uma forma de autocuidado. Estamos ansiosos para te receber com todo o respeito, técnica e carinho que você merece.",doneS:"Dr. Rafael Erthal e equipe Blue",
+      bad:"Este link não é válido. Peça um novo à nossa equipe pelo WhatsApp.",consulta:c=>`Sua consulta: ${c}`},
+    es:{brand:"Blue Clínica",title:{lip:"Tu pre-consulta de lipedema",pla:"Tu pre-consulta de cirugía plástica"},
+      sub:"Con cariño, Dr. Rafael Erthal y el equipo Blue",step:"Paso",of:"de",next:"Continuar",back:"Volver",send:"Enviar mi ficha",sending:"Enviando de forma segura…",edit:"Editar",
+      foot:"🔒 Conexión segura. Tus respuestas son confidenciales y solo las ve el equipo de Blue Clínica.",
+      need:"Esta respuesta es importante para nosotros.",optional:"opcional",no:"No tengo",none:"Ninguno",
+      steps:["Bienvenida","Tus datos","Dirección","Evaluación","Salud y rutina","Sueños y expectativas","Espacio abierto","Revisión"],
+      s0h:"Qué bueno tenerte aquí 💙",s0p:"En unos 6 minutos el Dr. Rafael llegará a tu consulta conociendo tu historia. Todo lo que escribas es confidencial y se usa solo para tu atención.",
+      s0save:"Si necesitas pausar, tus respuestas quedan guardadas en este dispositivo hasta que cierres el navegador.",
+      apelido:"¿Cómo te gustaría que te llamemos?",
+      s1h:n=>n?`¡Un gusto, ${n}!`:"Tus datos",s1p:"Estos datos van a tu registro e historia clínica. Revísalos con atención: con ellos emitimos órdenes de exámenes y documentos.",
+      nome:"Nombre completo",nomeH:"Como aparece en tu documento",cpf:"CPF (si tienes)",cpfOk:"CPF válido ✓",cpfBad:"Revisa el CPF.",doc:"Documento o pasaporte",rg:"",nasc:"Fecha de nacimiento",anos:"años",nascBad:"Revisa la fecha de nacimiento.",
+      sexo:"Sexo",sexoO:["Femenino","Masculino"],civil:"Estado civil",civilO:["Soltera(o)","Casada(o)","Unión libre","Divorciada(o)","Viuda(o)"],prof:"Profesión",
+      cel:"Teléfono con WhatsApp",celH:"Con código de país (ej.: +54 9 11 …).",celBad:"Revisa el número: faltan dígitos.",mail:"Correo electrónico",mailBad:"Revisa el correo.",insta:"Instagram",
+      s2h:"Tu dirección",s2p:"Se usa en tu registro y en los documentos de la consulta.",cep:"Código postal",cepOk:"",rua:"",num:"",compl:"",bairro:"",cidade:"Ciudad",uf:"",pais:"País",end:"Dirección completa",
+      s3h:{lip:"Entendamos tu situación",pla:"Entendamos lo que deseas"},s3p:"No hay respuestas correctas o incorrectas. Responde a tu manera.",
+      alt:"Altura (cm)",altH:"Ej.: 165",peso:"Peso actual (kg)",pesoH:"Ej.: 72",
+      diag:"¿Ya tienes diagnóstico médico de lipedema?",diagO:["Sí, confirmado por un especialista","No, pero me identifico con los síntomas"],
+      reg:{lip:"¿Qué zonas del cuerpo te molestan más o te causan dolor/incomodidad?",pla:"¿Qué zonas te gustaría tratar o mejorar?"},
+      regO:{lip:["Muslos","Pantorrillas","Brazos","Glúteos","Cartucheras","Abdomen"],pla:["Abdomen","Mamas","Muslos","Brazos","Glúteos","Cartucheras","Pantorrillas","Rostro"]},
+      outros:"¿Otras zonas? ¿Cuáles?",
+      dor:"¿Con qué frecuencia sientes dolor, pesadez o cansancio en las piernas?",dorO:["Todos los días","Algunas veces por semana","De vez en cuando","No siento dolor"],
+      inch:"¿Notas hinchazón al final del día, sobre todo en piernas o tobillos?",inchO:["Sí","A veces","No"],
+      proc:"¿Qué procedimiento te interesa realizar?",procO:["Abdominoplastia","Liposucción","Lipoescultura","Mamoplastia (aumento, reducción o lifting)","Rinoplastia","Aún no lo sé / me gustaría una evaluación"],
+      relato:"Si quieres, cuéntanos con tus palabras lo que sientes en el cuerpo o en tu día a día",relatoH:"Este espacio es todo tuyo. Estamos aquí para acompañarte.",
+      trat:"¿Qué tratamientos has probado hasta hoy?",tratH:"Medicamentos, drenajes, ejercicios, cirugías…",
+      procAnt:"¿Te has hecho algún procedimiento estético o quirúrgico? ¿Cuáles y cuándo?",
+      s4h:"Tu salud y tu rutina",s4p:"Esta información hace tu evaluación más segura.",
+      alerg:"¿Tienes alguna alergia? ¿Cuál/cuáles?",acomp:"¿Te atiende algún médico actualmente? ¿De qué especialidad?",
+      cond:"¿Tienes alguna condición de salud que debamos saber?",condH:"Ej.: hipertensión, várices, hipotiroidismo",med:"¿Tomas medicamentos de uso continuo? ¿Cuáles?",cir:"¿Te has operado alguna vez? ¿De qué?",
+      fuma:"¿Fumas?",fumaO:["No","Sí","Fumaba, pero lo dejé"],
+      s5h:"Tus sueños y expectativas",s5p:"Queremos entender lo que es importante para ti.",
+      gat:"¿Qué te hizo buscar ayuda ahora? ¿Hubo algo en especial?",quer:{lip:"¿Qué deseas lograr con el tratamiento?",pla:"¿Qué deseas lograr con la cirugía?"},querH:"Puede ser algo físico, emocional o de calidad de vida.",
+      lipedef:"¿Conoces la técnica LipeDefinition® del Dr. Rafael?",lipedefO:["Sí, y me interesa mucho","Escuché hablar, pero quiero entenderla mejor","Todavía no la conozco"],
+      decis:{lip:"¿Estás considerando una cirugía para tratar el lipedema?",pla:"¿Ya decidiste hacerte la cirugía plástica?"},decisO:["Sí, creo que es mi camino","Tengo dudas, necesito orientación","Aún no lo sé"],
+      como:"¿Cómo conociste al Dr. Rafael?",comoO:["Instagram","Recomendación de alguien","Recomendación de otro médico","Google / sitio web","Ya seguía al Dr. Rafael","Otro"],
+      quem:"¿Quién te recomendó? Queremos agradecerle 😉",plano:"Seguro médico (si tienes)",
+      s6h:"Un espacio para ti",s6p:"Estamos aquí para acompañar, no solo para tratar.",hist:"¿Hay algo importante que quieras contarnos sobre tu historia, tu cuerpo o tus emociones?",
+      cons:"Autorizo a Blue Clínica a usar la información de esta ficha, incluida la de salud, exclusivamente para mi atención, registro e historia clínica, según la ley brasileña de protección de datos (LGPD). Solo el equipo de la clínica tiene acceso y no se comparte con terceros. Puedo pedir su corrección o eliminación en cualquier momento.",
+      consNeed:"Para enviar tu ficha necesitamos tu autorización.",
+      s7h:"Revisa antes de enviar",s7p:"Si algo no está bien, toca Editar. Luego, envía.",
+      robo:"Confirma que no eres un robot para enviar.",fail:"No pudimos enviar ahora. Revisa tu conexión e inténtalo de nuevo; tus respuestas siguen aquí.",
+      doneH:n=>`¡Gracias${n?", "+n:""}!`,doneP:"Gracias por confiar en nuestro equipo. Haber llegado hasta aquí ya es una forma de autocuidado. Te esperamos con todo el respeto, la técnica y el cariño que mereces.",doneS:"Dr. Rafael Erthal y equipo Blue",
+      bad:"Este enlace no es válido. Pide uno nuevo a nuestro equipo por WhatsApp.",consulta:c=>`Tu consulta: ${c} (hora de Brasilia)`},
+    en:{brand:"Blue Clinic",title:{lip:"Your lipedema pre-consultation",pla:"Your plastic surgery pre-consultation"},
+      sub:"With care, Dr. Rafael Erthal and the Blue Team",step:"Step",of:"of",next:"Continue",back:"Back",send:"Submit my form",sending:"Sending securely…",edit:"Edit",
+      foot:"🔒 Secure connection. Your answers are confidential and seen only by the Blue Clinic team.",
+      need:"This answer is important to us.",optional:"optional",no:"None",none:"None",
+      steps:["Welcome","Your details","Address","Assessment","Health & routine","Expectations & goals","Open space","Review"],
+      s0h:"We're glad you're here 💙",s0p:"In about 6 minutes, Dr. Rafael will meet you already knowing your story. Everything you write is strictly confidential and used only for your care.",
+      s0save:"If you need to pause, your answers stay saved on this device until you close the browser.",
+      apelido:"How would you like to be called?",
+      s1h:n=>n?`Nice to meet you, ${n}!`:"Your details",s1p:"These details go to your registration and medical record. Please check them carefully: we use them for exam requests and documents.",
+      nome:"Full name",nomeH:"As shown on your ID",cpf:"CPF (if you have one)",cpfOk:"Valid CPF ✓",cpfBad:"Please check the CPF.",doc:"ID or passport number",rg:"",nasc:"Date of birth",anos:"years",nascBad:"Please check your date of birth.",
+      sexo:"Sex",sexoO:["Female","Male"],civil:"Marital status",civilO:["Single","Married","Domestic partnership","Divorced","Widowed"],prof:"Occupation",
+      cel:"WhatsApp phone number",celH:"Include your country code (e.g. +1 …).",celBad:"Please check the number.",mail:"Email",mailBad:"Please check your email.",insta:"Instagram",
+      s2h:"Your address",s2p:"Used for your registration and consultation documents.",cep:"ZIP / postal code",cepOk:"",rua:"",num:"",compl:"",bairro:"",cidade:"City",uf:"",pais:"Country",end:"Full address",
+      s3h:{lip:"Let's understand your situation",pla:"Let's understand what you want"},s3p:"There are no right or wrong answers. Answer in your own way.",
+      alt:"Height (cm)",altH:"e.g. 165",peso:"Current weight (kg)",pesoH:"e.g. 72",
+      diag:"Have you already been diagnosed with lipedema by a medical specialist?",diagO:["Yes, it is confirmed","No, but I strongly identify with the symptoms"],
+      reg:{lip:"Which areas cause you the most discomfort or pain?",pla:"Which areas would you like to treat or improve?"},
+      regO:{lip:["Thighs","Calves","Arms","Buttocks","Outer thighs (saddlebags)","Abdomen"],pla:["Abdomen","Breasts","Thighs","Arms","Buttocks","Outer thighs","Calves","Face"]},
+      outros:"Other areas? Which ones?",
+      dor:"How often do you feel pain, heaviness or fatigue in your legs?",dorO:["Daily","A few times a week","Occasionally","I do not feel pain"],
+      inch:"Do you notice swelling at the end of the day, especially in your legs or ankles?",inchO:["Yes","Sometimes","No"],
+      proc:"Which procedure are you interested in?",procO:["Tummy tuck","Liposuction","Liposculpture","Breast surgery (augmentation, reduction or lift)","Rhinoplasty","Not sure yet / I'd like an assessment"],
+      relato:"In your own words, describe what you feel in your body or daily routine",relatoH:"This space is yours. Feel free to share; we are here to support you.",
+      trat:"Which treatments have you tried so far?",tratH:"Medication, lymphatic drainage, exercise, surgery…",
+      procAnt:"Have you had any cosmetic or surgical procedures? Which and when?",
+      s4h:"Health & medical history",s4p:"This information makes your assessment safer.",
+      alerg:"Do you have any allergies? Please specify.",acomp:"Are you currently under medical care? Which specialty?",
+      cond:"Any health conditions we should know about?",condH:"e.g. hypertension, varicose veins, hypothyroidism",med:"List any continuous medications:",cir:"Please list any previous surgeries:",
+      fuma:"Do you smoke?",fumaO:["No","Yes","I used to, but quit"],
+      s5h:"Expectations & goals",s5p:"We want to understand what matters to you.",
+      gat:"What made you seek professional help at this moment?",quer:{lip:"What is your primary goal with this treatment?",pla:"What is your primary goal with surgery?"},querH:"It can be physical, emotional, or related to quality of life.",
+      lipedef:"Are you familiar with Dr. Rafael's LipeDefinition® technique?",lipedefO:["Yes, and I am very interested","I have heard of it, but want to learn more","Not yet"],
+      decis:{lip:"Are you considering surgery to treat lipedema?",pla:"Have you decided to have plastic surgery?"},decisO:["Yes, I believe it is my next step","I have doubts and need guidance","I am not sure yet"],
+      como:"How did you find Dr. Rafael?",comoO:["Instagram","Referred by someone","Referred by another doctor","Google / website","I already followed Dr. Rafael","Other"],
+      quem:"Who referred you? We'd love to thank them 😉",plano:"Health insurance (if any)",
+      s6h:"An open space for you",s6p:"We are here to support you, not only to treat.",hist:"Is there anything important you would like to share about your story, body or emotions?",
+      cons:"I authorize Blue Clinic to use the information in this form, including health information, exclusively for my care, registration and medical record, under Brazil's data protection law (LGPD). Only the clinic team can access it and it is not shared with third parties. I may request its correction or deletion at any time.",
+      consNeed:"We need your authorization to submit your form.",
+      s7h:"Review before submitting",s7p:"If something is not right, tap Edit. Then submit.",
+      robo:"Please confirm you are not a robot.",fail:"We couldn't send it now. Check your connection and try again; your answers are still here.",
+      doneH:n=>`Thank you${n?", "+n:""}!`,doneP:"Thank you for trusting our team. Simply getting here is already an act of self-care. We look forward to welcoming you with all the respect, expertise and care you deserve.",doneS:"Dr. Rafael Erthal and the Blue Team",
+      bad:"This link is not valid. Please ask our team for a new one on WhatsApp.",consulta:c=>`Your appointment: ${c} (Brasília time)`}
+  };
+  const PT=TX.pt;
+
+  // ---------- Estado (fica só nesta aba: sessionStorage) ----------
+  const CHAVE="fichaBlue:"+ver+":"+(codigo||"aberta");
+  let d={apelido:"",nome:"",cpf:"",documento:"",rg:"",nasc:"",sexo:"",estadoCivil:"",prof:"",cel:"",mail:"",instagram:"",
+    cep:"",rua:"",numero:"",compl:"",bairro:"",cidade:"",uf:"",pais:"",end:"",alt:"",peso:"",diag:"",reg:[],regOutros:"",dor:"",inchaco:"",
+    procedimento:"",relato:"",tratamentos:"",procAnteriores:"",alergias:"",acompanhamento:"",condicoes:"",med:"",cirurgias:"",fumante:"",
+    gatilho:"",quer:"",lipedef:"",decisao:"",como:"",quem:"",plano:"",historia:"",cons:false};
+  try{const s=JSON.parse(sessionStorage.getItem(CHAVE)||"null");if(s&&typeof s==="object")d=Object.assign(d,s);}catch(e){}
+  const salvar=()=>{try{sessionStorage.setItem(CHAVE,JSON.stringify(d));}catch(e){}};
+  let step=0,info={nome:"",consulta:null},enviando=false,tsToken="";
+  const BR=()=>lang==="pt";
+  const T=()=>TX[lang];
+  const pick=v=>v&&typeof v==="object"&&!Array.isArray(v)?v[ver]:v;
+
+  // ---------- Utilidades ----------
+  function cpfOk(v){const x=String(v).replace(/\D/g,"");if(x.length!==11||/^(\d)\1+$/.test(x))return false;for(const n of[9,10]){let s=0;for(let i=0;i<n;i++)s+=+x[i]*(n+1-i);if((s*10)%11%10!==+x[n])return false;}return true;}
+  function idade(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||""))return "";const b=new Date(iso+"T12:00:00"),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a>=12&&a<=100?a:"";}
+  const digitos=s=>String(s||"").replace(/\D/g,"");
+  const primeiroNome=()=>(d.apelido||info.nome||"").trim().split(/\s+/)[0];
+
+  // ---------- Campos ----------
+  const lab=(k,txt,req,opt)=>`<label for="f-${k}">${esc(txt)}${req?' <span class="req" aria-hidden="true">*</span>':""}${opt?` <span class="opt">(${T().optional})</span>`:""}</label>`;
+  const inp=(k,txt,o={})=>`<div class="field">${lab(k,txt,o.req,o.opt)}${o.hint?`<span class="hint" id="h-${k}">${esc(o.hint)}</span>`:""}<input id="f-${k}" name="${k}" type="${o.type||"text"}" value="${esc(d[k])}" ${o.attrs||""}${o.req?' aria-required="true"':""}${o.hint?` aria-describedby="h-${k}"`:""}><span class="err" id="e-${k}" role="alert"></span></div>`;
+  const ta=(k,txt,o={})=>`<div class="field">${lab(k,txt,o.req,o.opt)}${o.hint?`<span class="hint">${esc(o.hint)}</span>`:""}<textarea id="f-${k}" name="${k}" maxlength="2000">${esc(d[k])}</textarea>${o.quick?`<div class="quick">${o.quick.map(x=>`<button type="button" data-fill="${k}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div>`:""}<span class="err" id="e-${k}" role="alert"></span></div>`;
+  // Opções: guardamos o índice (a nota no Kommo sai sempre em português)
+  const radios=(k,txt,opts,o={})=>`<div class="field" role="radiogroup" aria-labelledby="l-${k}"><span class="legend" id="l-${k}">${esc(txt)}${o.req?' <span class="req">*</span>':""}</span><div class="chips ${o.col?"col":""}">${opts.map((x,i)=>`<label><input type="radio" name="${k}" value="${i}" ${String(d[k])===String(i)?"checked":""}><span>${esc(x)}</span></label>`).join("")}</div><span class="err" id="e-${k}" role="alert"></span></div>`;
+  const checks=(k,txt,opts)=>`<div class="field"><span class="legend">${esc(txt)}</span><div class="chips">${opts.map((x,i)=>`<label><input type="checkbox" name="${k}" value="${i}" ${d[k].includes(i)?"checked":""}><span>${esc(x)}</span></label>`).join("")}</div></div>`;
+  const sel=(k,txt,opts)=>`<div class="field">${lab(k,txt,false,true)}<select id="f-${k}" name="${k}"><option value=""></option>${opts.map((x,i)=>`<option value="${i}" ${String(d[k])===String(i)?"selected":""}>${esc(x)}</option>`).join("")}</select></div>`;
+
+  const PASSOS=[
+    {nome:0,html:t=>`<h2>${esc(t.s0h)}</h2><p class="intro">${esc(t.s0p)}</p>${inp("apelido",t.apelido,{req:true,attrs:'autocomplete="nickname" maxlength="40"'})}<div class="note">💾 <span>${esc(t.s0save)}</span></div>`},
+    {nome:1,html:t=>`<h2>${esc(t.s1h(primeiroNome()))}</h2><p class="intro">${esc(t.s1p)}</p>
+      ${inp("nome",t.nome,{req:true,hint:t.nomeH,attrs:'autocomplete="name" autocapitalize="words" maxlength="120"'})}
+      ${BR()?`<div class="row2">${inp("cpf",t.cpf,{req:true,attrs:'inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14"'})}${inp("rg",t.rg,{opt:true,attrs:'inputmode="numeric" maxlength="20"'})}</div>`
+        :`${inp("documento",t.doc,{req:true,attrs:'maxlength="40"'})}${inp("cpf",t.cpf,{opt:true,attrs:'inputmode="numeric" maxlength="14"'})}`}
+      <div class="row2"><div class="field">${lab("nasc",t.nasc,true)}<input id="f-nasc" name="nasc" type="date" value="${esc(d.nasc)}" max="${new Date().toISOString().slice(0,10)}" aria-required="true"><span class="okmsg" id="i-nasc">${idade(d.nasc)?idade(d.nasc)+" "+t.anos:""}</span><span class="err" id="e-nasc" role="alert"></span></div>${sel("estadoCivil",t.civil,t.civilO)}</div>
+      ${ver==="pla"?radios("sexo",t.sexo,t.sexoO):""}
+      ${inp("cel",t.cel,{req:true,type:"tel",hint:t.celH,attrs:`autocomplete="tel" placeholder="${BR()?"(21) 99999-9999":"+…"}" maxlength="22"`})}
+      ${inp("mail",t.mail,{req:true,type:"email",attrs:'autocomplete="email" autocapitalize="off" maxlength="120"'})}
+      <div class="row2">${inp("instagram",t.insta,{opt:true,attrs:'autocapitalize="off" placeholder="@" maxlength="40"'})}${inp("prof",t.prof,{opt:true,attrs:'autocomplete="organization-title" maxlength="60"'})}</div>`},
+    {nome:2,html:t=>`<h2>${esc(t.s2h)}</h2><p class="intro">${esc(t.s2p)}</p>`+(BR()
+      ?`<div class="row2"><div class="field">${lab("cep",t.cep,true)}<input id="f-cep" name="cep" inputmode="numeric" autocomplete="postal-code" value="${esc(d.cep)}" placeholder="00000-000" maxlength="9" aria-required="true"><span class="okmsg" id="i-cep"></span><span class="err" id="e-cep" role="alert"></span></div>${inp("numero",t.num,{req:true,attrs:'maxlength="10"'})}</div>
+        ${inp("rua",t.rua,{req:true,attrs:'autocomplete="address-line1" maxlength="120"'})}<div class="row2">${inp("compl",t.compl,{opt:true,attrs:'autocomplete="address-line2" maxlength="60"'})}${inp("bairro",t.bairro,{attrs:'maxlength="60"'})}</div><div class="row3">${inp("cidade",t.cidade,{attrs:'autocomplete="address-level2" maxlength="60"'})}${inp("uf",t.uf,{attrs:'maxlength="2" autocapitalize="characters"'})}</div>`
+      :`<div class="row2">${inp("pais",t.pais,{req:true,attrs:'autocomplete="country-name" maxlength="60"'})}${inp("cidade",t.cidade,{req:true,attrs:'autocomplete="address-level2" maxlength="60"'})}</div>${inp("end",t.end,{opt:true,attrs:'autocomplete="street-address" maxlength="160"'})}`)},
+    {nome:3,html:t=>`<h2>${esc(pick(t.s3h))}</h2><p class="intro">${esc(t.s3p)}</p>
+      <div class="row2">${inp("alt",t.alt,{type:"number",hint:t.altH,attrs:'inputmode="numeric" min="120" max="220"'})}${inp("peso",t.peso,{type:"number",hint:t.pesoH,attrs:'inputmode="decimal" min="30" max="300" step="0.1"'})}</div>`+(ver==="lip"
+      ?`${radios("diag",t.diag,t.diagO,{col:true})}${checks("reg",pick(t.reg),pick(t.regO))}${inp("regOutros",t.outros,{opt:true,attrs:'maxlength="120"'})}${radios("dor",t.dor,t.dorO)}${radios("inchaco",t.inch,t.inchO)}${ta("relato",t.relato,{opt:true,hint:t.relatoH})}${ta("tratamentos",t.trat,{opt:true,hint:t.tratH,quick:[t.none]})}`
+      :`${radios("procedimento",t.proc,t.procO,{col:true})}${checks("reg",pick(t.reg),pick(t.regO))}${inp("regOutros",t.outros,{opt:true,attrs:'maxlength="120"'})}${ta("relato",t.relato,{opt:true,hint:t.relatoH})}${ta("procAnteriores",t.procAnt,{opt:true,quick:[t.none]})}`)},
+    {nome:4,html:t=>`<h2>${esc(t.s4h)}</h2><p class="intro">${esc(t.s4p)}</p>
+      ${ta("alergias",t.alerg,{quick:[t.no]})}${ta("acompanhamento",t.acomp,{quick:[t.no]})}${ta("condicoes",t.cond,{hint:t.condH,quick:[t.no]})}${ta("med",t.med,{quick:[t.no]})}${ta("cirurgias",t.cir,{quick:[t.no]})}${radios("fumante",t.fuma,t.fumaO)}`},
+    {nome:5,html:t=>`<h2>${esc(t.s5h)}</h2><p class="intro">${esc(t.s5p)}</p>
+      ${ta("gatilho",t.gat,{opt:true})}${ta("quer",pick(t.quer),{opt:true,hint:t.querH})}${ver==="lip"?radios("lipedef",t.lipedef,t.lipedefO,{col:true}):""}${radios("decisao",pick(t.decis),t.decisO,{col:true})}
+      ${radios("como",t.como,t.comoO)}<div id="w-quem" ${String(d.como)==="1"||String(d.como)==="2"?"":"hidden"}>${inp("quem",t.quem,{opt:true,attrs:'maxlength="80"'})}</div>${inp("plano",t.plano,{opt:true,attrs:'maxlength="60"'})}`},
+    {nome:6,html:t=>`<h2>${esc(t.s6h)}</h2><p class="intro">${esc(t.s6p)}</p>${ta("historia",t.hist,{opt:true})}
+      <label class="consent" for="f-cons"><input type="checkbox" id="f-cons" name="cons" ${d.cons?"checked":""}><span>${esc(t.cons)}</span></label><span class="err" id="e-cons" role="alert"></span>`},
+    {nome:7,html:t=>`<h2>${esc(t.s7h)}</h2><p class="intro">${esc(t.s7p)}</p><div class="review">${resumo(t)}</div><div id="ts"></div><span class="err" id="e-envio" role="alert"></span>`}
+  ];
+  const N=PASSOS.length;
+
+  function resumo(t){
+    const op=(arr,v)=>v===""||v==null?"":arr[+v];
+    const end=BR()?[d.rua,d.numero,d.compl,d.bairro,d.cidade,d.uf,d.cep].filter(Boolean).join(", "):[d.end,d.cidade,d.pais].filter(Boolean).join(", ");
+    const regs=[...d.reg.map(i=>pick(t.regO)[i]),d.regOutros].filter(Boolean).join(", ");
+    const blocos=[
+      [1,t.steps[1],[[t.nome,d.nome],[BR()?t.cpf:t.doc,BR()?d.cpf:d.documento],[t.rg,d.rg],[t.nasc,d.nasc?d.nasc.split("-").reverse().join("/")+(idade(d.nasc)?` (${idade(d.nasc)} ${t.anos})`:""):""],[t.civil,op(t.civilO,d.estadoCivil)],[t.sexo,op(t.sexoO,d.sexo)],[t.prof,d.prof],[t.cel,d.cel],[t.mail,d.mail],[t.insta,d.instagram]]],
+      [2,t.steps[2],[[t.s2h,end]]],
+      [3,t.steps[3],[[t.alt,d.alt],[t.peso,d.peso],[t.diag,op(t.diagO,d.diag)],[t.proc,op(t.procO,d.procedimento)],[pick(t.reg),regs],[t.dor,op(t.dorO,d.dor)],[t.inch,op(t.inchO,d.inchaco)],[t.relato,d.relato],[t.trat,d.tratamentos],[t.procAnt,d.procAnteriores]]],
+      [4,t.steps[4],[[t.alerg,d.alergias],[t.acomp,d.acompanhamento],[t.cond,d.condicoes],[t.med,d.med],[t.cir,d.cirurgias],[t.fuma,op(t.fumaO,d.fumante)]]],
+      [5,t.steps[5],[[t.gat,d.gatilho],[pick(t.quer),d.quer],[t.lipedef,op(t.lipedefO,d.lipedef)],[pick(t.decis),op(t.decisO,d.decisao)],[t.como,op(t.comoO,d.como)],[t.quem,d.quem],[t.plano,d.plano]]],
+      [6,t.steps[6],[[t.hist,d.historia]]]
+    ];
+    return blocos.map(([p,tit,linhas])=>{const l=linhas.filter(([r,v])=>r&&v);return l.length?`<section><header><h3>${esc(tit)}</h3><button type="button" data-ir="${p}">${esc(t.edit)}</button></header><dl>${l.map(([r,v])=>`<dt>${esc(r)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></section>`:"";}).join("");
+  }
+
+  function render(){
+    const t=T();
+    document.documentElement.lang=lang==="pt"?"pt-BR":lang;
+    $("t-brand").textContent=t.brand;$("t-title").textContent=pick(t.title);
+    $("t-sub").textContent=info.consulta?t.consulta(consultaTxt()):t.sub;$("t-foot").textContent=t.foot;
+    document.querySelectorAll(".langs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===lang)));
+    const fim=step>=N;
+    $("p-name").textContent=fim?"":t.steps[step];$("p-count").textContent=fim?"":`${t.step} ${step+1} ${t.of} ${N}`;
+    $("p-bar").style.width=(fim?100:Math.round((step+1)/N*100))+"%";
+    $("back").textContent=t.back;$("back").hidden=step===0||fim;
+    $("next").hidden=fim;$("next").textContent=step===N-1?t.send:t.next;
+    if(step===99){$("step").innerHTML=`<div class="done"><p>${esc(t.bad)}</p></div>`;$("next").hidden=$("back").hidden=true;return;}
+    $("step").innerHTML=fim?`<div class="done"><div class="check" aria-hidden="true">✓</div><h2>${esc(t.doneH(primeiroNome()))}</h2><p>${esc(t.doneP)}</p><p class="sign">${esc(t.doneS)}</p></div>`:PASSOS[step].html(t);
+    ligar();
+    if(step===N-1)turnstile();
+  }
+  function consultaTxt(){const c=new Date(info.consulta);const o={timeZone:"America/Sao_Paulo"};return c.toLocaleDateString(lang==="en"?"en-GB":lang==="es"?"es":"pt-BR",{...o,day:"2-digit",month:"2-digit"})+" · "+c.toLocaleTimeString("pt-BR",{...o,hour:"2-digit",minute:"2-digit"});}
+
+  function ligar(){
+    const t=T();
+    const cpf=$("f-cpf");
+    if(cpf){const f=()=>{const x=digitos(cpf.value).slice(0,11);if(BR())cpf.value=x.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2");const e=$("e-cpf");if(x.length===11){const ok=cpfOk(x);e.className=ok?"okmsg":"err";e.textContent=ok?t.cpfOk:t.cpfBad;cpf.setAttribute("aria-invalid",String(!ok));}else{e.textContent="";cpf.removeAttribute("aria-invalid");}};cpf.addEventListener("input",f);if(cpf.value)f();}
+    const nasc=$("f-nasc");if(nasc)nasc.addEventListener("input",()=>{const a=idade(nasc.value);$("i-nasc").textContent=a?a+" "+t.anos:"";});
+    const cel=$("f-cel");if(cel&&BR())cel.addEventListener("input",()=>{let x=digitos(cel.value);if(x.startsWith("55")&&x.length>11)x=x.slice(2);x=x.slice(0,11);cel.value=x.length>6?`(${x.slice(0,2)}) ${x.slice(2,x.length-4)}-${x.slice(-4)}`:x.length>2?`(${x.slice(0,2)}) ${x.slice(2)}`:x;});
+    const cep=$("f-cep");if(cep)cep.addEventListener("input",()=>{const x=digitos(cep.value).slice(0,8);cep.value=x.length>5?x.slice(0,5)+"-"+x.slice(5):x;if(x.length===8)buscaCep(x);});
+    const uf=$("f-uf");if(uf)uf.addEventListener("input",()=>{uf.value=uf.value.toUpperCase().replace(/[^A-Z]/g,"").slice(0,2);});
+    const ig=$("f-instagram");if(ig)ig.addEventListener("blur",()=>{const v=ig.value.trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,"").replace(/[/?].*$/,"");ig.value=v&&!v.startsWith("@")?"@"+v:v;});
+    document.querySelectorAll("[data-fill]").forEach(b=>b.addEventListener("click",()=>{const el=$("f-"+b.dataset.fill);el.value=b.dataset.v;el.focus();}));
+    document.querySelectorAll('input[name="como"]').forEach(r=>r.addEventListener("change",()=>{$("w-quem").hidden=!(r.value==="1"||r.value==="2");}));
+    document.querySelectorAll("[data-ir]").forEach(b=>b.addEventListener("click",()=>{step=+b.dataset.ir;render();window.scrollTo(0,0);}));
+    document.querySelectorAll("#step input,#step textarea,#step select").forEach(el=>el.addEventListener("input",()=>{el.removeAttribute("aria-invalid");const e=$("e-"+el.name);if(e&&e.className==="err"&&el.name!=="cpf")e.textContent="";}));
+  }
+  async function buscaCep(x){
+    try{const r=await(await fetch("https://viacep.com.br/ws/"+x+"/json/")).json();if(r.erro)return;
+      [["rua",r.logradouro],["bairro",r.bairro],["cidade",r.localidade],["uf",r.uf]].forEach(([k,v])=>{const el=$("f-"+k);if(el&&v&&!el.value)el.value=v;});
+      $("i-cep").textContent=T().cepOk;const n=$("f-numero");if(n&&!n.value)n.focus();
+    }catch(e){}
+  }
+  function coletar(){
+    const f=$("ficha");
+    Object.keys(d).forEach(k=>{
+      if(k==="cons"){if(f.elements.cons)d.cons=f.elements.cons.checked;return;}
+      if(Array.isArray(d[k])){if(f.querySelector(`input[name="${k}"]`))d[k]=[...f.querySelectorAll(`input[name="${k}"]:checked`)].map(x=>+x.value);return;}
+      if(f.querySelector(`input[type=radio][name="${k}"]`)){const el=f.querySelector(`input[name="${k}"]:checked`);d[k]=el?el.value:"";return;}
+      const el=f.elements[k];if(el&&el.tagName)d[k]=String(el.value).trim();
+    });
+    salvar();
+  }
+  function validar(){
+    const t=T(),erros=[];
+    const marca=(k,msg)=>{erros.push(k);const el=$("f-"+k),e=$("e-"+k);if(el)el.setAttribute("aria-invalid","true");if(e){e.className="err";e.textContent=msg||t.need;}};
+    if(step===0&&!d.apelido)marca("apelido");
+    if(step===1){
+      if(d.nome.split(/\s+/).filter(Boolean).length<2)marca("nome");
+      if(BR()){if(!cpfOk(d.cpf))marca("cpf",d.cpf?t.cpfBad:t.need);}else{if(!d.documento)marca("documento");if(d.cpf&&!cpfOk(d.cpf))marca("cpf",t.cpfBad);}
+      if(!idade(d.nasc))marca("nasc",d.nasc?t.nascBad:t.need);
+      const c=digitos(d.cel);if(c.length<(BR()?10:8))marca("cel",d.cel?t.celBad:t.need);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.mail))marca("mail",d.mail?t.mailBad:t.need);
+    }
+    if(step===2){if(BR()){["cep","rua","numero"].forEach(k=>{if(!d[k])marca(k);});if(d.cep&&digitos(d.cep).length!==8)marca("cep");}else{["pais","cidade"].forEach(k=>{if(!d[k])marca(k);});}}
+    if(step===6&&!d.cons)marca("cons",t.consNeed);
+    if(erros.length){const el=$("f-"+erros[0])||$("e-"+erros[0]);if(el){el.scrollIntoView({block:"center",behavior:"smooth"});if(el.focus)el.focus({preventScroll:true});}}
+    return !erros.length;
+  }
+  // Envia em português para a equipe, qualquer que seja o idioma da paciente
+  function payload(){
+    const op=(arr,v)=>v===""||v==null?"":arr[+v];
+    const tl=pick;
+    return {nome:d.nome,apelido:d.apelido,cpf:d.cpf,documento:d.documento,rg:d.rg,nasc:d.nasc,sexo:op(PT.sexoO,d.sexo),estadoCivil:op(PT.civilO,d.estadoCivil),prof:d.prof,
+      cel:BR()?"+55 "+d.cel:d.cel,mail:d.mail,instagram:d.instagram,cep:d.cep,rua:d.rua,numero:d.numero,compl:d.compl,bairro:d.bairro,cidade:d.cidade,uf:d.uf,pais:BR()?"":d.pais,end:d.end,
+      alt:d.alt,peso:d.peso,diag:op(PT.diagO,d.diag),procedimento:op(PT.procO,d.procedimento),reg:d.reg.map(i=>tl(PT.regO)[i]),regOutros:d.regOutros,dor:op(PT.dorO,d.dor),inchaco:op(PT.inchO,d.inchaco),
+      relato:d.relato,tratamentos:d.tratamentos,procAnteriores:d.procAnteriores,alergias:d.alergias,acompanhamento:d.acompanhamento,condicoes:d.condicoes,med:d.med,cirurgias:d.cirurgias,
+      fumante:op(PT.fumaO,d.fumante),gatilho:d.gatilho,quer:d.quer,lipedef:op(PT.lipedefO,d.lipedef),decisao:op(PT.decisO,d.decisao),como:op(PT.comoO,d.como),quem:d.quem,plano:d.plano,historia:d.historia,cons:d.cons===true};
+  }
+  function turnstile(){
+    if(!CFG.turnstile||$("ts").dataset.ok)return;$("ts").dataset.ok="1";
+    const go=()=>window.turnstile.render("#ts",{sitekey:CFG.turnstile,language:lang==="pt"?"pt-br":lang,callback:v=>{tsToken=v;}});
+    if(window.turnstile)go();else{const s=document.createElement("script");s.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";s.async=true;s.onload=go;document.head.appendChild(s);}
+  }
+  async function enviar(){
+    const t=T();
+    if(CFG.turnstile&&!tsToken){$("e-envio").textContent=t.robo;return;}
+    enviando=true;$("next").disabled=true;$("next").textContent=t.sending;$("back").disabled=true;$("e-envio").textContent="";
+    try{
+      const r=await fetch("/api/ficha",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({c:codigo||undefined,lang,ver,dados:payload(),hp:$("hp").value,ms:Date.now()-t0,ts:tsToken})});
+      const j=await r.json().catch(()=>({}));
+      if(r.status===404&&codigo){step=99;render();return;}
+      if(!r.ok||!j.ok)throw new Error(j.erro||r.status);
+      try{sessionStorage.removeItem(CHAVE);}catch(e){}
+      step=N;render();window.scrollTo(0,0);
+    }catch(e){$("e-envio").textContent=t.fail;if(window.turnstile&&CFG.turnstile){try{window.turnstile.reset("#ts");}catch(x){}tsToken="";}}
+    finally{enviando=false;$("next").disabled=false;$("back").disabled=false;if(step===N-1)$("next").textContent=t.send;}
+  }
+
+  $("ficha").addEventListener("submit",e=>{
+    e.preventDefault();if(enviando)return;coletar();
+    if(!validar())return;
+    if(step===N-1){enviar();return;}
+    step++;render();window.scrollTo(0,0);
+    const first=document.querySelector("#step input:not([type=radio]):not([type=checkbox]),#step textarea");if(first&&step<N-1&&!first.value)first.focus({preventScroll:true});
+  });
+  $("back").addEventListener("click",()=>{coletar();step=Math.max(0,step-1);render();window.scrollTo(0,0);});
+  document.querySelectorAll(".langs button").forEach(b=>b.addEventListener("click",()=>{coletar();lang=b.dataset.l;render();}));
+  render();
+  if(codigo){fetch("/api/ficha?c="+encodeURIComponent(codigo)).then(r=>r.status===404?Promise.reject(404):r.json()).then(j=>{if(j.ok){info=j;if(!d.apelido&&j.nome)d.apelido=j.nome;render();}}).catch(s=>{if(s===404){step=99;render();}});}
+})();
+</script>
+</body>
+</html>

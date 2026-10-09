@@ -1,0 +1,14 @@
+# Ficha Blue no Cloudflare Pages (alternativa ao Netlify). A página é ficha/index.html; as APIs ficam em functions/.
+# Publicar: Cloudflare → Workers & Pages → Create → Pages → Connect to Git (este repositório),
+#   Build command: (vazio) · Build output directory: ficha
+name = "clinicablue"
+pages_build_output_dir = "ficha"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Banco D1 (Cloudflare → D1 → blue-financeiro). Usado pelo Controle financeiro (tabelas fin_*) e pela Ficha Blue (tabela fichas).
+# Com o wrangler.toml no projeto, as ligações (bindings) ficam aqui, e não no painel. Senhas continuam como Secrets no painel.
+[[d1_databases]]
+binding = "DB"
+database_name = "blue-financeiro"
+database_id = "dcf86313-0d94-4cea-be89-3d8b54bee267"

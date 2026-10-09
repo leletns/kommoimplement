@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fichas recebidas · Blue</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--okbg:#e9f6ef;--bad:#b04848;--new:#a46d1c;--newbg:#faf1e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--new:#e7b566;--newbg:#3a2c14;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--new:#e7b566;--newbg:#3a2c14;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header.top{background:#13294a;color:#fff;padding:18px 16px}
+header.top .in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
+header.top img{width:30px;height:30px}
+header.top h1{font-size:18px;margin:0;font-weight:600}
+header.top p{margin:0;color:#c7d6ea;font-size:13px}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+input{flex:1 1 220px;font:16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+button{border:0;border-radius:10px;padding:9px 13px;font:600 13.5px system-ui;cursor:pointer;background:var(--navy);color:#fff}
+button.sec{background:var(--soft);color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button:not(.sec){background:var(--accent);color:#0d1626}}
+h2{font-size:15px;color:var(--ink);margin:22px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+h2 small{font-weight:500;color:var(--muted);font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:10px}
+.card .t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.card h3{font-size:16px;color:var(--ink);margin:0}
+.meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pill{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--accent);white-space:nowrap}
+.pill.new{background:var(--newbg);color:var(--new)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+details{margin-top:10px;font-size:13.5px}
+summary{cursor:pointer;color:var(--accent);font-weight:600}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:10px 0 0}
+dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white-space:pre-line}
+#msg{margin-top:10px;font-weight:600;font-size:14px}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+.vazio{color:var(--muted);font-size:14px;margin-top:8px}
+</style>
+</head>
+<body>
+<header class="top"><div class="in"><img src="/logo.png" alt=""><div><h1>Fichas recebidas</h1><p>Cadastro no Amigo e no DocSignature · PDF para o prontuário</p></div></div></header>
+<main>
+  <form id="f">
+    <input id="q" placeholder="Buscar por nome, celular ou e-mail" autocomplete="off">
+    <input id="senha" type="password" placeholder="Senha da equipe" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" hidden><label id="ver-senha" style="font-size:13px;display:none;align-items:center;gap:4px;color:var(--muted)"><input type="checkbox" id="mostrar" style="flex:none;width:auto"> mostrar senha</label>
+    <button>Buscar</button>
+  </form>
+  <div class="acts"><button type="button" class="sec" id="bk-csv">⬇️ Cópia de segurança (Excel)</button><button type="button" class="sec" id="bk-json">⬇️ Cópia completa (JSON)</button><button type="button" class="sec" id="bk-sheet">📊 Planilha que atualiza sozinha</button></div>
+  <div id="planilha" class="card" hidden></div>
+  <div id="msg" role="status"></div>
+  <h2 id="h-lista">Todas as fichas recebidas <small id="atual"></small></h2>
+  <div id="res"></div>
+</main>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let senha="";try{senha=localStorage.getItem("blueEquipeSenha")||"";}catch(e){}
+  const pedirSenha=()=>{$("senha").hidden=false;$("ver-senha").style.display="flex";};
+  $("mostrar").onchange=()=>{$("senha").type=$("mostrar").checked?"text":"password";};
+  const lerSenha=()=>{if(!$("senha").hidden)senha=$("senha").value.trim();};
+  const cab=()=>({"x-painel-senha":encodeURIComponent(senha)});
+  if(!senha)pedirSenha();
+  let vistas={};try{vistas=JSON.parse(localStorage.getItem("blueFichasVistas")||"{}");}catch(e){}
+  const marcarVista=l=>{if(l==null)return;vistas[l]=1;try{localStorage.setItem("blueFichasVistas",JSON.stringify(vistas));}catch(e){}};
+  const msg=(t,c)=>{$("msg").className=c||"";$("msg").textContent=t;};
+
+  // Rótulos da ficha (sempre em português: é o que vai para o prontuário)
+  const SECOES=[
+    ["Cadastro",[["nome","Nome completo"],["apelido","Como gosta de ser chamada"],["cpf","CPF"],["documento","Documento / passaporte"],["rg","RG"],["nasc","Data de nascimento"],["sexo","Sexo"],["estadoCivil","Estado civil"],["prof","Profissão"],["cel","Celular"],["mail","E-mail"],["instagram","Instagram"],["_end","Endereço"],["plano","Plano de saúde"]]],
+    ["Sobre você",[["alt","Altura (cm)"],["peso","Peso (kg)"],["_imc","IMC calculado"]]],
+    ["Avaliação",[["diag","Diagnóstico de lipedema"],["procedimento","Procedimento de interesse"],["_reg","Regiões que incomodam / deseja tratar"],["dor","Dor, peso ou cansaço nas pernas"],["inchaco","Inchaço no fim do dia"],["tratamentos","Tratamentos já tentados"],["procAnteriores","Procedimentos estéticos/cirúrgicos anteriores"],["relato","Nas palavras dela"]]],
+    ["Saúde e rotina",[["alergias","Alergias"],["acompanhamento","Acompanhamento médico atual"],["condicoes","Condições de saúde"],["med","Medicamentos de uso contínuo"],["cirurgias","Cirurgias anteriores"],["fumante","Fumante"]]],
+    ["Sonhos e expectativas",[["gatilho","O que a fez buscar ajuda agora"],["quer","O que deseja alcançar"],["lipedef","Conhece a LipeDefinition®"],["decisao","Sobre a cirurgia"],["como","Como conheceu o Dr. Rafael"],["quem","Quem indicou"]]],
+    ["Espaço aberto",[["historia","O que gostaria de nos contar"]]]
+  ];
+  const dataBR=iso=>/^\d{4}-\d{2}-\d{2}$/.test(iso||"")?iso.split("-").reverse().join("/"):(iso||"");
+  function idade(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||""))return "";const b=new Date(iso+"T12:00:00"),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a>0&&a<120?a:"";}
+  function respostas(f){
+    const r=(f.dados._ficha&&f.dados._ficha.r)||{nome:f.dados.nome,cpf:f.dados.cpf,rg:f.dados.rg,cel:f.dados.telefone,mail:f.dados.email,instagram:f.dados.instagram,prof:f.dados.profissao,estadoCivil:f.dados.estadoCivil,rua:f.dados.rua,numero:f.dados.numero,compl:f.dados.complemento,bairro:f.dados.bairro,cidade:f.dados.cidade,uf:f.dados.estado,cep:f.dados.cep,plano:f.dados.plano};
+    const v=Object.assign({},r);
+    v.nasc=r.nasc?dataBR(r.nasc)+(idade(r.nasc)?` (${idade(r.nasc)} anos)`:""):(f.dados.nascimento||"");
+    v._end=[r.rua||r.end,r.numero,r.compl,r.bairro,r.cidade,r.uf,r.cep,r.pais].filter(Boolean).join(", ");
+    const p=Number(String(r.peso||"").replace(",",".")),a=Number(r.alt);v._imc=a>100&&p>0?(p/(a/100)**2).toFixed(1).replace(".",","):"";
+    v._reg=[...(r.reg||[]),r.regOutros].filter(Boolean).join(", ");
+    return SECOES.map(([t,campos])=>[t,campos.map(([k,l])=>[l,v[k]]).filter(([,x])=>x)]).filter(([,c])=>c.length);
+  }
+  const tipo=f=>{const x=f.dados._ficha;return x?(x.ver==="pla"?"Cirurgia plástica":"Lipedema")+(x.lang&&x.lang!=="pt"?" · "+x.lang.toUpperCase():""):"Ficha";};
+  const quando=f=>f.recebidaEm?new Date(f.recebidaEm*1000).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"";
+
+  // PDF: documento A4 no visual da Blue; o navegador salva em PDF (Imprimir → Salvar como PDF)
+  function pdf(f){
+    const secs=respostas(f),nome=f.dados.nome||"Paciente",dia=f.recebidaEm?new Date(f.recebidaEm*1000):new Date();
+    const arquivo=`Ficha Blue - ${nome} - ${dia.toISOString().slice(0,10)}`;
+    const w=window.open("","_blank");if(!w){msg("O navegador bloqueou a janela do PDF. Permita pop-ups para este site.","bad");return;}
+    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(arquivo)}</title><style>
+      @page{size:A4;margin:14mm 14mm 16mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      body{margin:0;font:11pt/1.45 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#1b2430}
+      .cab{background:#13294a;color:#fff;padding:16px 20px;border-radius:10px;display:flex;align-items:center;gap:14px}
+      .cab img{width:42px;height:42px}.cab h1{margin:0;font:600 17pt Georgia,serif}.cab p{margin:2px 0 0;color:#c7d6ea;font-size:9.5pt}
+      .pac{margin:14px 2px 4px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid #dbe4f0;padding-bottom:8px}
+      .pac b{font-size:14pt}.pac span{color:#6b7890;font-size:9.5pt}
+      section{break-inside:avoid;margin-top:12px}h2{font-size:9pt;letter-spacing:.12em;text-transform:uppercase;color:#2f6fb5;margin:0 0 4px}
+      table{width:100%;border-collapse:collapse}td{padding:4px 6px;vertical-align:top;border-bottom:1px solid #eef2f8;font-size:10pt}
+      td:first-child{width:36%;color:#6b7890}td:last-child{white-space:pre-line}
+      .rod{margin-top:18px;font-size:8.5pt;color:#6b7890;border-top:1px solid #dbe4f0;padding-top:8px}
+      .bar{position:fixed;top:0;left:0;right:0;background:#eaf2fb;padding:10px;text-align:center;font:600 13px system-ui}.bar button{margin-left:8px;border:0;border-radius:8px;padding:7px 12px;background:#13294a;color:#fff;font:600 13px system-ui;cursor:pointer}
+      @media print{.bar{display:none}} @media screen{body{max-width:800px;margin:60px auto 40px;padding:0 16px}}
+      </style></head><body>
+      <div class="bar">Para salvar: Imprimir → <b>Salvar como PDF</b> <button onclick="print()">Salvar PDF</button></div>
+      <div class="cab"><img src="${location.origin}/logo.png" alt=""><div><h1>Ficha de pré-consulta · ${esc(tipo(f).split(" · ")[0])}</h1><p>Dr. Rafael Erthal · Blue Clínica</p></div></div>
+      <div class="pac"><b>${esc(nome)}</b><span>Respondida em ${esc(dia.toLocaleString("pt-BR",{dateStyle:"long",timeStyle:"short"}))}${f.dados._ficha&&f.dados._ficha.lang&&f.dados._ficha.lang!=="pt"?" · respondida em "+({es:"espanhol",en:"inglês"}[f.dados._ficha.lang]||""):""}</span></div>
+      ${secs.map(([t,c])=>`<section><h2>${esc(t)}</h2><table>${c.map(([l,v])=>`<tr><td>${esc(l)}</td><td>${esc(v)}</td></tr>`).join("")}</table></section>`).join("")}
+      <div class="rod">Informações preenchidas pela própria paciente na Ficha Blue, com autorização de uso para atendimento, cadastro e prontuário (LGPD). Documento para anexar ao prontuário · gerado em ${esc(new Date().toLocaleString("pt-BR"))}.</div>
+      <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`);
+    w.document.close();marcarVista(f.id||f.lead);
+  }
+  async function copiar(f,b){
+    const t=JSON.stringify(f.dados);
+    try{await navigator.clipboard.writeText(t);b.textContent="✅ Copiada · agora ✍️ no Amigo";}
+    catch(e){const ta=document.createElement("textarea");ta.value=t;b.after(ta);ta.select();b.textContent="Aperte ⌘C / Ctrl+C";}
+    marcarVista(f.id||f.lead);
+  }
+  function mostrar(fichas,alvo){
+    alvo.innerHTML=fichas.map((f,i)=>`<div class="card"><div class="t"><div><h3>${esc(f.nome)}</h3><div class="meta">${esc([tipo(f),quando(f),f.dados.telefone].filter(Boolean).join(" · "))}</div></div>${f.status==="erro_kommo"?`<span class="pill" style="background:#fbeceb;color:#b04848">não chegou no Kommo · salva no banco</span>`:vistas[f.id||f.lead]?`<span class="pill">vista</span>`:`<span class="pill new">nova</span>`}</div>
+      <div class="acts"><button data-a="pdf" data-i="${i}">📄 PDF para o prontuário</button><button class="sec" data-a="cp" data-i="${i}">✍️ Copiar para o cadastro</button></div>
+      <details><summary>Ver respostas</summary>${respostas(f).map(([t,c])=>`<p style="margin:12px 0 0;font-weight:700;color:var(--accent);font-size:12px;letter-spacing:.06em;text-transform:uppercase">${esc(t)}</p><dl>${c.map(([l,v])=>`<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`).join("")}</details></div>`).join("")||`<p class="vazio">Nenhuma ficha.</p>`;
+    alvo.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{const f=fichas[+b.dataset.i];if(b.dataset.a==="pdf")pdf(f);else copiar(f,b);mostrarPill(b);});
+  }
+  const mostrarPill=b=>{const p=b.closest(".card").querySelector(".pill");if(p){p.className="pill";p.textContent="vista";}};
+  async function chamar(qs){
+    lerSenha();
+    const r=await fetch("/api/ficha-busca?"+qs,{headers:cab()});
+    if(r.status===401){try{localStorage.removeItem("blueEquipeSenha");}catch(e){}pedirSenha();throw new Error("senha");}
+    const j=await r.json();if(!j.ok)throw new Error(j.erro||"erro");
+    try{localStorage.setItem("blueEquipeSenha",senha);}catch(e){}$("senha").hidden=true;$("ver-senha").style.display="none";return j;
+  }
+  async function recentes(){
+    msg("Carregando fichas…");
+    try{const j=await chamar("recentes=1");msg("");$("h-lista").firstChild.textContent="Todas as fichas recebidas ("+j.fichas.length+") ";$("atual").textContent="atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});mostrar(j.fichas,$("res"));}
+    catch(e){msg(e.message==="senha"?($("senha").value.trim()?"Senha incorreta. Confira letras maiúsculas e minúsculas (use \"mostrar senha\").":"Digite a senha da equipe e clique em Buscar."):"Não consegui carregar agora.","bad");}
+  }
+  $("f").addEventListener("submit",async e=>{
+    e.preventDefault();const q=$("q").value.trim();
+    if(!q){recentes();return;}
+    msg("Buscando…");
+    try{const j=await chamar("q="+encodeURIComponent(q));msg(j.fichas.length?j.fichas.length+" ficha(s) encontrada(s).":"Nenhuma Ficha Blue encontrada"+(j.semFicha?" (a paciente existe, mas ainda não enviou a ficha)":"")+".",j.fichas.length?"ok":"");$("h-lista").firstChild.textContent="Resultado da busca ";$("atual").textContent="";mostrar(j.fichas,$("res"));}
+    catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui buscar agora.","bad");}
+  });
+  async function copia(formato){
+    lerSenha();
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");pedirSenha();return;}
+    msg("Gerando a cópia de todas as fichas…");
+    try{
+      const r=await fetch("/api/ficha-backup?formato="+formato,{headers:cab()});
+      if(r.status===401){pedirSenha();throw new Error("senha");}
+      if(!r.ok)throw new Error("erro");
+      const nome=(r.headers.get("content-disposition")||"").match(/filename="([^"]+)"/),a=document.createElement("a");
+      a.href=URL.createObjectURL(await r.blob());a.download=nome?nome[1]:"fichas-blue."+formato;document.body.appendChild(a);a.click();a.remove();
+      msg("Cópia baixada com "+(r.headers.get("x-total-fichas")||"todas as")+" ficha(s). Guarde no Drive da clínica.","ok");
+    }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar a cópia agora.","bad");}
+  }
+  $("bk-sheet").onclick=async()=>{
+    lerSenha();
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");pedirSenha();return;}
+    try{
+      const r=await fetch("/api/fichas-planilha?link=1",{headers:cab()});
+      if(r.status===401){pedirSenha();throw new Error("senha");}
+      const j=await r.json();if(!j.ok)throw new Error("erro");
+      const f='=IMPORTDATA("'+j.link+'")',box=$("planilha");box.hidden=false;
+      box.innerHTML='<h3>Planilha do Google ligada ao banco</h3><p class="meta">1. Abra <b>sheets.new</b> logada na conta da clínica. 2. Clique na célula A1. 3. Cole a fórmula abaixo e aperte Enter. Toda ficha nova aparece sozinha (o Google atualiza em até 1 hora). Não compartilhe a fórmula: quem tiver o link vê as fichas.</p><input id="formula" readonly style="width:100%;margin-top:8px"><div class="acts"><button type="button" id="cp-f">Copiar fórmula</button></div>';
+      $("formula").value=f;$("cp-f").onclick=()=>{navigator.clipboard.writeText(f).then(()=>msg("Fórmula copiada. Cole na célula A1 da planilha nova.","ok"),()=>{$("formula").select();msg("Selecione e copie a fórmula.","");});};
+    }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar o link agora.","bad");}
+  };
+  $("bk-csv").onclick=()=>copia("csv");$("bk-json").onclick=()=>copia("json");
+  const q0=new URLSearchParams(location.search).get("q");
+  if(q0){$("q").value=q0;if(senha)$("f").requestSubmit();}else if(senha)recentes();else{pedirSenha();msg("Digite a senha da equipe e clique em Buscar.");}
+  setInterval(()=>{if(senha&&!$("q").value.trim())recentes();},120000);
+})();
+</script>
+</body>
+</html>

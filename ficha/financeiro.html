@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Controle financeiro · Gestão</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--okbg:#e9f6ef;--bad:#b04848;--badbg:#fbecec;--warn:#a46d1c;--warnbg:#faf1e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--badbg:#3a1c1c;--warn:#e7b566;--warnbg:#3a2c14;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ec8f8f;--badbg:#3a1c1c;--warn:#e7b566;--warnbg:#3a2c14;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header.top{background:#13294a;color:#fff;padding:16px}
+header.top .in{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:12px}
+header.top img{width:30px;height:30px}
+header.top h1{font-size:18px;margin:0;font-weight:600}
+header.top p{margin:0;color:#c7d6ea;font-size:13px}
+main{max-width:860px;margin:0 auto;padding:18px 16px 48px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:14px}
+h2{font-size:15px;color:var(--ink);margin:0 0 8px}
+input,select,textarea{font:15px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+textarea{min-height:60px}
+button{border:0;border-radius:10px;padding:10px 14px;font:600 14px system-ui;cursor:pointer;background:var(--navy);color:#fff}
+button.sec{background:var(--soft);color:var(--ink)}
+button.go{background:var(--ok);color:#fff;font-size:15px;padding:12px 18px}
+button:disabled{opacity:.45;cursor:not-allowed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button:not(.sec):not(.go){background:var(--accent);color:#0d1626}}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 200px}
+#drop{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;background:var(--soft);cursor:pointer}
+#drop.on{border-color:var(--accent)}
+#prev{max-width:100%;max-height:340px;border-radius:10px;margin-top:10px;display:none}
+.muted{color:var(--muted);font-size:13px}
+.campos{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;align-items:center;margin-top:8px}
+.campos label{color:var(--muted);font-size:13.5px}
+.campos input.mudou{border-color:var(--warn)}
+.res{border-radius:12px;padding:12px 14px;margin-top:10px;font-size:14.5px}
+.res.ok{background:var(--okbg);color:var(--ok)}
+.res.bad{background:var(--badbg);color:var(--bad)}
+.res.warn{background:var(--warnbg);color:var(--warn)}
+.res h3{margin:0 0 6px;font-size:17px}
+.res ul{margin:6px 0 0;padding-left:20px;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.cand{display:block;width:100%;text-align:left;background:var(--soft);color:var(--ink);margin-top:6px}
+.hide{display:none}
+.passo{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+pre{white-space:pre-wrap;font-size:12px;background:var(--soft);padding:8px;border-radius:8px;max-height:220px;overflow:auto}
+progress{width:100%}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--soft);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:19px;color:var(--ink)}
+.kpi span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:var(--soft);color:var(--ink);border-radius:99px;padding:3px 10px;font-size:12.5px}
+#fila td{vertical-align:middle}
+#fila tr.sel{outline:2px solid var(--accent);outline-offset:-2px}
+#fila tr[data-k]{cursor:pointer}
+#fila img{width:44px;height:44px;object-fit:cover;border-radius:6px;display:block}
+.st{font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;white-space:nowrap}
+.st.ok{background:var(--okbg);color:var(--ok)}.st.bad{background:var(--badbg);color:var(--bad)}.st.warn{background:var(--warnbg);color:var(--warn)}.st.neu{background:var(--soft);color:var(--muted)}
+@media (max-width:560px){.campos{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in"><img src="/logo.png" alt=""><div><h1>💰 Controle financeiro</h1><p>Gestão · conciliação de comprovantes → planilha</p></div></div></header>
+<main>
+  <div class="card" id="acesso">
+    <div class="row">
+      <div><label class="muted" for="senha">Senha da gestão</label><input id="senha" type="password" autocomplete="current-password"></div>
+      <div><label class="muted" for="resp">Quem está conferindo</label><input id="resp" placeholder="Seu nome" autocomplete="name"></div>
+    </div>
+    <div id="st" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" id="painel">
+    <h2>Resumo</h2>
+    <div class="kpis">
+      <div class="kpi"><span>Hoje</span><b id="k-hoje">—</b><span id="k-hoje-n"></span></div>
+      <div class="kpi"><span>Esta semana</span><b id="k-semana">—</b><span id="k-semana-n"></span></div>
+      <div class="kpi"><span>Este mês</span><b id="k-mes">—</b><span id="k-mes-n"></span></div>
+      <div class="kpi"><span>Na fila para conferir</span><b id="k-fila">0</b><span id="k-fila-n"></span></div>
+    </div>
+    <div class="muted" style="margin-top:10px">No mês, por forma de pagamento:</div><div class="chips" id="k-formas"></div>
+    <div class="muted" style="margin-top:8px">No mês, pelo que foi pago:</div><div class="chips" id="k-cats"></div>
+  </div>
+
+  <div class="card">
+    <div class="passo">1 · Comprovantes</div>
+    <div id="drop" tabindex="0">
+      <b>Cole o comprovante (⌘V)</b>, arraste <b>um ou vários</b> aqui ou <u>clique para escolher</u>
+      <div class="muted">Pix, cartão (maquininha), nota fiscal, foto ou PDF. Também aceita o <b>pacote .zip</b> do botão 💰 no WhatsApp e a <b>conversa exportada</b> do WhatsApp (.zip). A leitura acontece neste computador: nada vai para fora.</div>
+      <input id="arq" type="file" accept="image/*,application/pdf,.zip,application/zip" multiple class="hide">
+    </div>
+    <div id="colar-box" class="hide" style="margin-top:10px;text-align:center">
+      <button type="button" id="b-colar" class="go" style="width:100%">📋 Colar o comprovante copiado do WhatsApp</button>
+      <div class="muted" style="margin-top:4px">Ou aperte <b>Ctrl+V</b> (no Mac, <b>⌘V</b>). Se o navegador perguntar, clique em <b>Permitir</b>.</div>
+    </div>
+    <div id="zip-op" class="hide row" style="margin-top:10px"><label class="muted" for="zip-dias" style="flex:0 0 auto">Da conversa exportada, ler comprovantes de:</label>
+      <select id="zip-dias" style="flex:0 0 170px"><option value="2">ontem e hoje</option><option value="7" selected>últimos 7 dias</option><option value="31">últimos 30 dias</option><option value="0">todos</option></select></div>
+    <div id="fila-box" class="hide" style="margin-top:12px">
+      <div class="row" style="justify-content:space-between"><h2 style="flex:1 1 auto;margin:0">Fila de comprovantes</h2><span id="fila-resumo" class="muted" style="flex:0 0 auto"></span></div>
+      <div style="overflow:auto"><table id="fila"><thead><tr><th></th><th>Situação</th><th>Paciente</th><th>Valor</th><th>Pagamento</th><th>Data</th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="b-amigo-lote" class="sec">🔎 Conferir as pacientes no AmigoApp</button>
+        <button type="button" id="b-lote" class="go" disabled>✓ Lançar as prontas (0)</button>
+      </div>
+      <div class="muted" style="margin-top:6px">No AmigoApp, clique no 💰: ele procura <b>todas</b> as pacientes da fila de uma vez. Quando o nome bate com segurança, a paciente já vem ligada; se houver dúvida, você escolhe aqui. Só entram no "Lançar as prontas" os comprovantes sem divergência e sem duplicidade.</div>
+      <div id="lote-res"></div>
+    </div>
+    <img id="prev" alt="Comprovante">
+    <div id="ocr" class="hide" style="margin-top:10px"><div class="muted" id="ocr-t">Lendo o comprovante…</div><progress id="ocr-p" max="1" value="0"></progress></div>
+  </div>
+
+  <div class="card hide" id="dados">
+    <div class="passo">2 · Dados do comprovante</div>
+    <div class="muted">Confira. Se a leitura errou algo, corrija: o campo corrigido fica marcado e entra na observação.</div>
+    <div class="campos">
+      <label for="c-pagador">Nome do pagador</label><input id="c-pagador" data-k="pagador">
+      <label for="c-pagadorDoc">CPF/CNPJ do pagador</label><input id="c-pagadorDoc" data-k="pagadorDoc">
+      <label for="c-valor">Valor</label><input id="c-valor" data-k="valor" inputmode="decimal">
+      <label for="c-moeda">Moeda</label><select id="c-moeda" data-k="moeda"><option>BRL</option><option>USD</option></select>
+      <label for="c-data">Data</label><input id="c-data" data-k="data" placeholder="dd/mm/aaaa">
+      <label for="c-hora">Horário</label><input id="c-hora" data-k="hora">
+      <label for="c-forma">Forma de pagamento</label><select id="c-forma" data-k="forma"><option value="">—</option><option>PIX</option><option>TED</option><option>DOC</option><option>Transferência</option><option>Boleto</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>Dinheiro</option></select>
+      <label for="c-banco">Banco do pagador</label><input id="c-banco" data-k="banco">
+      <label for="c-recebedor">Recebedor</label><input id="c-recebedor" data-k="recebedor">
+      <label for="c-bancoRecebedor">Instituição recebedora</label><input id="c-bancoRecebedor" data-k="bancoRecebedor">
+      <label for="c-idTransacao">ID da transação / Pix</label><input id="c-idTransacao" data-k="idTransacao">
+      <label for="c-tipoDocumento">Tipo de documento</label><select id="c-tipoDocumento" data-k="tipoDocumento"><option value="">—</option><option>Comprovante Pix</option><option>Comprovante bancário</option><option>Cartão</option><option>Nota fiscal</option><option>Recibo</option><option>Outro</option></select>
+      <label for="c-bandeira" class="cartao">Bandeira</label><input id="c-bandeira" data-k="bandeira" class="cartao" placeholder="Visa, Mastercard, Elo…">
+      <label for="c-cartaoFinal" class="cartao">Final do cartão</label><input id="c-cartaoFinal" data-k="cartaoFinal" class="cartao" inputmode="numeric" maxlength="4">
+      <label for="c-nsu" class="cartao">NSU</label><input id="c-nsu" data-k="nsu" class="cartao">
+      <label for="c-autorizacao" class="cartao">Autorização</label><input id="c-autorizacao" data-k="autorizacao" class="cartao">
+      <label for="c-parcelas" class="cartao">Parcelas</label><input id="c-parcelas" data-k="parcelas" class="cartao" inputmode="numeric">
+      <label for="c-numeroNota" class="nota">Nº da nota fiscal</label><input id="c-numeroNota" data-k="numeroNota" class="nota">
+    </div>
+    <div style="margin-top:12px"><label class="muted" for="msg-txt"><b>Mensagem enviada junto com o comprovante</b> (vem sozinha do WhatsApp; se não veio, cole aqui)</label>
+      <textarea id="msg-txt" placeholder="Ex.: Segue pagamento da paciente Juliana Paranhos - Botox e preenchedor. Obs: desconto de 30%"></textarea>
+      <div id="msg-lido" class="muted" style="margin-top:4px"></div></div>
+    <details style="margin-top:8px"><summary class="muted">Texto lido do comprovante</summary><pre id="bruto"></pre></details>
+    <div id="dup"></div>
+  </div>
+
+  <div class="card hide" id="pac">
+    <div class="passo">3 · Paciente (conferência no AmigoApp)</div>
+    <div id="pac-res"></div>
+    <div id="cands"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="b-amigo" type="button">🔎 Conferir no AmigoApp → Pacientes</button>
+    </div>
+    <div class="muted" style="margin-top:6px">No AmigoApp, busque e abra a paciente e clique no botão <b>💰 Controle financeiro</b> da barra de favoritos. A paciente aparece aqui sozinha.</div>
+  </div>
+
+  <div class="card hide" id="conc">
+    <div class="passo">4 · Conciliação</div>
+    <div id="conc-res"></div>
+    <div class="campos">
+      <label for="esperado">Valor esperado (opcional)</label><input id="esperado" inputmode="decimal" placeholder="ex.: 1800,00">
+      <label for="obs">Observações</label><textarea id="obs" placeholder="Ex.: pago pelo marido; 1ª parte da consulta"></textarea>
+    </div>
+    <label id="l-div" class="hide" style="display:block;margin-top:10px"><input type="checkbox" id="ok-div" style="width:auto"> Conferi as divergências acima e quero lançar mesmo assim (explique na observação)</label>
+    <label id="l-dup" class="hide" style="display:block;margin-top:6px"><input type="checkbox" id="ok-dup" style="width:auto"> Conferi: não é o mesmo pagamento já lançado</label>
+    <div class="row" style="margin-top:12px"><button class="go" id="b-lancar" type="button">✓ CONFIRMAR LANÇAMENTO</button><button class="sec" id="b-desc" type="button" style="flex:0 0 auto">Descartar</button></div>
+    <div id="b-motivo" class="muted" style="margin-top:6px"></div>
+    <div id="lanc-res"></div>
+  </div>
+
+  <div class="card" id="lista">
+    <div class="row" style="justify-content:space-between"><h2 style="flex:1 1 auto">Lançamentos (últimos 60 dias)</h2>
+      <a id="l-planilha" class="hide" target="_blank" rel="noopener" style="flex:0 0 auto;color:var(--accent);font-weight:600">Abrir planilha ↗</a>
+      <button class="sec" id="b-plan" type="button" style="flex:0 0 auto">🔗 Ligar a planilha</button>
+      <button class="sec hide" id="b-sync" type="button" style="flex:0 0 auto">Reenviar pendentes à planilha</button></div>
+    <div id="plan-box" class="hide res ok" style="color:var(--ink)"></div>
+    <div id="tot" class="muted"></div>
+    <div style="overflow:auto"><table id="tab"><thead><tr><th>#</th><th>Pagamento</th><th>Paciente</th><th>Pagador</th><th>Valor</th><th>Forma</th><th>Status</th><th>Planilha</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</main>
+<script src="/js/comprovante.js"></script>
+<script src="/js/fila-zip.js"></script>
+<script src="/js/financeiro.js"></script>
+</body>
+</html>

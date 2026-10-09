@@ -1,0 +1,75 @@
+# Publica o Blue Intelligence OS (branch blue-os) no Cloudflare Pages com dados reais do Kommo.
+# Fica na main porque o GitHub só roda agendamentos (schedule) a partir da branch padrão.
+# Guia: docs/deploy-dash.md (na branch blue-os). Segredos: KOMMO_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+name: Dash Blue · publicar
+
+on:
+  schedule:
+    - cron: '7 10-23/2 * * 1-6'   # a cada 2 h, das 7h às 19h de Brasília, seg a sáb
+  workflow_dispatch:
+    inputs:
+      periodo:
+        description: 'Mês AAAA-MM (vazio = mês atual)'
+        required: false
+        default: ''
+
+concurrency: dash-blue
+permissions:
+  contents: read
+
+env:
+  PROJETO: clinicablue-dash
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: blue-os
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @blue/web prepare-prototype
+
+      - name: Cria o projeto no Cloudflare (só na primeira vez)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx -y wrangler@3 pages project create "$PROJETO" --production-branch main || true
+
+      # Trava de segurança: dados de pacientes só sobem se o Cloudflare Access já estiver protegendo o endereço.
+      - name: Confere o Cloudflare Access
+        id: acesso
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://$PROJETO.pages.dev/bootstrap.json")
+          echo "Resposta sem login: $code"
+          if [ "$code" = "302" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then echo "ok=sim" >> "$GITHUB_OUTPUT"; else echo "ok=nao" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Sem Access, publica só a página de aviso
+        if: steps.acesso.outputs.ok != 'sim'
+        run: |
+          rm -rf apps/web/app && mkdir -p apps/web/app
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Blue Intelligence OS</title>' \
+            '<body style="font-family:sans-serif;max-width:520px;margin:120px auto;color:#14202a">' \
+            '<h1 style="font-weight:400">Blue Intelligence OS</h1><p>Configurando o acesso. Ative o Cloudflare Access e rode a publicação de novo.</p>' > apps/web/app/index.html
+          echo "::warning::Cloudflare Access ainda não protege https://$PROJETO.pages.dev. Publiquei só a página de aviso, sem dados."
+
+      - name: Sincroniza o Kommo e monta o dash
+        if: steps.acesso.outputs.ok == 'sim'
+        env:
+          KOMMO_TOKEN: ${{ secrets.KOMMO_TOKEN }}
+          BLUE_ADS_JSON: ${{ secrets.BLUE_ADS_JSON }}
+          BLUE_PERIODO: ${{ inputs.periodo || vars.BLUE_PERIODO }}
+        run: pnpm publicar
+
+      - name: Publica no Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx -y wrangler@3 pages deploy apps/web/app --project-name "$PROJETO" --branch main --commit-dirty=true
