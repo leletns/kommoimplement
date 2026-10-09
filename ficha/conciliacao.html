@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conciliação · Gestão</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root{--navy:#13294a;--ink:#1b2430;--body:#3a4760;--muted:#6b7890;--line:#dbe4f0;--bg:#f4f8fd;--surface:#fff;--soft:#eaf2fb;--accent:#2f6fb5;--ok:#1f7d52;--okbg:#e9f6ef;--bad:#b04848;--badbg:#fbe3e3;--warn:#8a5a12;--warnbg:#fdf3dc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ff9b9b;--badbg:#4a1f22;--warn:#f0c374;--warnbg:#3a2c14;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e8eef8;--body:#c2cde0;--muted:#8e9bb3;--line:#2a3a55;--bg:#0d1626;--surface:#142035;--soft:#1a2a45;--accent:#79a9e6;--ok:#6fd0a0;--okbg:#143327;--bad:#ff9b9b;--badbg:#4a1f22;--warn:#f0c374;--warnbg:#3a2c14;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--body);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header.top{background:#13294a;color:#fff;padding:14px 16px}
+header.top .in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px}
+header.top img{width:28px;height:28px}
+header.top h1{font-size:18px;margin:0;font-weight:600}
+header.top p{margin:0;color:#c7d6ea;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:16px 16px 48px}
+input,select{font:14px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+button{border:0;border-radius:10px;padding:9px 14px;font:600 13.5px system-ui;cursor:pointer;background:var(--navy);color:#fff}
+button.sec{background:var(--soft);color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button:not(.sec){background:var(--accent);color:#0d1626}}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.barra .esp{flex:1}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.k{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.k b{display:block;font-size:22px;color:var(--ink)}.k span{font-size:12.5px;color:var(--muted)}
+.tab{overflow:auto;margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th{position:sticky;top:0;background:var(--soft);color:var(--ink);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:9px 10px;border-bottom:2px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink)}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.falta-0{color:var(--ok);font-weight:600}
+.vermelha{background:var(--badbg)!important;color:var(--bad)!important;cursor:pointer;font-weight:600}
+.vermelha::after{content:" ✎";font-weight:400}
+.editavel{cursor:pointer}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px;white-space:nowrap;cursor:pointer;background:var(--surface)}
+.chip.calc{background:var(--warnbg);color:var(--warn);border-color:transparent}
+.chip.sem{background:var(--badbg);color:var(--bad);border-color:transparent;font-weight:600}
+.chip.div{border-color:var(--warn);color:var(--warn)}
+.chip small{color:var(--muted)}
+#msg{margin-top:10px;font-weight:600}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.prog{height:8px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.leg{font-size:12.5px;color:var(--muted);margin-top:8px}
+details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+a.botao{display:inline-block;background:#13294a;color:#fff;font-weight:700;padding:10px 16px;border-radius:10px;text-decoration:none;margin:8px 0}
+</style>
+</head>
+<body>
+<header class="top"><div class="in"><img src="/logo.png" alt=""><div><h1>Conciliação · grupo de comprovantes</h1><p>Valores recebidos por paciente, direto do WhatsApp</p></div></div></header>
+<main>
+  <div id="login" class="card" hidden>
+    <b>Senha da gestão</b>
+    <div class="barra" style="margin-top:8px"><input id="senha" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="A mesma do Controle financeiro" style="flex:1"><button id="entrar">Entrar</button></div>
+  </div>
+  <div id="app" hidden>
+    <div class="barra">
+      <label>De <input id="de" type="date"></label>
+      <label>Até <input id="ate" type="date"></label>
+      <input id="busca" placeholder="Buscar paciente" style="min-width:200px">
+      <span class="esp"></span>
+      <button class="sec" id="csv">⬇️ Baixar planilha (Excel)</button>
+      <button class="sec" id="gsheet">📊 Google Planilhas</button>
+    </div>
+    <div id="msg" role="status"></div>
+    <div id="prog" class="prog" hidden><i></i></div>
+    <div class="kpis">
+      <div class="k"><b id="k-rec">–</b><span>Recebido no período</span></div>
+      <div class="k"><b id="k-falta">–</b><span>A receber (restantes)</span></div>
+      <div class="k"><b id="k-pac">–</b><span>Pacientes no período</span></div>
+      <div class="k"><b id="k-pend">–</b><span>Com dado faltando (vermelho)</span></div>
+    </div>
+    <div id="gbox" class="card" hidden></div>
+    <div class="tab"><table>
+      <thead><tr><th>Paciente</th><th>Telefone</th><th>Consulta</th><th style="text-align:right">Total</th><th style="text-align:right">Recebido</th><th style="text-align:right">Falta</th><th>Pagamentos (data · valor · comprovante)</th></tr></thead>
+      <tbody id="linhas"></tbody>
+    </table></div>
+    <div class="leg"><b style="color:var(--bad)">Vermelho</b> = faltou no grupo (clique para preencher) · <b style="color:var(--warn)">Amarelo</b> = restante calculado (total − o que já foi pago) · borda laranja = valor do comprovante diferente do escrito na mensagem. Clique num pagamento para corrigir o valor ou tirar da planilha.</div>
+    <details class="card" id="instalar"><summary>Instalar o botão 📊 Conciliar grupo (WhatsApp Web, Safari ou Chrome)</summary>
+      <p>1. Mostre a barra de favoritos (Safari: <b>⌘+Shift+B</b>). 2. Arraste este botão para a barra:</p>
+      <p><a class="botao" id="link-botao" href="#">📊 Conciliar grupo</a></p>
+      <p>3. No WhatsApp Web, abra o grupo <b>Comprovantes de pagamento</b>, clique no botão, escolha o período e clique em <b>Ler e conciliar</b>. Esta página abre com tudo atualizado.</p>
+      <p class="leg">Safari: se nada acontecer ao clicar, ative Desenvolvedor → "Permitir JavaScript do Campo de Busca Inteligente". O botão tem a chave da clínica: não compartilhe.</p>
+    </details>
+  </div>
+</main>
+<script src="/js/comprovante.js"></script>
+<script src="/js/grupo-comprovantes.js"></script>
+<script src="/js/leitura-arquivo.js"></script>
+<script src="/js/conciliacao.js"></script>
+</body>
+</html>

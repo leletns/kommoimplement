@@ -54,19 +54,26 @@ const FIN = { arq: 'controle-financeiro.js', txt: 'bookmarklet-controle-financei
 const finJs = bookmarklet(FIN.arq);
 fs.writeFileSync(path.join(DIR, FIN.txt), finJs);
 links[FIN.rotulo] = finJs.replace(/"/g, '%22');
+const CONC = { arq: 'ler-grupo.js', txt: 'bookmarklet-conciliar-grupo.txt', rotulo: '📊 Conciliar grupo', cor: '#13294a' };
+// O 📊 leva a chave da gestão: o modelo vai para o site e a página /conciliacao monta o botão depois da senha.
+const concJs = bookmarklet(CONC.arq);
+fs.writeFileSync(path.join(DIR, CONC.txt), concJs);
+fs.writeFileSync(path.join(DIR, '..', '..', 'ficha', 'js', 'botao-conciliar.txt'), concJs);
 const htmlFin = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Botão da Gestão</title><body style="font:16px/1.5 Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;color:#13294a;background:#f4f8fd">
-<h1 style="font-size:24px">Botão da Gestão · Controle financeiro <small style="font-size:13px;color:#8a97a8">versão 4 (vários comprovantes, cartão e nota fiscal, conferência em lote no AmigoApp)</small></h1>
-<p>Só para a <b>gestão</b>. Não tem relação com os botões da Comercial (Copiar ficha, Preencher cadastro…), que continuam iguais.</p>
+<h1 style="font-size:24px">Botão da Gestão · Conciliação pelo grupo de comprovantes</h1>
+<p>Só para a <b>gestão</b>. Funciona no <b>Safari</b> e no Chrome, sem AmigoApp.</p>
 <p><b>1. Mostre a barra de favoritos</b><br>Safari no Mac: menu <b>Visualizar → Mostrar Barra de Favoritos</b> (<b>⌘+Shift+B</b>). Chrome: <b>⌘+Shift+B</b> / <b>Ctrl+Shift+B</b>.</p>
 <p><b>2. Arraste</b> o botão abaixo até a barra de favoritos:</p>
-<p>${a(FIN)}</p>
-<p><b>3. Como usar</b></p><ol>
-<li><b>WhatsApp Web</b>: abra a conversa com o comprovante e clique em <b>💰 Controle financeiro</b>. Escolha a imagem do comprovante: ela é copiada e a página <b>Controle financeiro</b> abre. Lá, aperte <b>⌘V</b>. Na primeira vez ele pede o endereço do site (<b>https://clinicablue.pages.dev</b> ou o domínio da ficha) e, na página, a <b>senha da gestão</b>.</li>
-<li>A página <b>lê o comprovante</b> (nome, valor, data, Pix/cartão, banco, ID da transação) e avisa se ele <b>já foi lançado</b>.</li>
-<li>Clique em <b>Conferir no AmigoApp → Pacientes</b>. No AmigoApp, abra a paciente e clique de novo em <b>💰 Controle financeiro</b>: ele compara a paciente com o comprovante e envia para a conciliação. Se você estiver na lista de pacientes, ele busca o nome do pagador e mostra os possíveis pacientes (nunca escolhe sozinho).</li>
-<li>Volte à página <b>Controle financeiro</b>: confira a conciliação (✓ ou ⚠ divergência), escreva a observação se precisar e clique em <b>CONFIRMAR LANÇAMENTO</b>. O lançamento vai para a <b>planilha da gestão</b>.</li></ol>
-<p style="color:#5b6b82;font-size:14px"><b>Safari:</b> se ao clicar no botão nada acontecer: Safari → Ajustes → Avançado → marque "Mostrar recursos para desenvolvedores web"; no menu Desenvolvedor, marque "Permitir JavaScript do Campo de Busca Inteligente". Se o Safari não deixar copiar a imagem, o botão baixa o comprovante: arraste o arquivo para a página.</p>
-<p style="color:#5b6b82;font-size:14px">A leitura do comprovante acontece no seu computador. O botão não altera nada no WhatsApp nem no AmigoApp (nem cadastro, nem prontuário).</p></body>
+<p>Abra <a href="https://clinicablue.pages.dev/conciliacao"><b>clinicablue.pages.dev/conciliacao</b></a>, digite a <b>senha da gestão</b> e arraste o botão <b>📊 Conciliar grupo</b> que aparece lá (ele já vem com a chave da clínica).</p>
+<p><b>3. Como usar (um clique)</b></p><ol>
+<li>No <b>WhatsApp Web</b>, abra o grupo <b>Comprovantes de pagamento</b>, clique em <b>📊 Conciliar grupo</b>, escolha o período e clique em <b>Ler e conciliar</b>. O botão rola o grupo sozinho, junta as mensagens, as imagens e os PDFs e abre a planilha.</li>
+<li>A planilha de conciliação abre no sistema já atualizada: cada paciente numa linha, com o que pagou, o total da consulta, quanto falta e a data da consulta. Pagamentos da mesma paciente são somados sozinhos; o "restante" sem valor escrito é calculado (total − o que já foi pago).</li>
+<li><b>Célula vermelha</b> = dado que faltou no grupo. Clique nela para preencher.</li>
+<li>Na primeira vez a página pede a <b>senha da gestão</b> (a mesma do Controle financeiro). Depois ela fica salva.</li></ol>
+<p style="color:#5b6b82;font-size:14px">Ler o mesmo período de novo não duplica nada: só atualiza.</p>
+<p style="color:#5b6b82;font-size:14px"><b>Safari:</b> se ao clicar nada acontecer: Safari → Ajustes → Avançado → marque "Mostrar recursos para desenvolvedores web"; no menu Desenvolvedor, marque "Permitir JavaScript do Campo de Busca Inteligente". Se o Safari bloquear a janela nova, ele abre a planilha na mesma aba.</p>
+<hr style="margin:28px 0;border:0;border-top:1px solid #dbe4f0">
+<p style="color:#5b6b82;font-size:14px">Botão antigo (comprovante por comprovante, com AmigoApp), se ainda precisar: ${a(FIN)}</p></body>
 `;
 fs.writeFileSync(path.join(DIR, 'instalar-botao-financeiro.html'), htmlFin);
-console.log('ok:', [...BOTOES, DIAG, FIN].map((b) => b.txt).join(', '));
+console.log('ok:', [...BOTOES, DIAG, FIN, CONC].map((b) => b.txt).join(', '));

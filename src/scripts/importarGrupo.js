@@ -28,54 +28,7 @@ const path = require('path');
 const MARKER = '(histórico importado)';
 const MAX_NOTE_CHARS = 8000;
 
-// Android: 23/09/2026 14:05 - Ana: texto      iPhone: [23/09/2026, 14:05:12] Ana: texto
-//                   iPhone em inglês: [9/3/26, 2:41:03 PM] Ana: texto  (mês/dia e AM/PM)
-const LINE_RE = /^\[?(\d{1,2})\/(\d{1,2})\/(\d{2,4}),? (\d{1,2}:\d{2})(?::\d{2})?(?:\s?([ap])\.?\s?m\.?)?\]?(?: -)? (.+?): ([\s\S]*)$/i;
-const SYSTEM_RE = /^\[?\d{1,2}\/\d{1,2}\/\d{2,4},? \d{1,2}:\d{2}/;
-const MEDIA_RE = /^<?(m[íi]dia oculta|media omitted|arquivo de m[íi]dia oculto|imagem ocultada|[áa]udio ocultado|v[íi]deo omitido)>?$/i;
-
-const clean = (s) => s.replace(/[‎‏‪-‮﻿]/g, '');
-
-/** O arquivo usa mês/dia (WhatsApp em inglês)? Decide pelo arquivo todo: um "dia" > 12 resolve; senão, AM/PM indica en-US. */
-function mesPrimeiro(lines) {
-  let ampm = false;
-  for (const raw of lines) {
-    const m = raw.match(LINE_RE);
-    if (!m) continue;
-    if (Number(m[1]) > 12) return false;
-    if (Number(m[2]) > 12) return true;
-    if (m[5]) ampm = true;
-  }
-  return ampm;
-}
-
-function parseExport(text) {
-  const messages = [];
-  const lines = clean(text).split(/\r?\n/);
-  const us = mesPrimeiro(lines);
-  for (const raw of lines) {
-    const m = raw.match(LINE_RE);
-    if (m) {
-      const [, a, b, y, hm, ap, author, body] = m;
-      const [d, mo] = us ? [b, a] : [a, b];
-      let [h, min] = hm.split(':').map(Number);
-      if (ap && /p/i.test(ap) && h < 12) h += 12;
-      if (ap && /a/i.test(ap) && h === 12) h = 0;
-      const time = `${h}:${String(min).padStart(2, '0')}`;
-      const year = y.length === 2 ? 2000 + Number(y) : Number(y);
-      const date = `${String(d).padStart(2, '0')}/${String(mo).padStart(2, '0')}/${year}`;
-      const sortKey = `${year}${String(mo).padStart(2, '0')}${String(d).padStart(2, '0')}`;
-      const text = MEDIA_RE.test(body.trim()) ? '[mídia]' : body;
-      messages.push({ date, sortKey, time: time.padStart(5, '0'), author: author.trim(), text });
-    } else if (SYSTEM_RE.test(raw)) {
-      // Mensagem do sistema ("Fulano adicionou Ciclano", "mensagens protegidas com criptografia"…)
-      continue;
-    } else if (messages.length && raw.trim()) {
-      messages[messages.length - 1].text += `\n${raw}`;
-    }
-  }
-  return messages;
-}
+const { parseExport } = require('../../ficha/js/grupo-comprovantes.js');
 
 /** Agrupa por dia; dias muito longos são quebrados em partes de até MAX_NOTE_CHARS. */
 function buildDailyNotes(messages, groupName) {
