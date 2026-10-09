@@ -9,6 +9,7 @@ const SITE = 'https://clinicablue.pages.dev';
 const CSP_WA = "default-src 'self' blob: 'wasm-unsafe-eval';script-src blob: 'self' 'nonce-abc' https://static.whatsapp.net 'wasm-unsafe-eval';style-src data: blob: 'self' 'unsafe-inline';connect-src 'self' https://*.whatsapp.net blob: data: wss://web.whatsapp.com;img-src 'self' data: blob: https://*.whatsapp.net";
 
 const pdf64 = fs.readFileSync(path.join(FIX, 'inter-juliana.pdf')).toString('base64');
+const jpg64 = fs.readFileSync(path.join(FIX, 'itau-carlos.jpg')).toString('base64');
 const png64 = fs.readFileSync(path.join(FIX, 'nubank-maria.png')).toString('base64');
 const linhaTexto = (id, cab, html) => `<div role="row"><div data-id="${id}"><div class="copyable-text" data-pre-plain-text="${cab}"><span class="selectable-text copyable-text"><span>${html}</span></span></div></div></div>`;
 const sep = (t) => `<div role="row"><div><span>${t}</span></div></div>`;
@@ -22,12 +23,15 @@ ${sep('04/10/2026')}
 <div role="row"><div data-id="false_g@g.us_A3_5521911111111@c.us"><div role="button" title="comprovante-pix.pdf" id="doc">comprovante-pix.pdf · PDF</div><span>18:50</span></div></div>
 ${sep('05/10/2026')}
 <div role="row"><div data-id="false_g@g.us_A4_5521922222222@c.us"><img id="foto" style="width:300px"><span>10:00</span></div></div>
+${sep('06/10/2026')}
+<div role="row"><div data-id="false_g@g.us_A5_5521911111111@c.us"><div role="button" title="comprovante-itau.jpg" id="doc2">comprovante-itau.jpg · JPG</div><span>16:20</span></div></div>
 </div></div></div>
 <script nonce="abc">
   const bin = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   document.getElementById('foto').src = URL.createObjectURL(new Blob([bin('${png64}')], { type: 'image/png' }));
   // Como o WhatsApp: clicar no documento monta o blob e "baixa" com <a download>
   document.getElementById('doc').onclick = () => { const u = URL.createObjectURL(new Blob([bin('${pdf64}')], { type: 'application/pdf' })); const a = document.createElement('a'); a.href = u; a.download = 'comprovante-pix.pdf'; document.body.appendChild(a); a.click(); a.remove(); window.__baixouDeVerdade = (window.__baixouDeVerdade || 0); };
+  document.getElementById('doc2').onclick = () => { const u = URL.createObjectURL(new Blob([bin('${jpg64}')], { type: 'image/jpeg' })); const a = document.createElement('a'); a.href = u; a.download = 'comprovante-itau.jpg'; document.body.appendChild(a); a.click(); a.remove(); };
   // Rolar até o topo carrega mensagens mais antigas (uma vez)
   const lista = document.getElementById('lista'); let carregou = false;
   lista.addEventListener('scroll', () => { if (lista.scrollTop === 0 && !carregou) { carregou = true; setTimeout(() => { document.getElementById('msgs').insertAdjacentHTML('afterbegin', ${JSON.stringify(sep('28/09/2026') + linhaTexto('false_g@g.us_A0_5521933333333@c.us', '[10:00, 28/09/2026] Maria Beatriz: ', 'Paciente Antiga Fora Do Periodo<br>Pagamento: R$ 500,00'))}); }, 300); } });
@@ -37,6 +41,7 @@ ${sep('05/10/2026')}
 (async () => {
   const b = await chromium.launch({ args: ['--disable-features=PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests,LocalNetworkAccessChecks,PrivateNetworkAccessSendPreflights'] });
   const ctx = await b.newContext({ acceptDownloads: false, ignoreHTTPSErrors: true });
+  ctx.on('response', async (resp) => { if (resp.url().includes('acao=lote')) { try { const j = await resp.json(); console.log('[lote]', JSON.stringify(j.dados.itens.map((i) => ({ id: i.id, dia: i.dia, hora: i.hora, autor: i.autor, cab: i.cab, t: (i.texto || '').slice(0, 60), arq: i.arquivo, pdf: i.pdfNome })))); } catch (e) {} } });
   await ctx.addInitScript(() => { if (location.hostname === 'clinicablue.pages.dev') localStorage.setItem('blueFinSenha', 'SenhaTeste'); });
   await ctx.route('**/*', async (r) => {
     const u = new URL(r.request().url());
@@ -51,7 +56,7 @@ ${sep('05/10/2026')}
     }
     if (u.hostname === 'clinicablue.pages.dev') {
       const resp = await r.fetch({ url: LOCAL + u.pathname + u.search, maxRedirects: 0 });
-      const h = resp.headers();
+      const h = resp.headers(); console.log('[rota]', r.request().method(), u.pathname, resp.status(), h.location || '');
       // Só no teste: o Playwright não entrega redirecionamento de POST interceptado; a página faz o mesmo salto.
       if (h.location) return r.fulfill({ status: 200, contentType: 'text/html', body: '<script>location.replace(' + JSON.stringify(h.location) + ')</script>' });
       return r.fulfill({ response: resp });
@@ -75,7 +80,7 @@ ${sep('05/10/2026')}
   const linhas = await popup.$$eval('#linhas tr', (trs) => trs.map((tr) => [...tr.children].map((td) => (td.classList.contains('vermelha') ? '🟥' : '') + td.textContent.trim()).join(' | ')));
   linhas.forEach((l) => console.log('  ', l));
   console.log('KPIs:', await popup.textContent('#k-rec'), '/', await popup.textContent('#k-falta'), '/', await popup.textContent('#k-pac'), '/', await popup.textContent('#k-pend'));
-  await popup.screenshot({ path: path.join(require('os').tmpdir(), 'conciliacao.png'), fullPage: true });
+  await popup.screenshot({ path: path.join(__dirname, 'conciliacao.png'), fullPage: true });
   // Ler de novo não duplica
   const n1 = (await (await fetch(LOCAL + '/api/conciliacao', { headers: { 'x-financeiro-senha': 'SenhaTeste' } })).json()).linhas.length;
   console.log('linhas no banco:', n1);

@@ -21,7 +21,7 @@
     '<div style="display:flex;gap:8px"><label style="flex:1">De<input id="bc-de" type="date" ' + inp + ' value="' + iso(inicioMes) + '"></label>' +
     '<label style="flex:1">Até<input id="bc-ate" type="date" ' + inp + ' value="' + iso(hoje) + '"></label></div>' +
     '<button id="bc-ir" style="margin-top:12px;width:100%;border:0;border-radius:10px;padding:11px;background:#13294a;color:#fff;font:bold 15px Arial;cursor:pointer">Ler e conciliar</button>' +
-    '<div id="bc-st" style="margin-top:10px;font-size:13px;color:#5b6b82">Lê as mensagens, imagens e PDFs do período e abre a planilha.</div>' +
+    '<div id="bc-st" style="margin-top:10px;font-size:13px;color:#5b6b82">Lê as mensagens, fotos, PDFs e imagens enviadas como arquivo do período e abre a planilha.</div>' +
     '<div style="text-align:right;margin-top:8px"><button id="bc-x" style="border:0;background:#eaf2fb;border-radius:8px;padding:5px 11px;cursor:pointer">Fechar</button></div>';
   document.body.appendChild(caixa);
   const $ = (s) => caixa.querySelector(s);
@@ -69,11 +69,11 @@
   };
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // Captura do PDF: o WhatsApp monta o arquivo (blob) para baixar; o botão fica com ele em vez de salvar no computador.
+  // Captura do documento (PDF, PNG, JPG… enviado como arquivo): o WhatsApp monta o arquivo (blob) para baixar; o botão fica com ele em vez de salvar no computador.
   let capturando = null;
   const origCreate = URL.createObjectURL, origClick = HTMLAnchorElement.prototype.click, origOpen = window.open;
   const ligarCaptura = () => {
-    URL.createObjectURL = function (b) { const u = origCreate.apply(this, arguments); if (capturando && b instanceof Blob && /pdf|octet/.test(b.type || 'application/pdf')) capturando(b); return u; };
+    URL.createObjectURL = function (b) { const u = origCreate.apply(this, arguments); if (capturando && b instanceof Blob && /pdf|octet|image\//.test(b.type || 'application/pdf')) capturando(b); return u; };
     HTMLAnchorElement.prototype.click = function () { if (capturando && /^blob:/.test(this.href)) return; return origClick.apply(this, arguments); };
     window.open = function (u) { if (capturando && /^blob:/.test(String(u))) return null; return origOpen.apply(this, arguments); };
   };
@@ -82,7 +82,7 @@
     let feito = false;
     const fim = (b) => { if (feito) return; feito = true; capturando = null; ok(b || null); };
     capturando = (b) => fim(b);
-    const alvo = linha.querySelector('[data-icon*="download"], [data-icon*="document"], [role="button"][title$=".pdf" i], [title$=".pdf" i]') || linha.querySelector('[role="button"]');
+    const alvo = linha.querySelector('[data-icon*="download"], [data-icon*="document"], [title$=".pdf" i], [title$=".png" i], [title$=".jpg" i], [title$=".jpeg" i], [title$=".webp" i], [title$=".heic" i]') || linha.querySelector('[role="button"]');
     try { (alvo || linha).click(); } catch (e) { /* segue */ }
     setTimeout(() => fim(null), 6000);
   });
@@ -127,8 +127,8 @@
         if (vistos.has(id) || !diaAtual) continue;
         const item = { id, dia: diaAtual, hora: pad(hora.split(':')[0]) + ':' + (hora.split(':')[1] || '00'), autor, cab: cabEl ? cabEl.getAttribute('data-pre-plain-text') : '', texto: cabEl ? texto(cabEl.querySelector('.selectable-text') || cabEl) : '' };
         if (item.dia < de || item.dia > ate) { vistos.set(id, null); continue; }
-        // Comprovante em PDF
-        const nomePdf = [...row.querySelectorAll('[title]')].map((e) => e.getAttribute('title')).find((t) => /\.pdf$/i.test(t || '')) || ((row.textContent.match(/[^\n]{1,80}\.pdf\b/i) || [])[0] || '');
+        // Comprovante enviado como documento: PDF ou imagem em arquivo (PNG, JPG, WEBP, HEIC…)
+        const nomePdf = [...row.querySelectorAll('[title]')].map((e) => e.getAttribute('title')).find((t) => /\.(pdf|png|jpe?g|webp|heic|heif|gif)$/i.test(t || '')) || ((row.textContent.match(/[^\n]{1,80}\.(?:pdf|png|jpe?g|webp|heic|heif|gif)\b/i) || [])[0] || '');
         if (nomePdf) item.pdf = { nome: nomePdf.trim(), row };
         // Comprovante em imagem (fotos do WhatsApp são blob:; ícones e fotos de perfil ficam de fora)
         const img = [...row.querySelectorAll('img[src^="blob:"]')].sort((a, b) => b.naturalWidth * b.naturalHeight - a.naturalWidth * a.naturalHeight)[0];
@@ -165,7 +165,10 @@
         if (it.img) { const b = await jpeg(it.img); if (b) { it.arquivo = 'img-' + i + '.jpg'; dt.items.add(new File([b], it.arquivo, { type: 'image/jpeg' })); nImg++; } }
         if (it.pdf) {
           const b = it.pdf.row.isConnected ? await pegarPdf(it.pdf.row) : null;
-          if (b) { it.arquivo = 'pdf-' + i + '.pdf'; dt.items.add(new File([b], it.arquivo, { type: 'application/pdf' })); nPdf++; } else semPdf++;
+          // PDF fica PDF; imagem enviada como arquivo vai como imagem (o tipo vem do próprio arquivo ou da extensão)
+          const ehPdf = /pdf/i.test(b ? b.type : '') || /\.pdf$/i.test(it.pdf.nome);
+          const tipo = ehPdf ? 'application/pdf' : (b && /^image\//.test(b.type) ? b.type : 'image/' + ((it.pdf.nome.match(/\.(\w+)$/) || [])[1] || 'jpeg').toLowerCase().replace('jpg', 'jpeg'));
+          if (b) { it.arquivo = (ehPdf ? 'pdf-' : 'doc-') + i + '.' + (ehPdf ? 'pdf' : tipo.split('/')[1]); dt.items.add(new File([b], it.arquivo, { type: tipo })); nPdf++; } else semPdf++;
           it.pdfNome = it.pdf.nome;
         }
         delete it.img; delete it.pdf;
@@ -175,11 +178,11 @@
       campo('dados', JSON.stringify({ grupo: ((document.querySelector('#main header span[dir="auto"]') || {}).textContent || '').trim(), de, ate, lidoEm: new Date().toISOString(), itens }));
       const arq = document.createElement('input'); arq.type = 'file'; arq.name = 'arquivo'; arq.multiple = true; arq.files = dt.files; form.appendChild(arq);
       document.body.appendChild(form);
-      st('Enviando ' + itens.length + ' mensagens, ' + nImg + ' imagens e ' + nPdf + ' PDFs…' + (semPdf ? ' (' + semPdf + ' PDF não abriu: vai aparecer em vermelho)' : ''));
+      st('Enviando ' + itens.length + ' mensagens, ' + nImg + ' imagens e ' + nPdf + ' arquivos (PDF/imagem)…' + (semPdf ? ' (' + semPdf + ' arquivo não abriu: vai aparecer em vermelho)' : ''));
       form.submit();
       setTimeout(() => form.remove(), 5000);
       $('#bc-ir').disabled = false;
-      st('Pronto! A planilha abriu em outra aba. ' + itens.length + ' mensagens · ' + nImg + ' imagens · ' + nPdf + ' PDFs.');
+      st('Pronto! A planilha abriu em outra aba. ' + itens.length + ' mensagens · ' + nImg + ' imagens · ' + nPdf + ' arquivos (PDF/imagem).');
     } catch (e) {
       desligarCaptura();
       $('#bc-ir').disabled = false;

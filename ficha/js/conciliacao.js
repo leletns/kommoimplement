@@ -53,7 +53,7 @@
     let feitos = 0;
     for (const it of midias) {
       prog(feitos / Math.max(1, midias.length));
-      msg('Lendo os comprovantes… ' + (feitos + 1) + ' de ' + midias.length + (it.pdfNome ? ' (PDF ' + it.pdfNome + ')' : ''));
+      msg('Lendo os comprovantes… ' + (feitos + 1) + ' de ' + midias.length + (it.pdfNome ? ' (' + it.pdfNome + ')' : ''));
       feitos++;
       let comp = null;
       if (it.arquivo) {
@@ -61,9 +61,9 @@
           const blob = await api('?acao=arquivo&id=' + encodeURIComponent(id) + '&nome=' + encodeURIComponent(it.arquivo));
           const lido = await L.lerArquivo(blob);
           const d = C.lerComprovante(lido.texto, { confiancaOcr: lido.confianca });
-          comp = { valor: d.valor, moeda: d.moeda, data: d.data ? C.dataISO(d.data) : '', forma: d.forma || d.tipoDocumento || '', pagador: d.pagador || '', banco: d.banco || '', idTransacao: d.idTransacao || '', arquivo: it.pdfNome || it.arquivo, tipo: /pdf/i.test(it.arquivo) ? 'PDF' : it.pdfNome ? 'PDF (prévia)' : 'Imagem', lido: d.valor != null };
-        } catch (e) { console.error('[conciliacao] não li ' + it.arquivo + ': ' + (e && e.message)); comp = { valor: null, arquivo: it.pdfNome || it.arquivo, tipo: it.pdfNome ? 'PDF' : 'Imagem', lido: false }; }
-      } else comp = { valor: null, arquivo: it.pdfNome, tipo: 'PDF', lido: false };
+          comp = { valor: d.valor, moeda: d.moeda, data: d.data ? C.dataISO(d.data) : '', forma: d.forma || d.tipoDocumento || '', pagador: d.pagador || '', banco: d.banco || '', idTransacao: d.idTransacao || '', arquivo: it.pdfNome || it.arquivo, tipo: /\.pdf$/i.test(it.arquivo) ? 'PDF' : /^doc-/.test(it.arquivo) ? 'Imagem (arquivo)' : /\.pdf$/i.test(it.pdfNome || '') ? 'PDF (prévia)' : 'Imagem', lido: d.valor != null };
+        } catch (e) { console.error('[conciliacao] não li ' + it.arquivo + ': ' + (e && e.message)); comp = { valor: null, arquivo: it.pdfNome || it.arquivo, tipo: /\.pdf$/i.test(it.pdfNome || it.arquivo) ? 'PDF' : 'Imagem', lido: false }; }
+      } else comp = { valor: null, arquivo: it.pdfNome, tipo: /\.pdf$/i.test(it.pdfNome) ? 'PDF' : 'Arquivo', lido: false };
       // Liga o comprovante à mensagem da paciente: a própria legenda; senão a mensagem do mesmo autor mais perto no tempo (até 30 min); senão o nome do pagador.
       let alvo = porItem.get(it.id);
       if (!alvo) {
@@ -79,7 +79,7 @@
       } else {
         regs.push({ chave: it.id, data: (comp.data && comp.data.slice(0, 7) === String(it.dia).slice(0, 7) ? comp.data : it.dia), hora: it.hora, autor: it.autor, nome: comp.pagador ? nomeBonito(comp.pagador) : null,
           telefone: null, pago: comp.valor, total: null, tipo: 'consulta', restante: false, origem: 'comprovante', comprovante: comp,
-          texto: comp.lido ? '' : (it.pdfNome ? 'PDF não lido: ' + it.pdfNome : 'Comprovante ilegível') });
+          texto: comp.lido ? '' : (it.pdfNome ? 'Arquivo não lido: ' + it.pdfNome : 'Comprovante ilegível') });
       }
     }
     prog(1);
