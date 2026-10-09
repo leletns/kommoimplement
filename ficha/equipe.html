@@ -46,7 +46,7 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
 <main>
   <form id="f">
     <input id="q" placeholder="Buscar por nome, celular ou e-mail" autocomplete="off">
-    <input id="senha" type="password" placeholder="Senha da equipe" hidden>
+    <input id="senha" type="password" placeholder="Senha da equipe" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" hidden><label id="ver-senha" style="font-size:13px;display:none;align-items:center;gap:4px;color:var(--muted)"><input type="checkbox" id="mostrar" style="flex:none;width:auto"> mostrar senha</label>
     <button>Buscar</button>
   </form>
   <div class="acts"><button type="button" class="sec" id="bk-csv">⬇️ Cópia de segurança (Excel)</button><button type="button" class="sec" id="bk-json">⬇️ Cópia completa (JSON)</button><button type="button" class="sec" id="bk-sheet">📊 Planilha que atualiza sozinha</button></div>
@@ -61,7 +61,11 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   let senha="";try{senha=localStorage.getItem("blueEquipeSenha")||"";}catch(e){}
-  if(!senha)$("senha").hidden=false;
+  const pedirSenha=()=>{$("senha").hidden=false;$("ver-senha").style.display="flex";};
+  $("mostrar").onchange=()=>{$("senha").type=$("mostrar").checked?"text":"password";};
+  const lerSenha=()=>{if(!$("senha").hidden)senha=$("senha").value.trim();};
+  const cab=()=>({"x-painel-senha":encodeURIComponent(senha)});
+  if(!senha)pedirSenha();
   let vistas={};try{vistas=JSON.parse(localStorage.getItem("blueFichasVistas")||"{}");}catch(e){}
   const marcarVista=l=>{if(l==null)return;vistas[l]=1;try{localStorage.setItem("blueFichasVistas",JSON.stringify(vistas));}catch(e){}};
   const msg=(t,c)=>{$("msg").className=c||"";$("msg").textContent=t;};
@@ -130,16 +134,16 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
   }
   const mostrarPill=b=>{const p=b.closest(".card").querySelector(".pill");if(p){p.className="pill";p.textContent="vista";}};
   async function chamar(qs){
-    if(!$("senha").hidden)senha=$("senha").value;
-    const r=await fetch("/api/ficha-busca?"+qs,{headers:{"x-painel-senha":senha}});
-    if(r.status===401){try{localStorage.removeItem("blueEquipeSenha");}catch(e){}$("senha").hidden=false;throw new Error("senha");}
+    lerSenha();
+    const r=await fetch("/api/ficha-busca?"+qs,{headers:cab()});
+    if(r.status===401){try{localStorage.removeItem("blueEquipeSenha");}catch(e){}pedirSenha();throw new Error("senha");}
     const j=await r.json();if(!j.ok)throw new Error(j.erro||"erro");
-    try{localStorage.setItem("blueEquipeSenha",senha);}catch(e){}$("senha").hidden=true;return j;
+    try{localStorage.setItem("blueEquipeSenha",senha);}catch(e){}$("senha").hidden=true;$("ver-senha").style.display="none";return j;
   }
   async function recentes(){
     msg("Carregando fichas…");
     try{const j=await chamar("recentes=1");msg("");$("h-lista").firstChild.textContent="Todas as fichas recebidas ("+j.fichas.length+") ";$("atual").textContent="atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});mostrar(j.fichas,$("res"));}
-    catch(e){msg(e.message==="senha"?"Digite a senha da equipe e clique em Buscar.":"Não consegui carregar agora.","bad");}
+    catch(e){msg(e.message==="senha"?($("senha").value.trim()?"Senha incorreta. Confira letras maiúsculas e minúsculas (use \"mostrar senha\").":"Digite a senha da equipe e clique em Buscar."):"Não consegui carregar agora.","bad");}
   }
   $("f").addEventListener("submit",async e=>{
     e.preventDefault();const q=$("q").value.trim();
@@ -149,12 +153,12 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
     catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui buscar agora.","bad");}
   });
   async function copia(formato){
-    if(!$("senha").hidden)senha=$("senha").value;
-    if(!senha){msg("Digite a senha da equipe primeiro.","bad");$("senha").hidden=false;return;}
+    lerSenha();
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");pedirSenha();return;}
     msg("Gerando a cópia de todas as fichas…");
     try{
-      const r=await fetch("/api/ficha-backup?formato="+formato,{headers:{"x-painel-senha":senha}});
-      if(r.status===401){$("senha").hidden=false;throw new Error("senha");}
+      const r=await fetch("/api/ficha-backup?formato="+formato,{headers:cab()});
+      if(r.status===401){pedirSenha();throw new Error("senha");}
       if(!r.ok)throw new Error("erro");
       const nome=(r.headers.get("content-disposition")||"").match(/filename="([^"]+)"/),a=document.createElement("a");
       a.href=URL.createObjectURL(await r.blob());a.download=nome?nome[1]:"fichas-blue."+formato;document.body.appendChild(a);a.click();a.remove();
@@ -162,11 +166,11 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
     }catch(e){msg(e.message==="senha"?"Senha incorreta.":"Não consegui gerar a cópia agora.","bad");}
   }
   $("bk-sheet").onclick=async()=>{
-    if(!$("senha").hidden)senha=$("senha").value;
-    if(!senha){msg("Digite a senha da equipe primeiro.","bad");$("senha").hidden=false;return;}
+    lerSenha();
+    if(!senha){msg("Digite a senha da equipe primeiro.","bad");pedirSenha();return;}
     try{
-      const r=await fetch("/api/fichas-planilha?link=1",{headers:{"x-painel-senha":senha}});
-      if(r.status===401){$("senha").hidden=false;throw new Error("senha");}
+      const r=await fetch("/api/fichas-planilha?link=1",{headers:cab()});
+      if(r.status===401){pedirSenha();throw new Error("senha");}
       const j=await r.json();if(!j.ok)throw new Error("erro");
       const f='=IMPORTDATA("'+j.link+'")',box=$("planilha");box.hidden=false;
       box.innerHTML='<h3>Planilha do Google ligada ao banco</h3><p class="meta">1. Abra <b>sheets.new</b> logada na conta da clínica. 2. Clique na célula A1. 3. Cole a fórmula abaixo e aperte Enter. Toda ficha nova aparece sozinha (o Google atualiza em até 1 hora). Não compartilhe a fórmula: quem tiver o link vê as fichas.</p><input id="formula" readonly style="width:100%;margin-top:8px"><div class="acts"><button type="button" id="cp-f">Copiar fórmula</button></div>';
@@ -175,7 +179,7 @@ dt{color:var(--muted)} dd{margin:0;color:var(--ink);overflow-wrap:anywhere;white
   };
   $("bk-csv").onclick=()=>copia("csv");$("bk-json").onclick=()=>copia("json");
   const q0=new URLSearchParams(location.search).get("q");
-  if(q0){$("q").value=q0;if(senha)$("f").requestSubmit();}else if(senha)recentes();else msg("Digite a senha da equipe e clique em Buscar.");
+  if(q0){$("q").value=q0;if(senha)$("f").requestSubmit();}else if(senha)recentes();else{pedirSenha();msg("Digite a senha da equipe e clique em Buscar.");}
   setInterval(()=>{if(senha&&!$("q").value.trim())recentes();},120000);
 })();
 </script>

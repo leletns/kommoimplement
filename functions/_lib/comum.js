@@ -54,7 +54,13 @@ export function corsDe(request, env) {
   return ok ? { 'access-control-allow-origin': origem, 'access-control-allow-headers': 'x-painel-senha, content-type', 'access-control-allow-methods': 'GET, OPTIONS', vary: 'origin' } : {};
 }
 
+/** Senha do cabeçalho: tira espaços e quebras de linha das pontas (senha colada do WhatsApp) e aceita acentos (vem codificada). */
+export const senhaDoPedido = (request) => {
+  const bruta = String(request.headers.get('x-painel-senha') || '').trim();
+  try { return decodeURIComponent(bruta).trim(); } catch { return bruta; }
+};
+
 export const senhaOk = (request, env) => {
-  const senha = env.FICHA_SENHA || env.PAINEL_SENHA;
-  return !!senha && igual(request.headers.get('x-painel-senha') || '', senha);
+  const senha = String(env.FICHA_SENHA || env.PAINEL_SENHA || '').trim();
+  return !!senha && igual(senhaDoPedido(request), senha);
 };
